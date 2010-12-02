@@ -1,0 +1,1 @@
+dvbs_multicast 224.0.1.3 | readnoaaport -n -u 3 &

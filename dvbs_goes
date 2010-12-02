@@ -1,0 +1,1 @@
+dvbs_multicast -b 5000 224.0.1.2 | readnoaaport -n -u 5 &
