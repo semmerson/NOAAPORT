@@ -30,7 +30,8 @@ INSTALLED_PROGRAMS 	= \
 	goese_mps3 \
 	nplog_rotate
 CPPFLAGS 		= -Ig2 -Igempak -Izlib -I../include
-LDM_LIBRARY 		= -L../lib -lldm
+LIBDIR			= ../lib
+LDM_LIBRARY 		= -L$(LIBDIR) -lldm
 
 all:			$(BUILT_PROGRAMS)
 
@@ -69,16 +70,17 @@ noaaport_version.c: 	VERSION
 readnoaaport: 		$(READNOAAPORT_OBJS) Zlib PNGlib shmfifo.o _g2lib \
 			_gemlib
 	$(CC) -o $@ $(CFLAGS) $(READNOAAPORT_OBJS) shmfifo.o g2/g2c.a \
-	    gempak/gemgrib.a $(LDM_LIBRARY) -Wl,-rpath,`cd ../lib && pwd` \
-	    $(LIBS) libpng/libpng.a zlib/libz.a -lm
+	    gempak/gemgrib.a $(LDM_LIBRARY) libpng/libpng.a zlib/libz.a -lm \
+	    $(LIBS) -Wl,-rpath,`cd $(LIBDIR) && pwd`
 
 dvbs_multicast: 	dvbs_multicast.o shmfifo.o noaaport_version.o
 	$(CC) -o $@ $(CFLAGS) $@.o noaaport_version.o shmfifo.o \
-	    $(LDM_LIBRARY) -Wl,-rpath,`cd ../lib && pwd` $(LIBS) -lrt -lm
+	    $(LDM_LIBRARY) -lrt -lm $(LIBS) -Wl,-rpath,`cd $(LIBDIR) && pwd`
 
 test: 			readnoaaport
-	-pqcreate -s 2m /tmp/test.pq
-	readnoaaport -q /tmp/test.pq -l - -nvx nwstgdump.data
+	test -f /tmp/test.pq || pqcreate -s 2m /tmp/test.pq
+	./readnoaaport -q /tmp/test.pq -l - -nvx nwstgdump.data
+	rm /tmp/test.pq
 
 clean: 			clean_Zlib clean_PNGlib clean_g2lib clean_gemlib
 	rm -f *.o $(BUILT_PROGRAMS)
