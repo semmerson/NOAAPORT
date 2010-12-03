@@ -124,9 +124,9 @@ tardist: 		clean
 	&& cd .. \
 	&& rm -f $$id  \
 	&& ln -s noaaport $$id \
-	&& pax -L -w -x ustar $$id/C[^V]* \
-		$$id/[ABD-z]* \
-	| gzip > noaaport-$$version.tar.gz
+	&& pax -w -x ustar $$id/C[^V]* $$id/[ABD-z]* \
+	| gzip > noaaport-$$version.tar.gz \
+	&& rm $$id
 
 .SUFFIXES:	.i .c
 
