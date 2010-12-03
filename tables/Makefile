@@ -1,6 +1,5 @@
 include ../../src/macros.make
 
-INSTALL	= cp
 ETCDIR	= ../../etc
 
 GRIB_TABLES = \
@@ -25,6 +24,4 @@ install:
 	done;
 
 $(ETCDIR)/$(GFILE): $(ETCDIR) $(GFILE)
-	($(INSTALL) $(GFILE) $@ && echo '$@ installed') 
-
-include ../../src/rules.make
+	cp $< $@ && echo '$@ installed'

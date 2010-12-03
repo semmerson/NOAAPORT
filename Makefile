@@ -69,12 +69,12 @@ noaaport_version.c: 	VERSION
 readnoaaport: 		$(READNOAAPORT_OBJS) Zlib PNGlib shmfifo.o _g2lib \
 			_gemlib
 	$(CC) -o $@ $(CFLAGS) $(READNOAAPORT_OBJS) shmfifo.o g2/g2c.a \
-	    gempak/gemgrib.a $(LDM_LIBRARY) $(LIBS) \
-	    libpng/libpng.a zlib/libz.a -lm
+	    gempak/gemgrib.a $(LDM_LIBRARY) -Wl,-rpath,`cd ../lib && pwd` \
+	    $(LIBS) libpng/libpng.a zlib/libz.a -lm
 
 dvbs_multicast: 	dvbs_multicast.o shmfifo.o noaaport_version.o
 	$(CC) -o $@ $(CFLAGS) $@.o noaaport_version.o shmfifo.o \
-	    $(LDM_LIBRARY) $(LIBS) -lrt -lm
+	    $(LDM_LIBRARY) -Wl,-rpath,`cd ../lib && pwd` $(LIBS) -lrt -lm
 
 test: 			readnoaaport
 	-pqcreate -s 2m /tmp/test.pq
