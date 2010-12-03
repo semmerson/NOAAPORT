@@ -1,7 +1,8 @@
 /*
- *   Copyright 2004, University Corporation for Atmospheric Research
+ *   Copyright 2010, University Corporation for Atmospheric Research
  *   See COPYRIGHT file for copying and redistribution conditions.
  */
+#define _XOPEN_SOURCE 500
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,10 +55,6 @@ unsigned long idle = 0;
 fd_set readfds;
 fd_set exceptfds;
 static int DONE = 0;
-
-/* static char *logfname = "";  these now defined in globals.h/.c !!!
-static char *pqfname = DEFAULT_QUEUE; */
-
 
 static const char *FOS_TRAILER = "\015\015\012\003";
 
@@ -169,7 +166,7 @@ usage (char *av0		/*  id string */
   (void) fprintf (stderr, "\t-l logfile   Default logs to syslogd\n");
   (void) fprintf (stderr,
 		  "\t-f type      Claim to be feedtype \"type\", one of \"hds\", \"ddplus\", ...\n");
-  (void) fprintf (stderr, "\t-q queue     default \"%s\"\n", DEFAULT_QUEUE);
+  (void) fprintf (stderr, "\t-q queue     default \"%s\"\n", getQueuePath());
   (void) fprintf (stderr, "\t-u number    default LOCAL0\n");
   exit (1);
 }
@@ -339,7 +336,7 @@ main (argc, argv)
      int argc;
      char *argv[];
 {
-
+  const char *pqfname;
   int fd;
   char *prodmmap, *memheap = NULL;
   size_t heapsize, heapcount;
@@ -397,7 +394,7 @@ main (argc, argv)
 	logfname = optarg;
 	break;
       case 'q':
-	pqfname = optarg;
+	setQueuePath(optarg);
 	break;
       case 'u':
 	ulog_facility = atoi(optarg);
@@ -433,6 +430,8 @@ main (argc, argv)
 	usage (argv[0]);
 	break;
       }
+
+  pqfname = getQueuePath();
 
   (void) setulogmask (logmask);
   if (argc - optind < 0)

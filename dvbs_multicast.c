@@ -2,16 +2,18 @@
  *   Copyright 2004, University Corporation for Atmospheric Research
  *   See COPYRIGHT file for copying and redistribution conditions.
  */
+#define _XOPEN_SOURCE 500
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
-#include <unistd.h>		/* close */
+#include <unistd.h>		/* close() */
 #include <sys/socket.h>
 #include <sys/types.h>
+#define __USE_MISC              /* To get "struct ip_mreq". Don't move! */
 #include <netdb.h>
-#include <netinet/in.h>
+#include <netinet/in.h>         /* defines "struct ip_mreq" */
 #include <arpa/inet.h>
 #include <sched.h>		/* Use Realtime Scheduler */
 
@@ -45,8 +47,6 @@ extern char *version_str;
 /* #define MAX_PID 8		.* eg 124.0.1.8 *.
 int s_port[] = { 1201, 1202, 1203, 1204, 1205, 1206, 1207, 1208 }; */
 
-/* pqueue *pq = NULL; this now defined in globals.h/globals.c */
-
 
 /* prototypes */
 void cleanup ();
@@ -62,7 +62,7 @@ usage (char *av0 /*  id string */ )
 		  "\t-v           Verbose, tell me about each packet\n");
   (void) fprintf (stderr, "\t-x           Log debug messages\n");
   (void) fprintf (stderr, "\t-l logfile   Default logs to syslogd\n");
-  (void) fprintf (stderr, "\t-q queue     default \"%s\"\n", DEFAULT_QUEUE);
+  (void) fprintf (stderr, "\t-q queue     default \"%s\"\n", getQueuePath());
   (void) fprintf (stderr, "\t-d           dump packets, no output");
   (void) fprintf (stderr, "\t-b pagnum    Number of pages for shared memory buffer\n");
   exit (1);
@@ -158,6 +158,7 @@ set_sigactions (void)
 int
 main (int argc, char *argv[])
 {
+  const char *pqfname;
   int sd, rc, n, cliLen;
   struct ip_mreq mreq;
   struct sockaddr_in cliAddr, servAddr;
@@ -174,8 +175,6 @@ main (int argc, char *argv[])
   int ch;
   int logmask = LOG_MASK (LOG_ERR);
   int logfd;
-  /*static char *logfname = ""; These now defined in globals.h
-  static char *pqfname = DEFAULT_QUEUE;*/
 
   int status, ipri=0, rtflag = 0;
   int bufpag = CBUFPAG;
@@ -207,7 +206,7 @@ main (int argc, char *argv[])
 	logfname = optarg;
 	break;
       case 'q':
-	pqfname = optarg;
+	setQueuePath(optarg);
 	break;
       case 'I':
 	imr_interface = optarg;
@@ -237,6 +236,8 @@ main (int argc, char *argv[])
 	usage (argv[0]);
 	break;
       }
+
+  pqfname = getQueuePath();
 
   (void) setulogmask (logmask);
   if (argc - optind < 1)

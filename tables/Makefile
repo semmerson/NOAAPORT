@@ -1,6 +1,7 @@
 include ../../src/macros.make
 
-INSTALL= cp
+INSTALL	= cp
+ETCDIR	= ../../etc
 
 GRIB_TABLES = \
 	g2varsncep0.tbl \
@@ -19,7 +20,7 @@ GRIB_TABLES = \
 install:
 	@for file in $(GRIB_TABLES) ""; do \
 	   if test "$$file" ; then \
-	      $(MAKE) GFILE=$$file $(ETCDIR)/$$file ; \
+	      $(MAKE) GFILE=$$file $(ETCDIR)/$$file || exit 1; \
 	   fi; \
 	done;
 

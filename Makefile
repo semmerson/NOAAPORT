@@ -1,6 +1,8 @@
 include ../src/macros.make
 
-PROG_CSRCS = \
+PROG			= dummy_prog
+BINDIR			= ../bin
+READNOAAPORT_CSRCS 	= \
 	noaaport_version.c \
 	readsbn.c \
 	readpdh.c \
@@ -14,15 +16,10 @@ PROG_CSRCS = \
 	grib2name.c \
 	wgrib.c \
 	png_io.c
-
-PROG_OBJS = $(PROG_CSRCS:.c=.o)
-
-PROG = readnoaaport
-DVBS_PROG = dvbs_multicast
-C_PROGRAMS = $(PROG) $(DVBS_PROG)
-SETUID_PROGRAMS = $(DVBS_PROG)
-
-SHELL_PROGRAMS = \
+READNOAAPORT_OBJS	= $(READNOAAPORT_CSRCS:.c=.o)
+BUILT_PROGRAMS		=  readnoaaport dvbs_multicast
+INSTALLED_PROGRAMS 	= \
+	$(BUILT_PROGRAMS) \
 	dvbs_nwstg \
 	dvbs_goes \
 	dvbs_nwstg2 \
@@ -32,42 +29,59 @@ SHELL_PROGRAMS = \
 	gms-meteo_mps2 \
 	goese_mps3 \
 	nplog_rotate
+CPPFLAGS 		= -Ig2 -Igempak -Izlib -I../include
+LDM_LIBRARY 		= -L../lib -lldm
 
-INCLUDES = -I./g2 -I./gempak -I./zlib -I$(INCDIR) 
+all:			$(BUILT_PROGRAMS)
 
+install:		installed_programs
+	cd tables && $(MAKE) install
 
-LIBZ = zlib/libz.a
-LIBPNG = libpng/libpng.a
+installed_programs:	all
+	for prog in $(INSTALLED_PROGRAMS); do \
+	    $(MAKE) $(BINDIR)/$$prog PROG=$$prog || exit 1; \
+	done
 
-LIBRARY=-L$(LIBDIR) -lldm
-#LDLIBS =  $(LIBPNG) $(LIBZ) -lm 
-#LIBS = -L(LIBDIR) -lldm -loncrpc
-ZLIBS =  $(LIBPNG) $(LIBZ) -lm 
+$(BINDIR)/$(PROG):	$(PROG)
+	rm -f $@
+	cp $(PROG) $(BINDIR)
 
-PROG_LIBS = g2/g2c.a gempak/gemgrib.a
+install_setuids:
+	chown root $(BINDIR)/dvbs_multicast
+	chmod 4755 $(BINDIR)/dvbs_multicast
+	@if ls -l $(BINDIR)/dvbs_multicast | grep root >/dev/null; then \
+	    : true; \
+	else \
+	    echo; \
+	    echo "\
+ERROR: The program (../bin/dvbs_multicast) is not owned by \"root\" or does \
+not have the setuid bit enabled.  The command \"make install_setuids\" will \
+have to be manually executed by the superuser on a system that allows these \
+actions." \
+	    | fmt; \
+	    echo; \
+	    exit 1; \
+	fi
 
-CC= cc
-
-all: programs
-
-install : installed_programs
-	cd tables ; \
-	make install
-
-noaaport_version.c: VERSION
+noaaport_version.c: 	VERSION
 	echo 'const char* version_str = "'`cat VERSION`'";' >$@
 
-$(PROG): $(PROG_OBJS) Zlib PNGlib shmfifo.o _g2lib _gemlib
-	$(CC) -o $@ $(CFLAGS) $(PROG_OBJS) shmfifo.o $(PROG_LIBS) $(LIBS) $(CONFIGURE_LIBS) $(ZLIBS)
+readnoaaport: 		$(READNOAAPORT_OBJS) Zlib PNGlib shmfifo.o _g2lib \
+			_gemlib
+	$(CC) -o $@ $(CFLAGS) $(READNOAAPORT_OBJS) shmfifo.o g2/g2c.a \
+	    gempak/gemgrib.a $(LDM_LIBRARY) $(LIBS) \
+	    libpng/libpng.a zlib/libz.a -lm
 
-$(DVBS_PROG): $(DVBS_PROG).o shmfifo.o noaaport_version.o
-	$(CC) -o $@ $(CFLAGS) $@.o noaaport_version.o shmfifo.o $(LIBS) $(CONFIGURE_LIBS) -lrt -lm
+dvbs_multicast: 	dvbs_multicast.o shmfifo.o noaaport_version.o
+	$(CC) -o $@ $(CFLAGS) $@.o noaaport_version.o shmfifo.o \
+	    $(LDM_LIBRARY) $(LIBS) -lrt -lm
 
-test: $(PROG)
+test: 			readnoaaport
 	-pqcreate -s 2m /tmp/test.pq
 	readnoaaport -q /tmp/test.pq -l - -nvx nwstgdump.data
 
-clean: clean_Zlib clean_PNGlib clean_g2lib clean_gemlib
+clean: 			clean_Zlib clean_PNGlib clean_g2lib clean_gemlib
+	rm -f *.o $(BUILT_PROGRAMS)
 
 clean_Zlib:
 	cd zlib ; \
@@ -82,7 +96,7 @@ clean_g2lib:
 	make clean
 
 clean_gemlib:
-	 cd gempak ; \
+	cd gempak ; \
 	make clean
 
 Zlib:
@@ -99,9 +113,10 @@ _g2lib:
 
 _gemlib:
 	cd gempak ; \
-	make all CFLAGS="$(CFLAGS) -I../g2 -I$(INCDIR)"
+	make all CPPFLAGS='-I../g2 -I../../include -DLDMHOME=\"$(LDMHOME)\"' \
+	    CFLAGS='$(CFLAGS)'
 
-tardist: clean
+tardist: 		clean
 	version=`cat VERSION`; \
 	id=noaaport-$$version \
 	&& cd .. \
@@ -111,4 +126,9 @@ tardist: clean
 		$$id/[ABD-z]* \
 	| gzip > noaaport-$$version.tar.gz
 
-include ../src/rules.make
+.SUFFIXES:	.i .c
+
+.c.i:
+	$(CC) -E $(CPPFLAGS) $< >$@
+
+FORCE:
