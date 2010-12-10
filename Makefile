@@ -31,7 +31,7 @@ INSTALLED_PROGRAMS 	= \
 	nplog_rotate
 CPPFLAGS 		= -Ig2 -Igempak -Izlib -I../include
 LIBDIR			= ../lib
-LDM_LIBRARY 		= -L$(LIBDIR) -lldm
+LDM_LIBRARY 		= -L$(LIBDIR) -lldm -lxml2
 
 all:			$(BUILT_PROGRAMS)
 

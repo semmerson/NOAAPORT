@@ -24,4 +24,4 @@ install:
 	done;
 
 $(ETCDIR)/$(GFILE): $(ETCDIR) $(GFILE)
-	cp $< $@ && echo '$@ installed'
+	cp $(GFILE) $@ && echo '$@ installed'
