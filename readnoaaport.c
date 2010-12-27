@@ -20,7 +20,6 @@
 #include "shmfifo.h"
 
 #include "ldm.h"
-#include "paths.h"
 #include "globals.h"
 #include "md5.h"
 #include "ulog.h"

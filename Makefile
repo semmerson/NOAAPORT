@@ -1,7 +1,10 @@
-include ../src/macros.make
+# Makefile for "readnoaaport" and "dvbs_multicast"
+
+LDM_PREFIX		= ..
+LIBS			= -lnsl -lsocket
+DEFINES			= -D__EXTENSIONS__
 
 PROG			= dummy_prog
-BINDIR			= ../bin
 READNOAAPORT_CSRCS 	= \
 	noaaport_version.c \
 	readsbn.c \
@@ -29,9 +32,15 @@ INSTALLED_PROGRAMS 	= \
 	gms-meteo_mps2 \
 	goese_mps3 \
 	nplog_rotate
-CPPFLAGS 		= -Ig2 -Igempak -Izlib -I../include
-LIBDIR			= ../lib
-LDM_LIBRARY 		= -L$(LIBDIR) -lldm -lxml2
+
+LIBDIR			= $(LDM_PREFIX)/lib
+BINDIR			= $(LDM_PREFIX)/bin
+LDM_LIBRARIES 		= $(LIBDIR)/libldm.a $(LIBDIR)/libxml2.a
+INCLUDES 		= -Ig2 -Igempak -Izlib -I$(LDM_PREFIX)/include \
+			  -I$(LDM_PREFIX)/src
+
+include $(LDM_PREFIX)/src/macros.make
+
 
 all:			$(BUILT_PROGRAMS)
 
@@ -40,12 +49,13 @@ install:		installed_programs
 
 installed_programs:	all
 	for prog in $(INSTALLED_PROGRAMS); do \
-	    $(MAKE) $(BINDIR)/$$prog PROG=$$prog || exit 1; \
+	    $(MAKE) $(BINDIR)/$$prog PROG=$$prog LDM_PREFIX=$(LDM_PREFIX) \
+		|| exit 1; \
 	done
 
 $(BINDIR)/$(PROG):	$(PROG)
 	rm -f $@
-	cp $(PROG) $(BINDIR)
+	cp $(PROG) $@
 
 install_setuids:
 	chown root $(BINDIR)/dvbs_multicast
@@ -67,15 +77,15 @@ actions." \
 noaaport_version.c: 	VERSION
 	echo 'const char* version_str = "'`cat VERSION`'";' >$@
 
-readnoaaport: 		$(READNOAAPORT_OBJS) Zlib PNGlib shmfifo.o _g2lib \
-			_gemlib
+readnoaaport: 		$(READNOAAPORT_OBJS) zlib/libz.a libpng/libpng.a \
+			shmfifo.o g2/g2c.a gempak/gemgrib.a
 	$(CC) -o $@ $(CFLAGS) $(READNOAAPORT_OBJS) shmfifo.o g2/g2c.a \
-	    gempak/gemgrib.a $(LDM_LIBRARY) libpng/libpng.a zlib/libz.a -lm \
-	    $(LIBS) -Wl,-rpath,`cd $(LIBDIR) && pwd`
+	    gempak/gemgrib.a $(LDM_LIBRARIES) libpng/libpng.a zlib/libz.a -lm \
+	    $(LIBS)
 
 dvbs_multicast: 	dvbs_multicast.o shmfifo.o noaaport_version.o
 	$(CC) -o $@ $(CFLAGS) $@.o noaaport_version.o shmfifo.o \
-	    $(LDM_LIBRARY) -lrt -lm $(LIBS) -Wl,-rpath,`cd $(LIBDIR) && pwd`
+	    $(LDM_LIBRARIES) -lrt -lm $(LIBS)
 
 test: 			readnoaaport
 	test -f /tmp/test.pq || pqcreate -s 2m /tmp/test.pq
@@ -83,7 +93,7 @@ test: 			readnoaaport
 	rm /tmp/test.pq
 
 clean: 			clean_Zlib clean_PNGlib clean_g2lib clean_gemlib
-	rm -f *.o $(BUILT_PROGRAMS)
+	rm -f *.o *.i $(BUILT_PROGRAMS)
 
 clean_Zlib:
 	cd zlib ; \
@@ -101,22 +111,23 @@ clean_gemlib:
 	cd gempak ; \
 	make clean
 
-Zlib:
+zlib/libz.a:
 	cd zlib ; \
 	make all CFLAGS="$(CFLAGS)"
 
-PNGlib:
+libpng/libpng.a:
 	cd libpng ; \
 	make all CFLAGS="$(CFLAGS) -I../zlib"
 
-_g2lib:
+g2/g2c.a:
 	cd g2 ; \
 	make all CFLAGS="$(CFLAGS)"
 
-_gemlib:
+gempak/gemgrib.a:
 	cd gempak ; \
-	make all CPPFLAGS='-I../g2 -I../../include -DLDMHOME=\"$(LDMHOME)\"' \
-	    CFLAGS='$(CFLAGS)'
+	make all CC='$(CC)' CFLAGS='$(CFLAGS)' \
+	    CPPFLAGS="-I../g2 -I../$(LDM_PREFIX)/include \
+	    -DLDMHOME='\"$$LDMHOME\"'"
 
 tardist: 		clean
 	version=`cat VERSION`; \
@@ -124,13 +135,13 @@ tardist: 		clean
 	&& cd .. \
 	&& rm -f $$id  \
 	&& ln -s noaaport $$id \
-	&& pax -w -x ustar $$id/C[^V]* $$id/[ABD-z]* \
-	| gzip > noaaport-$$version.tar.gz \
+	&& pax -w -x ustar $$id/* | gzip > noaaport-$$version.tar.gz \
 	&& rm $$id
 
 .SUFFIXES:	.i .c
 
 .c.i:
-	$(CC) -E $(CPPFLAGS) $< >$@
+	$(CC) -E $(INCLUDES) $(DEFINES) $(CPPFLAGS) $< >$@
 
-FORCE:
+.c.o:
+	$(CC) -c $(INCLUDES) $(DEFINES) $(CPPFLAGS) $(CFLAGS) $< >$@

@@ -14,7 +14,6 @@
 #include "ldm.h"
 #include "pq.h"
 #include "md5.h"
-/* #include "paths.h"  for DEFAULT_QUEUE */
 #include "inetutil.h"
 #include "ulog.h"
 

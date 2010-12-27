@@ -3,7 +3,8 @@
 INTRODUCTION:
 
     This package contains the source-code for the Unidata Program Center's
-    software to insert NOAAPORT products into the LDM product queue.
+    software to insert NOAAPORT products into the LDM product queue. The
+    LDM must be version 6.9 or later.
 
 LEGAL:
 
@@ -38,12 +39,11 @@ INSTALLATION INSTRUCTIONS:
      bin     -> runtime/bin
      include -> runtime/include
      lib     -> runtime/lib
-     man     -> runtime/man
      src     -> runtime/src
 
      This is _MANDATORY_ since it will be used in the noaaport build!
 
-   - The pqing code in the LDM will be updated in a future release
+   - The pqing(1) code in the LDM will be updated in a future release
      to take account of the change in NOAAPORT model data naming
      (AVN -> GFS; ETA -> NAM). This package has already been modified 
      to use the NAM and GFS strings in model identification meta-tags. 
@@ -60,7 +60,6 @@ INSTALLATION INSTRUCTIONS:
    Example:
 
    cd ~/noaaport-x.x
-   make
    make install
    <become root>
    make install_setuids
@@ -110,11 +109,12 @@ INSTALLATION INSTRUCTIONS:
    own log file.  We do this by specifying the "-u X" option, where "X"
    is the LOCAL"X" logging facility.  
 
-   If you are not interested in logging to seperate files, simply omit the "-u X" 
-   option. The "-n" flag will notify the log of each product that is received, 
-   which is useful for monitoring data that is received from the incoming 
-   NOAAPORT source. Remove the "-n" argument to readnoaaport if you do not 
-   want to be notified of every product that is received.
+   If you are not interested in logging to seperate files, simply omit
+   the "-u X" option. The "-n" flag will notify the log of each product
+   that is received, which is useful for monitoring data that is
+   received from the incoming NOAAPORT source. Remove the "-n" argument
+   to readnoaaport if you do not want to be notified of every product
+   that is received.
 
    The ULOG_FACILITY_OVERRIDE environment variable changes the default
    log facility from '0' (zero) to whatever the value that is specified
@@ -190,10 +190,13 @@ local6.debug                                            /data/tmp/oconus.log
    these UDP packets can see "Gaps" in the data stream if the process
    is swapped out by the operating system. To alleviate this possibilty
    we recommend the following:
-      - Install the dvbs_multicast program setuid root. This is done
-        by running "make install_setuids" as root in the installation proceedure.
-        The program will stay resident in memory and prevent being
-        paged out if the program has sufficient permissions.
-      - Consider an ldm data queue small enough to fit into available memory to
-        avoiding the need for the system to do lots of paging for the product queue. 
 
+      - Install the dvbs_multicast program setuid root. This is done by
+        running "make install_setuids" as root in the installation
+        proceedure.  The program will stay resident in memory and
+        prevent being paged out if the program has sufficient
+        permissions.
+
+      - Consider an ldm data queue small enough to fit into available
+        memory to avoiding the need for the system to do lots of paging
+        for the product queue. 

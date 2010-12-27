@@ -31,7 +31,6 @@
 /* LDM headers */
 #include "ldm.h"
 #include "pq.h"
-#include "paths.h"
 #include "ulog.h"
 #include "globals.h"
 
