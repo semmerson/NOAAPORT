@@ -1,8 +1,25 @@
 # Makefile for "readnoaaport" and "dvbs_multicast"
 
+################################################################################
+# User-configurable section
+
+# The relative pathname of the directory that contains the version-specific
+# LDM installation. ".." is appropriate if you're building against your current
+# LDM system, which must be stopped. Something like "../ldm-6.9.0" is appropiate
+# if, for example, you're upgrading from a running LDM 6.8 system.
 LDM_PREFIX		= ..
+
+# Enable one of the following sets of macros.
+
+# Solaris:
 LIBS			= -lnsl -lsocket
 DEFINES			= -D__EXTENSIONS__
+
+# Linux:
+#LIBS			= 
+#DEFINES			=
+
+################################################################################
 
 PROG			= dummy_prog
 READNOAAPORT_CSRCS 	= \
