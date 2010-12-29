@@ -12,12 +12,12 @@ LDM_PREFIX		= ..
 # Enable one of the following sets of macros.
 
 # Solaris:
-LIBS			= -lnsl -lsocket
-DEFINES			= -D__EXTENSIONS__
+#LIBS			= -lnsl -lsocket
+#DEFINES			= -D__EXTENSIONS__
 
 # Linux:
-#LIBS			= 
-#DEFINES			=
+LIBS			= 
+DEFINES			=
 
 ################################################################################
 
