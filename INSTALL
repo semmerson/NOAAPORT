@@ -60,6 +60,7 @@ INSTALLATION INSTRUCTIONS:
    Example:
 
    cd ~/noaaport-x.x
+   vi Makefile
    make install
    <become root>
    make install_setuids
