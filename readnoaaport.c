@@ -558,7 +558,7 @@ if ( atexit(cleanup) != 0)
       if (bufread (fd, prodmmap + 16, 16) != 0)
 	{
 	  if (ulogIsDebug ())
-	    udebug ("error reading Product Defionition Header");
+	    udebug ("error reading Product Definition Header");
 	  continue;
 	}
 
