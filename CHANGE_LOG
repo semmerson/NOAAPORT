@@ -1,3 +1,7 @@
+1.5.2
+    Modified dvbs_multicast(1) so that it only prints the "no free mem left?"
+    message once per received UDP packet.
+
     Corrected spelling in internal documentation.
 
 1.5.1   2010-12-29
