@@ -426,7 +426,7 @@ main (int argc, char *argv[])
 	  while (1)
 	    {
 	    static int haslogged=0;
-            int noFreeMemHit = 0;
+            int writeFailureLogged = 0;
 
 	      /* check to see if we need to log any information from signal handler */
 	      if ( logmypriv ) {
@@ -476,10 +476,11 @@ main (int argc, char *argv[])
 
 	      while (shmfifo_put (shm, msg, n) == -1)
 		{
-                  if (!noFreeMemHit)
+                  if (!writeFailureLogged)
                     {
-                      uerror ("no free mem left? waiting a bit...%d", n);
-                      noFreeMemHit = 1;
+                      uerror("Couldn't write %d bytes to shared-memory FIFO",
+                          n);
+                      writeFailureLogged = 1;
                     }
 		  mypriv.counter++;
 		  shmfifo_setpriv (shm, &mypriv);
@@ -491,6 +492,8 @@ main (int argc, char *argv[])
 		    }
 		}
 
+              if (writeFailureLogged)
+                uerror("Finally wrote %d bytes to shared-memory FIFO", n);
 	    }
 	}
 
