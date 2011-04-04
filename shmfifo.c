@@ -21,6 +21,7 @@
  */
 #define _XOPEN_SOURCE 500
 
+#include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -393,6 +394,58 @@ shmfifo_lock (struct shmhandle *shm)
 /*   printf("<%d> locked\n",getpid()); */
 }
 
+/*
+ * Waits for a shared-memory FIFO to be notified. The shared-memory FIFO must
+ * be locked.
+ *
+ * Arguments:
+ *      shm     Pointer to the shared-memory FIFO.
+ * Returns:
+ *      0               Success. The shared-memory FIFO shall be locked.
+ *      EINVAL          "shm" uninitialized.
+ *      ECANCELED       Operating-system failure. serror() called.
+ * Raises:
+ *      SIGSEGV if "shm" is NULL.
+ */
+static int
+shmfifo_wait(
+    const struct shmhandle* const       shm)
+{
+    int status;
+
+    if (0 > shm->semid) {
+        status = EINVAL;
+    }
+    else {
+        struct sembuf   op[3];
+
+        /* Release lock */
+        op[0].sem_num = 0;
+        op[0].sem_op = 1;
+        op[0].sem_flg = 0;
+
+        /* Wait for another process to acquire lock */
+        op[1].sem_num = 0;
+        op[1].sem_op = 0;
+        op[1].sem_flg = 0;
+
+        /* Reacquire lock */
+        op[2].sem_num = 0;
+        op[2].sem_op = -1;
+        op[2].sem_flg = 0;
+
+        if (semop(shm->semid, op, sizeof(op)/sizeof(op[0])) != -1) {
+            status = 0;                 /* success */
+        }
+        else {
+            serror("shmfifo_wait()");
+            status = ECANCELED;
+        }
+    }
+
+    return status;
+}
+
 void
 shmfifo_unlock (struct shmhandle *shm)
 {
@@ -538,12 +591,13 @@ shmfifo_put (struct shmhandle *shm, void *data, int sz)
 
   shmfifo_printmemstatus (shm);
   shmfifo_lock (shm);
-  if (shmfifo_ll_memfree (shm) <= (int) (sz + sizeof (struct shmbh)))
+  while (shmfifo_ll_memfree (shm) <= (int) (sz + sizeof (struct shmbh)))
     {
 /*    printf("rejecting request to push block of %d. have only %d bytes\n",
 		    sz,shmfifo_ll_memfree(shm));*/
-      shmfifo_unlock (shm);
-      return -1;
+      if (shmfifo_wait(shm) != 0) {
+          return -1;
+      }
     }
 
   h.sz = sz;
