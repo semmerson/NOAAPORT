@@ -4,6 +4,7 @@
  */
 #define _XOPEN_SOURCE 500
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -474,26 +475,13 @@ main (int argc, char *argv[])
 		uinfo ("SBN number %u", sbnnum);
 	      lastnum = sbnnum;
 
-	      while (shmfifo_put (shm, msg, n) == -1)
-		{
-                  if (!writeFailureLogged)
-                    {
-                      uerror("Couldn't write %d bytes to shared-memory FIFO",
-                          n);
-                      writeFailureLogged = 1;
-                    }
-		  mypriv.counter++;
-		  shmfifo_setpriv (shm, &mypriv);
-		  usleep (100);
-		  if ( ( ! memsegflg ) && ( waitpid (child, &status, WNOHANG) ) )
-		    {
-		      uerror ("BUG! child already died!!");
-		      exit (1);
-		    }
-		}
-
-              if (writeFailureLogged)
-                uerror("Finally wrote %d bytes to shared-memory FIFO", n);
+	      switch (shmfifo_put (shm, msg, n)) {
+                case 0:         /* success */
+                case E2BIG:     /* message too big. continue. */
+                  break;
+                default:
+                  exit (1);
+              }
 	    }
 	}
 

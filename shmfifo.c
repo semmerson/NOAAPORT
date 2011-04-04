@@ -402,8 +402,8 @@ shmfifo_lock (struct shmhandle *shm)
  *      shm     Pointer to the shared-memory FIFO.
  * Returns:
  *      0               Success. The shared-memory FIFO shall be locked.
- *      EINVAL          "shm" uninitialized.
- *      ECANCELED       Operating-system failure. serror() called.
+ *      EINVAL          "shm" uninitialized. Error-message logged.
+ *      ECANCELED       Operating-system failure. Error-message logged.
  * Raises:
  *      SIGSEGV if "shm" is NULL.
  */
@@ -414,6 +414,7 @@ shmfifo_wait(
     int status;
 
     if (0 > shm->semid) {
+        uerror("shmfifo_wait(): Invalid semaphore ID: %d", shm->semid);
         status = EINVAL;
     }
     else {
@@ -584,19 +585,42 @@ shmfifo_get (struct shmhandle *shm, void *data, int sz)
 }
 
 
+/*
+ * Writes data to the shared-memory FIFO.
+ *
+ * Arguments:
+ *      shm     Pointer to the shared-memory FIFO data-structure.
+ *      data    Pointer to the data to be written.
+ *      sz      The amount of data to be written in bytes.
+ * Returns:
+ *      0       Success.
+ *      E2BIG   "sz" is larger than the FIFO can handle. Error-message logged.
+ *      EIO     I/O error. Error-message logged.
+ */
 int
 shmfifo_put (struct shmhandle *shm, void *data, int sz)
 {
   struct shmbh h;
+  size_t       maxSize;
+  const size_t totalBytesToWrite = sz + sizeof(h);
 
   shmfifo_printmemstatus (shm);
   shmfifo_lock (shm);
-  while (shmfifo_ll_memfree (shm) <= (int) (sz + sizeof (struct shmbh)))
+
+  maxSize = shmfifo_ll_memused(shm) + shmfifo_ll_memfree(shm);
+
+  if (maxSize < totalBytesToWrite) {
+      uerror("shmfifo_put(): Can't write %lu bytes to %lu-byte FIFO", 
+              totalBytesToWrite, maxSize);
+      return E2BIG;
+  }
+
+  while (shmfifo_ll_memfree (shm) <= totalBytesToWrite)
     {
 /*    printf("rejecting request to push block of %d. have only %d bytes\n",
 		    sz,shmfifo_ll_memfree(shm));*/
       if (shmfifo_wait(shm) != 0) {
-          return -1;
+          return EIO;
       }
     }
 

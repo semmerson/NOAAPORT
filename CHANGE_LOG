@@ -3,11 +3,15 @@
     the shared-memory FIFO once per UDP packet; and 2) logs a success message
     when a failure finally succeeds.
 
-    Improved dvbs_multicast(1). Created static function shmfifo_wait() and
-    modified shmfifo_put(3) to use it in a loop until sufficient space is
-    available in the FIFO. This will cause each write by dvbs_multicast(1) to
-    block, if necessary, until it succeeds -- a much better tactic than polling
-    the shared-memory FIFO every 100 microseconds.
+    Improved dvbs_multicast(1):
+        Created static function shmfifo_wait() and modified shmfifo_put(3) to
+        use it in a loop until sufficient space is available in the FIFO. This
+        will cause each write by dvbs_multicast(1) to block, if necessary,
+        until it succeeds -- a much better tactic than polling the
+        shared-memory FIFO every 100 microseconds.
+
+        Added test for messages that are too big to put in the FIFO to
+        shmfifo_put().
 
     Corrected spelling in internal documentation.
 
