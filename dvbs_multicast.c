@@ -475,12 +475,10 @@ main (int argc, char *argv[])
 		uinfo ("SBN number %u", sbnnum);
 	      lastnum = sbnnum;
 
-	      switch (shmfifo_put (shm, msg, n)) {
-                case 0:         /* success */
-                case E2BIG:     /* message too big. continue. */
-                  break;
-                default:
+	      if (shmfifo_put (shm, msg, n) == -1) {
+                if (E2BIG != errno) {
                   exit (1);
+                }
               }
 	    }
 	}

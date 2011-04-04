@@ -593,9 +593,11 @@ shmfifo_get (struct shmhandle *shm, void *data, int sz)
  *      data    Pointer to the data to be written.
  *      sz      The amount of data to be written in bytes.
  * Returns:
- *      0       Success.
- *      E2BIG   "sz" is larger than the FIFO can handle. Error-message logged.
- *      EIO     I/O error. Error-message logged.
+ *      sz      Success.
+ *      -1      Error. "errno" set to
+ *                  E2BIG       "sz" is larger than the FIFO can handle.
+ *                              Error-message logged.
+ *                  EIO         I/O error. Error-message logged.
  */
 int
 shmfifo_put (struct shmhandle *shm, void *data, int sz)
@@ -612,7 +614,8 @@ shmfifo_put (struct shmhandle *shm, void *data, int sz)
   if (maxSize < totalBytesToWrite) {
       uerror("shmfifo_put(): Can't write %lu bytes to %lu-byte FIFO", 
               totalBytesToWrite, maxSize);
-      return E2BIG;
+      errno = E2BIG;
+      return -1;
   }
 
   while (shmfifo_ll_memfree (shm) <= totalBytesToWrite)
@@ -620,7 +623,8 @@ shmfifo_put (struct shmhandle *shm, void *data, int sz)
 /*    printf("rejecting request to push block of %d. have only %d bytes\n",
 		    sz,shmfifo_ll_memfree(shm));*/
       if (shmfifo_wait(shm) != 0) {
-          return EIO;
+          errno = EIO;
+          return -1;
       }
     }
 
