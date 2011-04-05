@@ -1,4 +1,4 @@
-1.5.2
+1.5.2   2011-04-05
     Modified dvbs_multicast(1) so that it 1) only logs a failure to write to
     the shared-memory FIFO once per UDP packet; and 2) logs a success message
     when a failure finally succeeds.
