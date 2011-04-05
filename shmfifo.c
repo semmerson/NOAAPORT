@@ -401,13 +401,15 @@ shmfifo_lock (struct shmhandle *shm)
  * Arguments:
  *      shm     Pointer to the shared-memory FIFO.
  * Returns:
- *      0               Success. The shared-memory FIFO shall be locked.
+ *      0               Success. Another thread of control has locked and
+ *                      released the FIFO. Upon return, the shared-memory FIFO
+ *                      shall be locked.
  *      EINVAL          "shm" uninitialized. Error-message logged.
  *      ECANCELED       Operating-system failure. Error-message logged.
  * Raises:
  *      SIGSEGV if "shm" is NULL.
  */
-static int
+int
 shmfifo_wait(
     const struct shmhandle* const       shm)
 {
@@ -527,6 +529,25 @@ shmfifo_detach (struct shmhandle *shm)
 
 
 
+/*
+ * Reads one record's worth of data from the FIFO and writes it to a
+ * client-supplied buffer.
+ *
+ * Arguments:
+ *      shm     Pointer to the shared-memory FIFO data-structure. The FIFO
+ *              must be unlocked.
+ *      data    Pointer to the buffer into which to put data from the FIFO.
+ *      sz      The size of the buffer in bytes.
+ * Returns:
+ *      >0      The size of the record's data in bytes. Copied to the buffer.
+ *      -1      FIFO is empty.
+ *      -2      The buffer is too small for the record's data. No data is read.
+ *              Error message logged.
+ * Raises:
+ *      SIGABRT if the FIFO has data but not an entire header-record.
+ *      SIGABRT if "sz" is not positive.
+ *      SIGABRT if the signal value (canary) in the header-record is invalid.
+ */
 int
 shmfifo_get (struct shmhandle *shm, void *data, int sz)
 {

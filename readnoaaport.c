@@ -173,69 +173,96 @@ usage (char *av0		/*  id string */
 
 
 
-int _shm_bufread ( char *buf, int bsiz)
+/*
+ * Reads data from the FIFO to a buffer.
+ *
+ * Arguments:
+ *      buf             Pointer to the buffer into which to put the data.
+ *      bsiz            The amount of data to read in bytes.
+ * Returns:
+ *      0               Success.
+ *      -2              "shm" is NULL. "DONE" set to 1.
+ *      EINVAL          Shared-memory is uninitialized. Error-message logged.
+ *      ECANCELED       Operating-system failure. Error-message logged.
+ * Raises:
+ *      SIGABRT         The FIFO is corrupt. Error message logged.
+ *      SIGABRT         The next record in the FIFO is too large. Error message
+ *                      logged.
+ */
+int _shm_bufread(
+    char        *buf,
+    int         bsiz)
 {
-int bread, cnt;
-static int nsz = 0, ib;
-static char  *bptr=NULL, msgbuf [ 10000 ];
+    int         bread;
+    int         cnt;
+    static int  nsz = 0;
+    static int  ib;
+    static char *bptr = NULL;
+    static char msgbuf[10000];
 
-if ( shm == NULL )
-  {
-  uerror ( "shm is NULL in bufread");
-  DONE = 1;
-  return (-2);
-  }
-else
-   if ( ulogIsDebug () )
-      udebug ( "shm_bufread %d", bsiz );
+    if (shm == NULL) {
+        uerror("shm is NULL in bufread");
+        DONE = 1;
+        return -2;
+    }
+    if (ulogIsDebug())
+        udebug("shm_bufread %d", bsiz);
 
-bread = 0;
-while ( bread < bsiz )
-   {
+    bread = 0;
+    while (bread < bsiz) {
+        if (nsz == 0) {
+            shmfifo_lock(shm);
+            while (shmfifo_empty(shm)) {
+                int    status;
 
-   if ( nsz == 0 )
-      {
-      cnt = 0;
-      while ( shmfifo_empty ( shm ) )
-         {
-         if ( ( cnt == 0 ) && ( ulogIsVerbose () ) )
-            uinfo ("nothing in shmem, waiting...");
-   
-         sleep (1);
-	 cnt++;
-         if ( cnt >= 60 ) cnt=0;
-         }
-   
-      while ((nsz = shmfifo_get (shm, msgbuf, 10000)) == -1)
-         {
-           uerror ( "circbuf read failed to return data...");
-   
-           sleep (1);
-         }
-      bptr = msgbuf; 
-      }
-   
-   if ( nsz < ( bsiz - bread) )
-      {
-      ib = nsz;
-      uerror("Can bsiz exceed 1 packet?");
-      }
-   else
-      ib = bsiz - bread;
+                if (ulogIsVerbose())
+                    uinfo("nothing in shmem, waiting...");
 
+                if ((status = shmfifo_wait(shm)) != 0) {
+                    shmfifo_unlock(shm);
+                    return status;
+                }
+            }
+            shmfifo_unlock(shm);
 
-   memcpy ( buf+bread, bptr, ib );
-   nsz = nsz - ib;
-   bptr = bptr + ib ;
+            /*
+            cnt = 0;
+            while ( shmfifo_empty ( shm ) )
+               {
+               if ( ( cnt == 0 ) && ( ulogIsVerbose () ) )
+                  uinfo ("nothing in shmem, waiting...");
+         
+               sleep (1);
+               cnt++;
+               if ( cnt >= 60 ) cnt=0;
+               }
+            */
+       
+            while ((nsz = shmfifo_get(shm, msgbuf, sizeof(msgbuf))) == -1) {
+                /* This block should never execute. */
+                uerror("circbuf read failed to return data...");
+                sleep(1);
+            }
+            if (-2 == nsz)
+                abort();
+            bptr = msgbuf; 
+        }
+       
+        if (nsz < (bsiz - bread)) {
+            ib = nsz;
+            uerror("Can bsiz exceed 1 packet?");
+        }
+        else {
+            ib = bsiz - bread;
+        }
 
-   bread += ib;
+        memcpy(buf+bread, bptr, ib);
+        nsz -= ib;
+        bptr += ib ;
+        bread += ib;
+    }
 
-   }
-
-
-return(0);
-
-
+    return 0;
 }
 
 int
@@ -503,16 +530,16 @@ if ( atexit(cleanup) != 0)
 
       /* look for first byte == 255  and a valid SBN checksum */
 
-      if (((status = bufread (fd, prodmmap, 1)) != 0)
-	  || ((b1 = (unsigned char) prodmmap[0]) != 255))
-	{
-	  if (status == 0)
-	    if (ulogIsVerbose ())
-	      uinfo ("trying to resync %u", b1);
-	    else if (ulogIsDebug ())
-	      udebug ("bufread loop");
-	  continue;
-	}
+      if ((status = bufread (fd, prodmmap, 1)) != 0) {
+        abort();
+      }
+      if ((b1 = (unsigned char) prodmmap[0]) != 255) {
+        if (ulogIsVerbose ())
+          uinfo ("trying to resync %u", b1);
+        if (ulogIsDebug ())
+          udebug ("bufread loop");
+        continue;
+      }
 
       if (bufread (fd, prodmmap + 1, 15) != 0)
 	{

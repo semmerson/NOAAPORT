@@ -1,3 +1,10 @@
+1.5.3
+    Improved readnoaaport(1).  Ensured that the FIFO is locked before seeing if
+    it's empty.  Made the reading from the FIFO event-driven rather than
+    poll-driven. Added some internal documentation.
+
+    Added internal documentation to shmfifo_get(3).
+
 1.5.2   2011-04-05
     Modified dvbs_multicast(1) so that it 1) only logs a failure to write to
     the shared-memory FIFO once per UDP packet; and 2) logs a success message
