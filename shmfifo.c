@@ -420,6 +420,12 @@ shmfifo_wait(
         status = EINVAL;
     }
     else {
+        /*
+         * Use the FIFO's semaphore-based lock to implement a brain-damaged
+         * condition variable: notification or signaling occurs when another
+         * thread of control acquires and releases the FIFO's semaphore-based
+         * lock.
+         */
         struct sembuf   op[3];
 
         /* Release lock */
@@ -619,43 +625,63 @@ shmfifo_get (struct shmhandle *shm, void *data, int sz)
  *                  E2BIG       "sz" is larger than the FIFO can handle.
  *                              Error-message logged.
  *                  EIO         I/O error. Error-message logged.
+ *                  EINVAL      "sz" is negative. Error-message logged.
  */
 int
-shmfifo_put (struct shmhandle *shm, void *data, int sz)
+shmfifo_put(
+    struct shmhandle*   shm,
+    void*               data,
+    int                 sz)
 {
-  struct shmbh h;
-  size_t       maxSize;
-  const size_t totalBytesToWrite = sz + sizeof(h);
+    int                 status;
 
-  shmfifo_printmemstatus (shm);
-  shmfifo_lock (shm);
+    if (0 > sz) {
+        uerror("shmfifo_put(): Invalid size argument: %d", sz);
+        errno = EINVAL;
+        status = -1;
+    }
+    else {
+        struct shmbh    h;
+        const size_t    totalBytesToWrite = sz + sizeof(h);
+        size_t          maxSize;
 
-  maxSize = shmfifo_ll_memused(shm) + shmfifo_ll_memfree(shm);
+        shmfifo_printmemstatus(shm);
+        shmfifo_lock(shm);
 
-  if (maxSize < totalBytesToWrite) {
-      uerror("shmfifo_put(): Can't write %lu bytes to %lu-byte FIFO", 
-              totalBytesToWrite, maxSize);
-      errno = E2BIG;
-      return -1;
-  }
+        maxSize = shmfifo_ll_memused(shm) + shmfifo_ll_memfree(shm);
 
-  while (shmfifo_ll_memfree (shm) <= totalBytesToWrite)
-    {
-/*    printf("rejecting request to push block of %d. have only %d bytes\n",
-		    sz,shmfifo_ll_memfree(shm));*/
-      if (shmfifo_wait(shm) != 0) {
-          errno = EIO;
-          return -1;
-      }
+        if (maxSize < totalBytesToWrite) {
+            uerror("shmfifo_put(): Can't write %lu bytes to %lu-byte FIFO", 
+                    totalBytesToWrite, maxSize);
+            errno = E2BIG;
+            status = -1;
+        }
+        else {
+            status = sz;
+
+            while (shmfifo_ll_memfree (shm) <= totalBytesToWrite) {
+                /*
+                 * printf("rejecting request to push block of %d. "
+                 *    "have only %d bytes\n", sz,shmfifo_ll_memfree(shm));
+                 */
+                if (shmfifo_wait(shm) != 0) {
+                    errno = EIO;
+                    status = -1;
+                }
+            }
+
+            if (sz == status) {
+                h.sz = sz;
+                h.canary = 0xDEADBEEF;
+                shmfifo_ll_put(shm, &h, sizeof(h));
+                shmfifo_ll_put(shm, data, sz);
+            }
+        }
+
+        shmfifo_unlock(shm);
     }
 
-  h.sz = sz;
-  h.canary = 0xDEADBEEF;
-  shmfifo_ll_put (shm, &h, sizeof (h));
-  shmfifo_ll_put (shm, data, sz);
-  shmfifo_unlock (shm);
-  return sz;
-
+    return status;
 }
 
 void

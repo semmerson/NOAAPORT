@@ -470,7 +470,8 @@ main (int argc, char *argv[])
 	      if (ulogIsDebug ())
 		udebug ("received %d bytes", n);
 	      if ((lastnum != 0) && (lastnum + 1 != sbnnum))
-		uerror ("Gap in SBN last %u, this %u", lastnum, sbnnum);
+                uerror ("Gap in SBN last %lu, this %lu, gap %lu", lastnum,
+                        sbnnum, sbnnum - lastnum);
 	      else if (ulogIsVerbose ())
 		uinfo ("SBN number %u", sbnnum);
 	      lastnum = sbnnum;
@@ -527,7 +528,8 @@ main (int argc, char *argv[])
 	  if (ulogIsDebug ())
 	    udebug ("child received %d bytes", n);
 	  if ((lastnum != 0) && (lastnum + 1 != sbnnum))
-	    uerror ("Gap in SBN last %u, this %u", lastnum, sbnnum);
+	    uerror ("Gap in SBN last %lu, this %lu, gap %lu", lastnum, sbnnum,
+                    sbnnum - lastnum);
 	  else if (ulogIsVerbose ())
 	    uinfo ("SBN number %u", sbnnum);
 
