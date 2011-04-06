@@ -12,6 +12,8 @@
         Reformatted to increase clarity and ensure unconditional unlocking of
         FIFO.
 
+        Added once-per-call logging of insufficient FIFO space.
+
     Improved shmfifo_wait():
         Added check on whether the current process holds the FIFO lock.
 

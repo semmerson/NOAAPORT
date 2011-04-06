@@ -427,7 +427,6 @@ main (int argc, char *argv[])
 	  while (1)
 	    {
 	    static int haslogged=0;
-            int writeFailureLogged = 0;
 
 	      /* check to see if we need to log any information from signal handler */
 	      if ( logmypriv ) {

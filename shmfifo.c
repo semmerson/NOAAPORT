@@ -673,13 +673,17 @@ shmfifo_put(
             status = -1;
         }
         else {
+            int freeSpace = shmfifo_ll_memfree(shm);
+            int insufficientSpaceLogged = 0;
+
             status = sz;
 
-            while (shmfifo_ll_memfree (shm) <= totalBytesToWrite) {
-                /*
-                 * printf("rejecting request to push block of %d. "
-                 *    "have only %d bytes\n", sz,shmfifo_ll_memfree(shm));
-                 */
+            while (freeSpace <= totalBytesToWrite) {
+                if (!insufficientSpaceLogged) {
+                    uerror("Can't put %d bytes in FIFO with %d bytes free. "
+                            "Waiting...", sz, freeSpace);
+                    insufficientSpaceLogged = 1;
+                }
                 if (shmfifo_wait(shm) != 0) {
                     errno = EIO;
                     status = -1;
