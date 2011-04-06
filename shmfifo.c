@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
@@ -405,6 +406,8 @@ shmfifo_lock (struct shmhandle *shm)
  *                      released the FIFO. Upon return, the shared-memory FIFO
  *                      shall be locked.
  *      EINVAL          "shm" uninitialized. Error-message logged.
+ *      EINVAL          The FIFO isn't locked by the current process.
+ *                      Error-message logged.
  *      ECANCELED       Operating-system failure. Error-message logged.
  * Raises:
  *      SIGSEGV if "shm" is NULL.
@@ -414,9 +417,19 @@ shmfifo_wait(
     const struct shmhandle* const       shm)
 {
     int status;
+    int pid;
+    int semval;
 
     if (0 > shm->semid) {
         uerror("shmfifo_wait(): Invalid semaphore ID: %d", shm->semid);
+        status = EINVAL;
+    }
+    else if ((semval = semctl(shm->semid, 0, GETVAL)) != 0) {
+        uerror("shmfifo_wait(): FIFO not locked: %d", semval);
+        status = EINVAL;
+    }
+    else if ((pid = semctl(shm->semid, 0, GETPID)) != getpid()) {
+        uerror("shmfifo_wait(): FIFO locked by another process: %d", pid);
         status = EINVAL;
     }
     else {
@@ -424,7 +437,10 @@ shmfifo_wait(
          * Use the FIFO's semaphore-based lock to implement a brain-damaged
          * condition variable: notification or signaling occurs when another
          * thread of control acquires and releases the FIFO's semaphore-based
-         * lock.
+         * lock (i.e., another thread of control does something with the FIFO).
+         *
+         * THIS SOLUTION TO THE PROBLEM IMPLEMENTING AN EVENT-DRIVEN FIFO IS
+         * VIABLE IF AND ONLY IF THERE ARE ONLY TWO THREADS OF CONTROL.
          */
         struct sembuf   op[3];
 
