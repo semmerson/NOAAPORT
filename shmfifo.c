@@ -680,7 +680,7 @@ shmfifo_put(
 
             while (freeSpace <= totalBytesToWrite) {
                 if (!insufficientSpaceLogged) {
-                    uerror("Can't put %d bytes in FIFO with %d bytes free. "
+                    uerror("Can't write %d bytes to FIFO with %d bytes free. "
                             "Waiting...", sz, freeSpace);
                     insufficientSpaceLogged = 1;
                 }
@@ -695,6 +695,10 @@ shmfifo_put(
                 h.canary = 0xDEADBEEF;
                 shmfifo_ll_put(shm, &h, sizeof(h));
                 shmfifo_ll_put(shm, data, sz);
+
+                if (insufficientSpaceLogged) {
+                    uerror("Wrote %d bytes to FIFO", sz);
+                }
             }
         }
 
