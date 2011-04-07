@@ -424,11 +424,16 @@ shmfifo_wait(
         uerror("shmfifo_wait(): Invalid semaphore ID: %d", shm->semid);
         status = EINVAL;
     }
-    else if ((semval = semctl(shm->semid, 0, GETVAL)) != 0) {
+    else if (((semval = semctl(shm->semid, 0, GETVAL)) == -1) ||
+            ((pid = semctl(shm->semid, 0, GETPID)) == -1)) {
+        serror("shmfifo_wait(): semctl() failure");
+        status = ECANCELED;
+    }
+    else if (0 != semval) {
         uerror("shmfifo_wait(): FIFO not locked: %d", semval);
         status = EINVAL;
     }
-    else if ((pid = semctl(shm->semid, 0, GETPID)) != getpid()) {
+    else if (getpid() != pid) {
         uerror("shmfifo_wait(): FIFO locked by another process: %d", pid);
         status = EINVAL;
     }
@@ -439,7 +444,7 @@ shmfifo_wait(
          * thread of control acquires and releases the FIFO's semaphore-based
          * lock (i.e., another thread of control does something with the FIFO).
          *
-         * THIS SOLUTION TO THE PROBLEM IMPLEMENTING AN EVENT-DRIVEN FIFO IS
+         * THIS SOLUTION TO THE PROBLEM OF IMPLEMENTING AN EVENT-DRIVEN FIFO IS
          * VIABLE IF AND ONLY IF THERE ARE ONLY TWO THREADS OF CONTROL.
          */
         struct sembuf   op[3];
@@ -459,12 +464,12 @@ shmfifo_wait(
         op[2].sem_op = -1;
         op[2].sem_flg = 0;
 
-        if (semop(shm->semid, op, sizeof(op)/sizeof(op[0])) != -1) {
-            status = 0;                 /* success */
+        if (semop(shm->semid, op, sizeof(op)/sizeof(op[0])) == -1) {
+            serror("shmfifo_wait(): semop() failure");
+            status = ECANCELED;
         }
         else {
-            serror("shmfifo_wait()");
-            status = ECANCELED;
+            status = 0;                 /* success */
         }
     }
 
@@ -667,7 +672,8 @@ shmfifo_put(
         maxSize = shmfifo_ll_memused(shm) + shmfifo_ll_memfree(shm);
 
         if (maxSize < totalBytesToWrite) {
-            uerror("shmfifo_put(): Can't write %lu bytes to %lu-byte FIFO", 
+            uerror("shmfifo_put(): Record bigger than entire FIFO: "
+                    "record size=%lu bytes; FIFO size=%lu bytes", 
                     totalBytesToWrite, maxSize);
             errno = E2BIG;
             status = -1;
@@ -680,8 +686,9 @@ shmfifo_put(
 
             while (freeSpace <= totalBytesToWrite) {
                 if (!insufficientSpaceLogged) {
-                    uerror("Can't write %d bytes to FIFO with %d bytes free. "
-                            "Waiting...", sz, freeSpace);
+                    uerror("shmfifo_put(): Insufficient free-space in FIFO: "
+                            "record size=%d bytes; free-space=%d bytes. "
+                            "Waiting...", totalBytesToWrite, freeSpace);
                     insufficientSpaceLogged = 1;
                 }
                 if (shmfifo_wait(shm) != 0) {
@@ -697,7 +704,8 @@ shmfifo_put(
                 shmfifo_ll_put(shm, data, sz);
 
                 if (insufficientSpaceLogged) {
-                    uerror("Wrote %d bytes to FIFO", sz);
+                    uerror("shmfifo_put(): Wrote %d bytes to FIFO",
+                            totalBytesToWrite);
                 }
             }
         }
