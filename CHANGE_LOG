@@ -1,3 +1,9 @@
+1.5.3.4 2011-04-08
+        Added "const" to many places in the "shmfifo" module.
+
+        Ensured NOTICE and ERROR level messages before calling shmfifo_wait()
+        in shmfifo_get() and shmfifo_put(), respectively.
+
 1.5.3.3 2011-04-08
         Improved shmfifo_get(): made blocking and restructured.
 

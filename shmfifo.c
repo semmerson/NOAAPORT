@@ -40,8 +40,6 @@
 
 #define DVBS_ID 43210000
 
-void shmfifo_print (struct shmhandle *shm);
-
 /* todo:
  * - implement zavorachivanie
  * - ... s uchetom hvosta (write = limit-1);
@@ -50,7 +48,7 @@ void shmfifo_print (struct shmhandle *shm);
 
 
 void
-shmfifo_printmemstatus (struct shmhandle *shm)
+shmfifo_printmemstatus (const struct shmhandle* const shm)
 {
   struct shmprefix *p;
 
@@ -70,7 +68,7 @@ shmfifo_printmemstatus (struct shmhandle *shm)
 }
 
 int
-shmfifo_ll_memfree (struct shmhandle *shm)
+shmfifo_ll_memfree (const struct shmhandle* const shm)
 {
   struct shmprefix *p;
   int count;
@@ -90,7 +88,7 @@ shmfifo_ll_memfree (struct shmhandle *shm)
 }
 
 int
-shmfifo_ll_memused (struct shmhandle *shm)
+shmfifo_ll_memused (const struct shmhandle* const shm)
 {
   struct shmprefix *p = (struct shmprefix *) shm->mem;
   int count;
@@ -124,7 +122,7 @@ shmfifo_getpriv (struct shmhandle *shm, void *priv)
 
 
 void
-shmfifo_ll_hrewind (struct shmhandle *shm)
+shmfifo_ll_hrewind (const struct shmhandle* const shm)
 {
   struct shmprefix *p = (struct shmprefix *) shm->mem;
   p->read -= sizeof (struct shmbh);
@@ -136,7 +134,7 @@ shmfifo_ll_hrewind (struct shmhandle *shm)
 }
 
 int
-shmfifo_ll_put (struct shmhandle *shm, void *data, int sz)
+shmfifo_ll_put (const struct shmhandle* const shm, void *data, int sz)
 {
   struct shmprefix *p = (struct shmprefix *) shm->mem;
   int copysz;
@@ -176,7 +174,7 @@ shmfifo_ll_put (struct shmhandle *shm, void *data, int sz)
 }
 
 int
-shmfifo_ll_get (struct shmhandle *shm, void *data, int sz)
+shmfifo_ll_get (const struct shmhandle* const shm, void *data, int sz)
 {
   struct shmprefix *p;
   int copysz;
@@ -355,7 +353,7 @@ shmfifo_create (int npages, int privsz, int nkey)
 
 
 void
-shmfifo_lock (struct shmhandle *shm)
+shmfifo_lock (const struct shmhandle* const shm)
 {
   int DONE;
   struct sembuf op[1];
@@ -483,7 +481,7 @@ shmfifo_wait(
 }
 
 void
-shmfifo_unlock (struct shmhandle *shm)
+shmfifo_unlock (const struct shmhandle* const shm)
 {
   int DONE;
   struct sembuf op[1];
@@ -585,11 +583,11 @@ shmfifo_detach (struct shmhandle *shm)
  */
 int
 shmfifo_get(
-    struct shmhandle* const     shm,
-    void* const                 data,
-    const int                   sz)
+    const struct shmhandle* const       shm,
+    void* const                         data,
+    const int                           sz)
 {
-    int                         status;
+    int status;
 
     if (sz <= 0) {
         uerror("shmfifo_get(): Non-positive number of bytes to read: %d", sz);
@@ -603,10 +601,10 @@ shmfifo_get(
 
         for (status = 0; shmfifo_ll_memused(shm) == 0; ) {
             if (!loggedEmptyFifo) {
-                uinfo("shmfifo_get(): FIFO is empty");
+                unotice("shmfifo_get(): FIFO is empty");
                 loggedEmptyFifo = 1;
             }
-            if ((status = shmfifo_wait(shm)) != 0) {
+            if (shmfifo_wait(shm) != 0) {
                 status = -2;
                 break;
             }
@@ -650,7 +648,7 @@ shmfifo_get(
                 else {
                     shmfifo_ll_get(shm, data, header.sz);
                     if (loggedEmptyFifo) {
-                        uinfo("shmfifo_get(): Got %d bytes of data from FIFO",
+                        unotice("shmfifo_get(): Got %d bytes of data from FIFO",
                                 header.sz);
                     }
                     shmfifo_printmemstatus(shm);
@@ -684,11 +682,11 @@ shmfifo_get(
  */
 int
 shmfifo_put(
-    struct shmhandle*   shm,
-    void*               data,
-    int                 sz)
+    const struct shmhandle* const       shm,
+    void* const                         data,
+    const int                           sz)
 {
-    int                 status;
+    int status;
 
     if (0 > sz) {
         uerror("shmfifo_put(): Invalid size argument: %d", sz);
@@ -696,8 +694,8 @@ shmfifo_put(
         status = -1;
     }
     else {
-        struct shmbh    h;
-        const size_t    totalBytesToWrite = sz + sizeof(h);
+        struct shmbh    header;
+        const size_t    totalBytesToWrite = sz + sizeof(header);
         size_t          maxSize;
 
         shmfifo_printmemstatus(shm);
@@ -713,7 +711,7 @@ shmfifo_put(
             status = -1;
         }
         else {
-            int noRoomLogged = 0;
+            int loggedNoRoom = 0;
             int freeSpace;
 
             status = sz;
@@ -722,11 +720,11 @@ shmfifo_put(
              * Wait for the FIFO to have room for the data.
              */
             while ((freeSpace = shmfifo_ll_memfree(shm)) <= totalBytesToWrite) {
-                if (!noRoomLogged) {
+                if (!loggedNoRoom) {
                     uerror("shmfifo_put(): No room in FIFO: "
                             "need %d bytes; only %d bytes available. "
                             "Waiting...", totalBytesToWrite, freeSpace);
-                    noRoomLogged = 1;
+                    loggedNoRoom = 1;
                 }
                 if (shmfifo_wait(shm) != 0) {
                     errno = EIO;
@@ -736,12 +734,12 @@ shmfifo_put(
             }
 
             if (sz == status) {
-                h.sz = sz;
-                h.canary = 0xDEADBEEF;
-                shmfifo_ll_put(shm, &h, sizeof(h));
+                header.sz = sz;
+                header.canary = 0xDEADBEEF;
+                shmfifo_ll_put(shm, &header, sizeof(header));
                 shmfifo_ll_put(shm, data, sz);
 
-                if (noRoomLogged) {
+                if (loggedNoRoom) {
                     uerror("shmfifo_put(): Wrote %d bytes to FIFO",
                             totalBytesToWrite);
                 }
@@ -765,7 +763,7 @@ shmfifo_dealloc (struct shmhandle *shm)
 
 
 void
-shmfifo_print (struct shmhandle *shm)
+shmfifo_print (const struct shmhandle* const shm)
 {
   struct shmprefix *p;
 

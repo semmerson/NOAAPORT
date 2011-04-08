@@ -61,20 +61,19 @@ void shmfifo_detach(struct shmhandle *shm);
 void shmfifo_setpriv(struct shmhandle *shm, void *priv);
 void shmfifo_getpriv(struct shmhandle *shm, void *priv);
 
-int shmfifo_get(struct shmhandle *shm, void *data,int sz);
-int shmfifo_put(struct shmhandle *shm, void *data, int sz);
+int shmfifo_get(const struct shmhandle* const shm, void *data,int sz);
+int shmfifo_put(const struct shmhandle* const shm, void *data, int sz);
 
 /* Unidata created function */
 int shmfifo_shm_from_key ( struct shmhandle *shm, int nkey );
 
 int shmfifo_empty(struct shmhandle *shm);
 /* Internal and debugging functions */
-void shmfifo_print(struct shmhandle *shm);
-void shmfifo_printmemstatus(struct shmhandle *shm);
-int shmfifo_ll_memfree(struct shmhandle *shm);
-int shmfifo_ll_memused(struct shmhandle *shm);
-int shmfifo_ll_put(struct shmhandle *shm, void *data, int sz);
-int shmfifo_ll_get(struct shmhandle *shm, void *data, int sz);
-void shmfifo_print(struct shmhandle *shm);
-void shmfifo_lock(struct shmhandle *shm);
-void shmfifo_unlock(struct shmhandle *shm);
+void shmfifo_print(const struct shmhandle* const shm);
+void shmfifo_printmemstatus(const struct shmhandle* const shm);
+int shmfifo_ll_memfree(const struct shmhandle* const shm);
+int shmfifo_ll_memused(const struct shmhandle* const shm);
+int shmfifo_ll_put(const struct shmhandle* const shm, void *data, int sz);
+int shmfifo_ll_get(const struct shmhandle* const shm, void *data, int sz);
+void shmfifo_lock(const struct shmhandle* const shm);
+void shmfifo_unlock(const struct shmhandle* const shm);
