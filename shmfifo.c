@@ -596,10 +596,16 @@ shmfifo_get(
         status = -1;
     }
     else {
+        int     loggedEmptyFifo = 0;
+
         shmfifo_printmemstatus(shm);
         shmfifo_lock(shm);
 
         for (status = 0; shmfifo_ll_memused(shm) == 0; ) {
+            if (!loggedEmptyFifo) {
+                uinfo("shmfifo_get(): FIFO is empty");
+                loggedEmptyFifo = 1;
+            }
             if ((status = shmfifo_wait(shm)) != 0) {
                 status = -2;
                 break;
@@ -643,6 +649,10 @@ shmfifo_get(
                 }
                 else {
                     shmfifo_ll_get(shm, data, header.sz);
+                    if (loggedEmptyFifo) {
+                        uinfo("shmfifo_get(): Got %d bytes of data from FIFO",
+                                header.sz);
+                    }
                     shmfifo_printmemstatus(shm);
 
                     status = header.sz;
@@ -704,18 +714,14 @@ shmfifo_put(
         }
         else {
             int noRoomLogged = 0;
+            int freeSpace;
 
             status = sz;
 
             /*
              * Wait for the FIFO to have room for the data.
              */
-            for (;;) {
-                int     freeSpace = shmfifo_ll_memfree(shm);
-
-                if (totalBytesToWrite < freeSpace) {
-                    break;
-                }
+            while ((freeSpace = shmfifo_ll_memfree(shm)) <= totalBytesToWrite) {
                 if (!noRoomLogged) {
                     uerror("shmfifo_put(): No room in FIFO: "
                             "need %d bytes; only %d bytes available. "
