@@ -1,3 +1,22 @@
+1.5.3.3 2011-04-08
+        Improved shmfifo_get(): made blocking and restructured.
+
+        Improved shmfifo_wait(): split the semaphore operations into 2 calls to
+        semop(2).
+
+        Improved shmfifo_put(): added missing "break" to shmfifo_wait() loop
+        and rewrote loop to improve clarity.
+
+        Modified dvbs_multicast(1) to use blocking shmfifo_get().
+
+        Modified readnoaaport(1): rewrote _shm_bufread() to improve clarity
+        and to use blocking shmfifo_get().
+        
+1.5.3.2 2011-04-07
+        Reverted file "readnoaaport.c" to tag "v1.5.2" to see if changes to
+        that file are responsible for causing no data-products to be inserted
+        into the product-queue. They are, apparently.
+
 1.5.3.1 2011-04-07
     Improved readnoaaport(1):
         Ensured that the FIFO is locked before seeing if it's empty.

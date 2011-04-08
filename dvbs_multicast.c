@@ -512,11 +512,10 @@ main (int argc, char *argv[])
 	      usleep (500);
             }
 
-	  while ((n = shmfifo_get (shm, msg, MAX_MSG)) == -1)
+	  if ((n = shmfifo_get (shm, msg, MAX_MSG)) < 0)
 	    {
 	      uerror ( "circbuf read failed to return data...");
-
-	      usleep (1000);
+              exit(1);
 	    }
 
 	  sbnnum =

@@ -447,29 +447,35 @@ shmfifo_wait(
          * THIS SOLUTION TO THE PROBLEM OF IMPLEMENTING AN EVENT-DRIVEN FIFO IS
          * VIABLE IF AND ONLY IF THERE ARE ONLY TWO THREADS OF CONTROL.
          */
-        struct sembuf   op[3];
+        struct sembuf   op[2];
 
-        /* Release lock */
+        /* Release the lock */
         op[0].sem_num = 0;
         op[0].sem_op = 1;
         op[0].sem_flg = 0;
 
-        /* Wait for another process to acquire lock */
+        /* Wait for the other process to acquire the lock */
         op[1].sem_num = 0;
         op[1].sem_op = 0;
         op[1].sem_flg = 0;
 
-        /* Reacquire lock */
-        op[2].sem_num = 0;
-        op[2].sem_op = -1;
-        op[2].sem_flg = 0;
-
-        if (semop(shm->semid, op, sizeof(op)/sizeof(op[0])) == -1) {
+        if (semop(shm->semid, op, 2) == -1) {
             serror("shmfifo_wait(): semop() failure");
             status = ECANCELED;
         }
         else {
-            status = 0;                 /* success */
+            /* Reacquire the lock */
+            op[0].sem_num = 0;
+            op[0].sem_op = -1;
+            op[0].sem_flg = 0;
+
+            if (semop(shm->semid, op, 1) == -1) {
+                serror("shmfifo_wait(): semop() failure");
+                status = ECANCELED;
+            }
+            else {
+                status = 0;             /* success */
+            }
         }
     }
 
@@ -558,7 +564,7 @@ shmfifo_detach (struct shmhandle *shm)
 
 /*
  * Reads one record's worth of data from the FIFO and writes it to a
- * client-supplied buffer.
+ * client-supplied buffer. Blocks until data is available.
  *
  * Arguments:
  *      shm     Pointer to the shared-memory FIFO data-structure. The FIFO
@@ -567,69 +573,87 @@ shmfifo_detach (struct shmhandle *shm)
  *      sz      The size of the buffer in bytes.
  * Returns:
  *      >0      The size of the record's data in bytes. Copied to the buffer.
- *      -1      FIFO is empty.
- *      -2      The buffer is too small for the record's data. No data is read.
- *              Error message logged.
+ *      -1      "sz" is non-positive. Error-message logged.
+ *      -2      Operating-system failure. Error-message logged.
+ *      -3      FIFO is corrupt. Error-message logged.
+ *      -4      The buffer is too small for the record's data.  No data is
+ *              read.  Error-message logged.
  * Raises:
- *      SIGABRT if the FIFO has data but not an entire header-record.
- *      SIGABRT if "sz" is not positive.
- *      SIGABRT if the signal value (canary) in the header-record is invalid.
+ *      SIGSEGV if "shm" is NULL
+ *      SIGSEGV if "data" is NULL
+ *      SIGABRT if "shm" is uninitialized
  */
 int
-shmfifo_get (struct shmhandle *shm, void *data, int sz)
+shmfifo_get(
+    struct shmhandle* const     shm,
+    void* const                 data,
+    const int                   sz)
 {
-  struct shmbh h;
+    int                         status;
 
-  if (sz <= 0)
-    {
-      uerror ("Insane sz: %d\n", sz);
-      abort ();
+    if (sz <= 0) {
+        uerror("shmfifo_get(): Non-positive number of bytes to read: %d", sz);
+        status = -1;
+    }
+    else {
+        shmfifo_printmemstatus(shm);
+        shmfifo_lock(shm);
+
+        for (status = 0; shmfifo_ll_memused(shm) == 0; ) {
+            if ((status = shmfifo_wait(shm)) != 0) {
+                status = -2;
+                break;
+            }
+        }
+
+        if (0 == status) {
+            struct shmbh        header;
+
+            if (shmfifo_ll_memused(shm) < (int)sizeof(header)) {
+                uerror("shmfifo_get(): Insufficient data for a record: "
+                        "should be at least %d bytes; was %d bytes",
+                        sizeof(header), shmfifo_ll_memused(shm));
+                shmfifo_print(shm);
+
+                status = -3;
+            }
+            else {
+                shmfifo_ll_get(shm, &header, sizeof(header));
+
+                if (header.canary != 0xDEADBEEF) {
+                    uerror("shmfifo_get(): Invalid header sentinel: 0x%X",
+                            header.canary);
+
+                    status = -3;
+                }
+                else if (shmfifo_ll_memused(shm) < header.sz) {
+                    uerror("shmfifo_get(): Inconsistent data-length of record: "
+                            "expected %d bytes; encountered %d bytes",
+                            header.sz, shmfifo_ll_memused(shm));
+                    shmfifo_print(shm);
+
+                    status = -3;
+                }
+                else if (header.sz > sz) {
+                    uerror("shmfifo_get(): Client-supplied buffer too small: "
+                            "need %d bytes; %d bytes supplied", header.sz, sz);
+                    shmfifo_ll_hrewind(shm);
+
+                    status = -4;
+                }
+                else {
+                    shmfifo_ll_get(shm, data, header.sz);
+                    shmfifo_printmemstatus(shm);
+
+                    status = header.sz;
+                }
+            }
+        }
+
+        shmfifo_unlock(shm);
     }
 
-  shmfifo_printmemstatus (shm);
-  shmfifo_lock (shm);
-  if (shmfifo_ll_memused (shm) == 0)
-    {
-/*    printf("shmem has no data\n"); */
-      shmfifo_unlock (shm);
-      return -1;
-    }
-  if (shmfifo_ll_memused (shm) < (int) sizeof (h))
-    {
-      shmfifo_unlock (shm);
-      uerror ("used mem less than header sz!\n");
-      shmfifo_print (shm);
-      abort ();
-    }
-  shmfifo_ll_get (shm, &h, sizeof (h));
-  if (h.canary != 0xDEADBEEF)
-    {
-      uerror ("canary died!\n");
-      abort ();
-    }
-  if (shmfifo_ll_memused (shm) < h.sz)
-    {
-      uerror ("Shared mem is corrupted!? h.sz: %d, used mem: %d\n",
-	      h.sz, shmfifo_ll_memused (shm));
-      shmfifo_print (shm);
-      abort ();
-    }
-
-  if (h.sz > sz)
-    {
-      uerror ("Attempt to fetch block of size %d into mem of size %d!",
-	      h.sz, sz);
-
-      shmfifo_ll_hrewind (shm);
-      shmfifo_unlock (shm);
-      return -2;
-
-    }
-  shmfifo_ll_get (shm, data, h.sz);
-  shmfifo_unlock (shm);
-
-  shmfifo_printmemstatus (shm);
-  return h.sz;
+    return status;
 }
 
 
@@ -673,27 +697,35 @@ shmfifo_put(
 
         if (maxSize < totalBytesToWrite) {
             uerror("shmfifo_put(): Record bigger than entire FIFO: "
-                    "record size=%lu bytes; FIFO size=%lu bytes", 
+                    "record is %lu bytes; FIFO capacity is %lu bytes", 
                     totalBytesToWrite, maxSize);
             errno = E2BIG;
             status = -1;
         }
         else {
-            int freeSpace = shmfifo_ll_memfree(shm);
-            int insufficientSpaceLogged = 0;
+            int noRoomLogged = 0;
 
             status = sz;
 
-            while (freeSpace <= totalBytesToWrite) {
-                if (!insufficientSpaceLogged) {
-                    uerror("shmfifo_put(): Insufficient free-space in FIFO: "
-                            "record size=%d bytes; free-space=%d bytes. "
+            /*
+             * Wait for the FIFO to have room for the data.
+             */
+            for (;;) {
+                int     freeSpace = shmfifo_ll_memfree(shm);
+
+                if (totalBytesToWrite < freeSpace) {
+                    break;
+                }
+                if (!noRoomLogged) {
+                    uerror("shmfifo_put(): No room in FIFO: "
+                            "need %d bytes; only %d bytes available. "
                             "Waiting...", totalBytesToWrite, freeSpace);
-                    insufficientSpaceLogged = 1;
+                    noRoomLogged = 1;
                 }
                 if (shmfifo_wait(shm) != 0) {
                     errno = EIO;
                     status = -1;
+                    break;
                 }
             }
 
@@ -703,7 +735,7 @@ shmfifo_put(
                 shmfifo_ll_put(shm, &h, sizeof(h));
                 shmfifo_ll_put(shm, data, sz);
 
-                if (insufficientSpaceLogged) {
+                if (noRoomLogged) {
                     uerror("shmfifo_put(): Wrote %d bytes to FIFO",
                             totalBytesToWrite);
                 }

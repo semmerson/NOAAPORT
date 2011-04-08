@@ -171,98 +171,79 @@ usage (char *av0		/*  id string */
 }
 
 
-
-
 /*
  * Reads data from the FIFO to a buffer.
  *
  * Arguments:
  *      buf             Pointer to the buffer into which to put the data.
- *      bsiz            The amount of data to read in bytes.
+ *      want            The amount of data to read in bytes.
  * Returns:
  *      0               Success.
- *      -2              "shm" is NULL. "DONE" set to 1.
- *      EINVAL          Shared-memory is uninitialized. Error-message logged.
- *      ECANCELED       Operating-system failure. Error-message logged.
- * Raises:
- *      SIGABRT         The FIFO is corrupt. Error message logged.
- *      SIGABRT         The next record in the FIFO is too large. Error message
- *                      logged.
+ *      -1              Pre-condition failure. Error-message logged.
+ *      -2              I/O error. Error-message logged.
+ *      -3              FIFO is corrupt. Error-message logged.
  */
 int _shm_bufread(
-    char        *buf,
-    int         bsiz)
+    char* const buf,
+    const int   want)
 {
-    int         bread;
-    int         cnt;
-    static int  nsz = 0;
-    static int  ib;
-    static char *bptr = NULL;
-    static char msgbuf[10000];
+    int         status;                 /* return status */
 
     if (shm == NULL) {
-        uerror("shm is NULL in bufread");
+        uerror("_shm_bufread(): NULL shared-memory pointer");
         DONE = 1;
-        return -2;
+        status = -1;                    /* pre-condition failure */
     }
-    if (ulogIsDebug())
-        udebug("shm_bufread %d", bsiz);
+    else if (NULL == buf) {
+        uerror("_shm_bufread(): NULL buffer pointer");
+        status = -1;                    /* pre-condition failure */
+    }
+    else if (0 > want) {
+        uerror("_shm_bufread(): Negative number of bytes to read: %d", want);
+        status = -1;                    /* pre-condition failure */
+    }
+    else {
+        int     got;                    /* count of "buf" bytes */
 
-    bread = 0;
-    while (bread < bsiz) {
-        if (nsz == 0) {
-            shmfifo_lock(shm);
-            while (shmfifo_empty(shm)) {
-                int    status;
+        if (ulogIsDebug())
+            udebug("shm_bufread %d", want);
 
-                if (ulogIsVerbose())
-                    uinfo("nothing in shmem, waiting...");
+        status = 0;                     /* success */
 
-                if ((status = shmfifo_wait(shm)) != 0) {
-                    shmfifo_unlock(shm);
-                    return status;
+        for (got = 0; got < want; ) {
+            static char         msgbuf[10000];  /* I/O buffer */
+            static char*        from;           /* next "msgbuf" byte */
+            static int          left = 0;       /* remaining "msgbuf" bytes */
+            int                 ncopy;          /* number of bytes to copy */
+
+            if (left == 0) {
+                if ((left = shmfifo_get(shm, msgbuf, sizeof(msgbuf))) < 0) {
+                    status = (-3 == left)
+                        ? -3            /* corrupt FIFO */
+                        : -2;           /* I/0 error */
+
+                    break;
                 }
+
+                from = msgbuf; 
             }
-            shmfifo_unlock(shm);
 
-            /*
-            cnt = 0;
-            while ( shmfifo_empty ( shm ) )
-               {
-               if ( ( cnt == 0 ) && ( ulogIsVerbose () ) )
-                  uinfo ("nothing in shmem, waiting...");
-         
-               sleep (1);
-               cnt++;
-               if ( cnt >= 60 ) cnt=0;
-               }
-            */
-       
-            while ((nsz = shmfifo_get(shm, msgbuf, sizeof(msgbuf))) == -1) {
-                /* This block should never execute. */
-                uerror("circbuf read failed to return data...");
-                sleep(1);
+            ncopy = want - got;
+
+            if (ncopy > left) {
+                uerror("Can \"want\" exceed 1 packet?");
+                ncopy = left;
             }
-            if (-2 == nsz)
-                abort();
-            bptr = msgbuf; 
-        }
-       
-        if (nsz < (bsiz - bread)) {
-            ib = nsz;
-            uerror("Can bsiz exceed 1 packet?");
-        }
-        else {
-            ib = bsiz - bread;
-        }
 
-        memcpy(buf+bread, bptr, ib);
-        nsz -= ib;
-        bptr += ib ;
-        bread += ib;
-    }
+            (void)memcpy(buf + got, from, ncopy);
 
-    return 0;
+            left -= ncopy;
+            from += ncopy ;
+            got += ncopy;
+        }                               /* while more data needed */
+    }                                   /* pre-conditions satisfied */
+
+    return status;
 }
 
 int
