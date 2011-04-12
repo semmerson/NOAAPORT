@@ -1,3 +1,10 @@
+1.5.3.6
+        shmfifo module:
+            Split semaphore operation for waiting on a condition-variable
+            from 1 to 3 semop(2) calls.
+
+            Added checkLocked() and checkUnlocked().
+
 1.5.3.5
         shmfifo module:
             Reworked semaphore signaling. Before, only 1 semaphore was used.

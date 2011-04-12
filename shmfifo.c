@@ -361,8 +361,110 @@ shmfifo_create (int npages, int privsz, int nkey)
 }
 
 /*
+ * Check to make sure that the current process doesn't have the lock on a
+ * shared-memory FIFO.
+ *
+ * Precondition:
+ *      The FIFO is not locked by this process.
+ * Arguments:
+ *      shm             Pointer to the shared-memory FIFO data-structure.
+ *      havLck          Pointer to indicator to be set.
+ * Returns:
+ *      0               Success. The current process doesn't have the FIFO
+ *                      locked.
+ *      EINVAL          The current process has the FIFO locked.  Error-message
+ *                      logged.
+ *      EINVAL          "shm" uninitialized. Error-message logged.
+ *      ECANCELED       Operating-system failure. Error-message logged.
+ */
+static int
+checkUnlocked(
+    const struct shmhandle* const       shm)
+{
+    int status;
+
+    if (0 > shm->semid) {
+        uerror("haveLock(): Invalid semaphore ID: %d", shm->semid);
+        status = EINVAL;
+    }
+    else {
+        int     semval = semctl(shm->semid, SI_LOCK, GETVAL);
+        int     pid = semctl(shm->semid, SI_LOCK, GETPID);
+
+        if (-1 == semval || -1 == pid) {
+            serror("haveLock(): semctl() failure");
+            status = ECANCELED;
+        }
+        else {
+            if ((0 == semval) && (getpid() == pid)) {
+                uerror("haveLock(): FIFO already locked by this process: %d",
+                    pid);
+                status = EINVAL;
+            }
+            else {
+                status = 0;
+            }
+        }
+    }
+
+    return status;
+}
+
+/*
+ * Check to make sure that the current process has the lock on a shared-memory
+ * FIFO.
+ *
+ * Arguments:
+ *      shm             Pointer to the shared-memory FIFO data-structure.
+ *      havLck          Pointer to indicator to be set.
+ * Returns:
+ *      0               Success. The current process has the FIFO locked.
+ *      EINVAL          The current process doesn't have the FIFO locked.
+ *                      Error-message logged.
+ *      EINVAL          "shm" uninitialized. Error-message logged.
+ *      ECANCELED       Operating-system failure. Error-message logged.
+ */
+static int
+checkLocked(
+    const struct shmhandle* const       shm)
+{
+    int status;
+
+    if (0 > shm->semid) {
+        uerror("haveLock(): Invalid semaphore ID: %d", shm->semid);
+        status = EINVAL;
+    }
+    else {
+        int     semval = semctl(shm->semid, SI_LOCK, GETVAL);
+        int     pid = semctl(shm->semid, SI_LOCK, GETPID);
+
+        if (-1 == semval || -1 == pid) {
+            serror("haveLock(): semctl() failure");
+            status = ECANCELED;
+        }
+        else {
+            if (0 != semval) {
+                uerror("haveLock(): FIFO not locked: %d", semval);
+                status = EINVAL;
+            }
+            else if (getpid() != pid) {
+                uerror("haveLock(): FIFO locked by another process: %d", pid);
+                status = EINVAL;
+            }
+            else {
+                status = 0;
+            }
+        }
+    }
+
+    return status;
+}
+
+/*
  * Locks a shared-memory FIFO.
  *
+ * Preconditions:
+ *      The shared-memory FIFO is unlocked.
  * Arguments:
  *      shm             Pointer to the shared-memory FIFO data-structure.
  * Returns:
@@ -370,23 +472,16 @@ shmfifo_create (int npages, int privsz, int nkey)
  *      ECANCELED       Operating-system failure. Error-message logged.
  *      EINVAL          "shm" is uninitialized. Error-message logged.
  *      EINVAL          Semaphore  is uninitialized. Error-message logged.
+ *      EINVAL          FIFO is already locked by this process. Error-message
+ *                      logged.
  */
 int
 shmfifo_lock(
     const struct shmhandle* const       shm)
 {
-    int status;
+    int status = checkUnlocked(shm);
 
-    if (NULL == shm) {
-        uerror("shmfifo_lock(): "
-            "Uninitialized shared-memory FIFO data-structure");
-        status = EINVAL;
-    }
-    else if (0 > shm->semid) {
-        uerror("shmfifo_lock(): Uninitialized semaphore");
-        status = EINVAL;
-    }
-    else {
+    if (0 == status) {
         struct sembuf op[1];
 
         /*  printf("called shmfifo_lock semid: %d in process %d\n",shm->semid,
@@ -413,53 +508,43 @@ shmfifo_lock(
 }
 
 /*
- * Indicates if the current process has the lock on a shared-memory FIFO.
+ * Unlocks a shared-memory FIFO.
  *
+ * Precondition:
+ *      The FIFO is locked by this process.
  * Arguments:
  *      shm             Pointer to the shared-memory FIFO data-structure.
- *      havLck          Pointer to indicator to be set.
  * Returns:
- *      0               Success. "*havLck" set to
- *                          0   No. The current process doesn't have the FIFO
- *                              locked.  Error-message logged.
- *                          1   Yes. The current process has the FIFO locked.
- *      EINVAL          "shm" uninitialized. Error-message logged.
+ *      0               Success.
  *      ECANCELED       Operating-system failure. Error-message logged.
+ *      EINVAL          "shm" is uninitialized.
+ *      EINVAL          FIFO is locked by this process. Error-message logged.
  */
-static int
-haveLock(
-    const struct shmhandle* const       shm,
-    int* const                          havLck)
+int
+shmfifo_unlock(
+    const struct shmhandle* const       shm)
 {
-    int status;
+    int status = checkLocked(shm);
 
-    if (0 > shm->semid) {
-        uerror("haveLock(): Invalid semaphore ID: %d", shm->semid);
-        status = EINVAL;
-    }
-    else {
-        int     semval = semctl(shm->semid, SI_LOCK, GETVAL);
-        int     pid = semctl(shm->semid, SI_LOCK, GETPID);
+    if (0 == status) {
+        struct sembuf   op[1];
 
-        if (-1 == semval || -1 == pid) {
-            serror("haveLock(): semctl() failure");
+        /*   printf("<%d> unlocking %d\n",getpid(),shm->semid); */
+
+        op[0].sem_num = SI_LOCK;
+        op[0].sem_op = 1;
+        /*op[0].sem_flg = SEM_UNDO; */
+        op[0].sem_flg = 0;
+
+        if (semop(shm->semid, op, 1) == -1) {
+            serror("shmfifo_unlock(): semop(2) failure");
             status = ECANCELED;
         }
         else {
-            if (0 != semval) {
-                uerror("haveLock(): FIFO not locked: %d", semval);
-                *havLck = 0;
-            }
-            else if (getpid() != pid) {
-                uerror("haveLock(): FIFO locked by another process: %d", pid);
-                *havLck = 0;
-            }
-            else {
-                *havLck = 1;
-            }
-
-            status = 0;
+            status = 0;                 /* success */
         }
+
+        /*   printf("unlocked. done\n");  */
     }
 
     return status;
@@ -513,41 +598,48 @@ shmfifo_wait(
     const struct shmhandle* const       shm,
     const SemIndex                      semIndex)
 {
-    int havLck;
-    int status = haveLock(shm, &havLck);
+    int status = checkLocked(shm);
 
     if (0 == status) {
-        if (!havLck) {
-            status = EINVAL;
-        }
-        else if ((status = vetSemIndex(semIndex)) == 0) {
-            struct sembuf   op[3];
+        if ((status = vetSemIndex(semIndex)) == 0) {
+            struct sembuf   op[1];
 
             /* Release the lock */
             op[0].sem_num = SI_LOCK;
             op[0].sem_op = 1;
             op[0].sem_flg = 0;
 
-            /* Wait for a notification from the other process */
-            op[1].sem_num = semIndex;
-            op[1].sem_op = -1;
-            op[1].sem_flg = 0;
-
-            /* Reacquire the lock */
-            op[0].sem_num = SI_LOCK;
-            op[0].sem_op = -1;
-            op[0].sem_flg = 0;
-
-            /* readnoaaport(1) hangs here */
-            if (semop(shm->semid, op, 3) == -1) {
+            if (semop(shm->semid, op, 1) == -1) {
                 serror("shmfifo_wait(): semop() failure");
                 status = ECANCELED;
             }
             else {
-                status = 0;                 /* success */
-            }
-        }
-    }
+                /* Wait for a notification from the other process */
+                op[0].sem_num = semIndex;
+                op[0].sem_op = -1;
+                op[0].sem_flg = 0;
+
+                if (semop(shm->semid, op, 1) == -1) {
+                    serror("shmfifo_wait(): semop() failure");
+                    status = ECANCELED;
+                }
+                else {
+                    /* Reacquire the lock */
+                    op[0].sem_num = SI_LOCK;
+                    op[0].sem_op = -1;
+                    op[0].sem_flg = 0;
+
+                    if (semop(shm->semid, op, 1) == -1) {
+                        serror("shmfifo_wait(): semop() failure");
+                        status = ECANCELED;
+                    }
+                    else {
+                        status = 0;     /* success */
+                    }                   /* lock reacquired */
+                }                       /* notification occurred */
+            }                           /* lock released */
+        }                               /* valid "semIndex" */
+    }                                   /* FIFO is locked */
 
     return status;
 }
@@ -617,14 +709,10 @@ shmfifo_notify(
     const struct shmhandle*     shm,
     const SemIndex              which)
 {
-    int havLck;
-    int status = haveLock(shm, &havLck);
+    int status = checkLocked(shm);
 
     if (0 == status) {
-        if (!havLck) {
-            status = EINVAL;
-        }
-        else if ((status = vetSemIndex(which)) == 0) {
+        if ((status = vetSemIndex(which)) == 0) {
             if (semctl(shm->semid, which, SETVAL, 1)) {
                 serror("shmfifo_notify(): semctl() failure");
                 status = ECANCELED;
@@ -676,54 +764,6 @@ shmfifo_notify_reader(
     const struct shmhandle*     shm)
 {
     return shmfifo_notify(shm, SI_READER);
-}
-
-/*
- * Unlocks a shared-memory FIFO.
- *
- * Arguments:
- *      shm             Pointer to the shared-memory FIFO data-structure.
- * Returns:
- *      0               Success.
- *      ECANCELED       Operating-system failure. Error-message logged.
- *      EINVAL          "shm" is uninitialized.
- */
-int
-shmfifo_unlock(
-    const struct shmhandle* const       shm)
-{
-    int status;
-
-    if (NULL == shm) {
-        uerror("shmfifo_unlock(): Uninitialized shared-memory FIFO");
-        status = EINVAL;
-    }
-    else if (0 > shm->semid) {
-        uerror ("shmfifo_unlock(): Uninitialized semaphore");
-        status = EINVAL;
-    }
-    else {
-        struct sembuf   op[1];
-
-        /*   printf("<%d> unlocking %d\n",getpid(),shm->semid); */
-
-        op[0].sem_num = SI_LOCK;
-        op[0].sem_op = 1;
-        /*op[0].sem_flg = SEM_UNDO; */
-        op[0].sem_flg = 0;
-
-        if (semop(shm->semid, op, 1) == -1) {
-            serror("shmfifo_unlock(): semop(2) failure");
-            status = ECANCELED;
-        }
-        else {
-            status = 0;                 /* success */
-        }
-
-        /*   printf("unlocked. done\n");  */
-    }
-
-    return status;
 }
 
 
