@@ -61,7 +61,11 @@ void shmfifo_detach(struct shmhandle *shm);
 void shmfifo_setpriv(struct shmhandle *shm, void *priv);
 void shmfifo_getpriv(struct shmhandle *shm, void *priv);
 
-int shmfifo_get(const struct shmhandle* const shm, void *data,int sz);
+int shmfifo_get(
+    const struct shmhandle* const       shm,
+    void*                               data,
+    int                                 sz,
+    int*                                nbytes);
 int shmfifo_put(const struct shmhandle* const shm, void *data, int sz);
 
 /* Unidata created function */
@@ -75,5 +79,14 @@ int shmfifo_ll_memfree(const struct shmhandle* const shm);
 int shmfifo_ll_memused(const struct shmhandle* const shm);
 int shmfifo_ll_put(const struct shmhandle* const shm, void *data, int sz);
 int shmfifo_ll_get(const struct shmhandle* const shm, void *data, int sz);
-void shmfifo_lock(const struct shmhandle* const shm);
-void shmfifo_unlock(const struct shmhandle* const shm);
+int shmfifo_lock(const struct shmhandle* const shm);
+int shmfifo_unlock(const struct shmhandle* const shm);
+int shmfifo_wait_reader(
+    const struct shmhandle* const       shm);
+int shmfifo_wait_writer(
+    const struct shmhandle* const       shm);
+int shmfifo_notify_reader(
+    const struct shmhandle*     shm);
+int
+shmfifo_notify_reader(
+    const struct shmhandle*     shm);

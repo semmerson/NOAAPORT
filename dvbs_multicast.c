@@ -475,10 +475,9 @@ main (int argc, char *argv[])
 		uinfo ("SBN number %u", sbnnum);
 	      lastnum = sbnnum;
 
-	      if (shmfifo_put (shm, msg, n) == -1) {
-                if (E2BIG != errno) {
+	      if ((status = shmfifo_put (shm, msg, n)) != 0 &&
+                      (status != E2BIG)) {
                   exit (1);
-                }
               }
 	    }
 	}
@@ -512,7 +511,7 @@ main (int argc, char *argv[])
 	      usleep (500);
             }
 
-	  if ((n = shmfifo_get (shm, msg, MAX_MSG)) < 0)
+	  if (shmfifo_get(shm, msg, MAX_MSG, &n) != 0)
 	    {
 	      uerror ( "circbuf read failed to return data...");
               exit(1);

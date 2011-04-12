@@ -181,7 +181,6 @@ usage (char *av0		/*  id string */
  *      0               Success.
  *      -1              Pre-condition failure. Error-message logged.
  *      -2              I/O error. Error-message logged.
- *      -3              FIFO is corrupt. Error-message logged.
  */
 int _shm_bufread(
     char* const buf,
@@ -217,10 +216,8 @@ int _shm_bufread(
             int                 ncopy;          /* number of bytes to copy */
 
             if (left == 0) {
-                if ((left = shmfifo_get(shm, msgbuf, sizeof(msgbuf))) < 0) {
-                    status = (-3 == left)
-                        ? -3            /* corrupt FIFO */
-                        : -2;           /* I/0 error */
+                if (shmfifo_get(shm, msgbuf, sizeof(msgbuf), &left) != 0) {
+                    status = -2;        /* I/O error */
 
                     break;
                 }

@@ -1,3 +1,9 @@
+1.5.3.5
+        shmfifo module:
+            Reworked semaphore signaling. Before, only 1 semaphore was used.
+            Now, 3 semaphores are used: one for locking, one as a writer
+            condition-variable, and one as a reader condition-variable.
+
 1.5.3.4 2011-04-08
         Added "const" to many places in the "shmfifo" module.
 

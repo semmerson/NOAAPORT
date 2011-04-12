@@ -40,6 +40,13 @@
 
 #define DVBS_ID 43210000
 
+typedef enum {
+    SI_LOCK = 0,
+    SI_WRITER,
+    SI_READER,
+    SI_SEM_COUNT
+} SemIndex;
+
 /* todo:
  * - implement zavorachivanie
  * - ... s uchetom hvosta (write = limit-1);
@@ -54,7 +61,7 @@ shmfifo_printmemstatus (const struct shmhandle* const shm)
 
   if (ulogIsDebug ())
     {
-      shmfifo_lock (shm);
+      (void)shmfifo_lock (shm);
       p = (struct shmprefix *) shm->mem;
 
       udebug
@@ -62,7 +69,7 @@ shmfifo_printmemstatus (const struct shmhandle* const shm)
 	 getpid (), p->counter, shm->sz, p->read, p->write,
 	 shmfifo_ll_memused (shm), shmfifo_ll_memfree (shm),
 	 shmfifo_ll_memfree (shm) - sizeof (struct shmbh));
-      shmfifo_unlock (shm);
+      (void)shmfifo_unlock (shm);
     }
   return;
 }
@@ -107,17 +114,17 @@ shmfifo_ll_memused (const struct shmhandle* const shm)
 void
 shmfifo_setpriv (struct shmhandle *shm, void *priv)
 {
-  shmfifo_lock (shm);
+  (void)shmfifo_lock (shm);
   memcpy ((char *) shm->mem + sizeof (struct shmprefix), priv, shm->privsz);
-  shmfifo_unlock (shm);
+  (void)shmfifo_unlock (shm);
 }
 
 void
 shmfifo_getpriv (struct shmhandle *shm, void *priv)
 {
-  shmfifo_lock (shm);
+  (void)shmfifo_lock (shm);
   memcpy (priv, (char *) shm->mem + sizeof (struct shmprefix), shm->privsz);
-  shmfifo_unlock (shm);
+  (void)shmfifo_unlock (shm);
 }
 
 
@@ -186,7 +193,7 @@ shmfifo_ll_get (const struct shmhandle* const shm, void *data, int sz)
   if (sz <= 0)
     {
       uerror ("sanity check failed in ll_get. sz is %d", sz);
-      shmfifo_unlock (shm);
+      (void)shmfifo_unlock (shm);
       abort ();
     }
 
@@ -241,7 +248,7 @@ shmfifo_shm_from_key (struct shmhandle *shm, int nkey)
   if (nkey != -1)
     {
       key = (key_t) (DVBS_ID + nkey);
-      semid = semget (key, 1, 0660);
+      semid = semget (key, SI_SEM_COUNT, 0660);
       sid = shmget (key, 0, 0);
 
       if ((semid == -1) || (sid == -1))
@@ -269,7 +276,7 @@ shmfifo_create (int npages, int privsz, int nkey)
   struct shmhandle *shm;
   struct shmprefix *p;
   union semun arg;
-  unsigned short values[1];
+  unsigned short values[SI_SEM_COUNT];
   key_t key;
 
   if (nkey == -1)
@@ -319,11 +326,12 @@ shmfifo_create (int npages, int privsz, int nkey)
 
   /* get semaphore */
   if (nkey == -1)
-    shm->semid = semget (IPC_PRIVATE, 1, IPC_CREAT | IPC_EXCL + 0600);
+    shm->semid = semget (IPC_PRIVATE, SI_SEM_COUNT,
+            IPC_CREAT | IPC_EXCL + 0600);
   else
-    shm->semid = semget (key, 1, IPC_CREAT + 0660);
+    shm->semid = semget (key, SI_SEM_COUNT, IPC_CREAT + 0660);
     /* Removed EXCL to use existing semaphore if possible
-    shm->semid = semget (key, 1, IPC_CREAT | IPC_EXCL + 0600);*/
+    shm->semid = semget (key, SI_SEM_COUNT, IPC_CREAT | IPC_EXCL + 0600);*/
   if (shm->semid == -1)
     {
       serror ("failed to create semaphore");
@@ -334,7 +342,9 @@ shmfifo_create (int npages, int privsz, int nkey)
       udebug ("%d : got semid %d", getpid (), shm->semid);
     }
 
-  values[0] = 1;
+  values[SI_LOCK] = 1;
+  values[SI_WRITER] = 0;
+  values[SI_READER] = 0;
   arg.array = values;
 
   while (semctl (shm->semid, 0, SETALL, arg) == -1)
@@ -350,47 +360,132 @@ shmfifo_create (int npages, int privsz, int nkey)
   return shm;
 }
 
-
-
-void
-shmfifo_lock (const struct shmhandle* const shm)
+/*
+ * Locks a shared-memory FIFO.
+ *
+ * Arguments:
+ *      shm             Pointer to the shared-memory FIFO data-structure.
+ * Returns:
+ *      0               Success
+ *      ECANCELED       Operating-system failure. Error-message logged.
+ *      EINVAL          "shm" is uninitialized. Error-message logged.
+ *      EINVAL          Semaphore  is uninitialized. Error-message logged.
+ */
+int
+shmfifo_lock(
+    const struct shmhandle* const       shm)
 {
-  int DONE;
-  struct sembuf op[1];
-  if (!shm)
-    {
-      uerror ("shm uninitialized\n");
-      abort ();
-      return;
+    int status;
+
+    if (NULL == shm) {
+        uerror("shmfifo_lock(): "
+            "Uninitialized shared-memory FIFO data-structure");
+        status = EINVAL;
     }
-  if (shm->semid < 0)
-    {
-      uerror ("semid uninitialized\n");
-      abort ();
-      return;
+    else if (0 > shm->semid) {
+        uerror("shmfifo_lock(): Uninitialized semaphore");
+        status = EINVAL;
+    }
+    else {
+        struct sembuf op[1];
+
+        /*  printf("called shmfifo_lock semid: %d in process %d\n",shm->semid,
+         *  getpid());
+         *  printf("<%d>locking %d\n",getpid(),shm->semid); */
+
+        op[0].sem_num = SI_LOCK;
+        op[0].sem_op = -1;
+        op[0].sem_flg = 0;
+
+        /* dvbs_multicast(1) hangs here */
+        if (semop (shm->semid, op, 1) == -1) {
+            serror("shmfifo(): semop(2) failure");
+            status = ECANCELED;
+        }
+        else {
+            status = 0;                 /* success */
+        }
+
+        /*   printf("<%d> locked\n",getpid()); */
     }
 
+    return status;
+}
 
-/*  printf("called shmfifo_lock semid: %d in process %d\n",shm->semid,getpid()); */
+/*
+ * Indicates if the current process has the lock on a shared-memory FIFO.
+ *
+ * Arguments:
+ *      shm             Pointer to the shared-memory FIFO data-structure.
+ *      havLck          Pointer to indicator to be set.
+ * Returns:
+ *      0               Success. "*havLck" set to
+ *                          0   No. The current process doesn't have the FIFO
+ *                              locked.  Error-message logged.
+ *                          1   Yes. The current process has the FIFO locked.
+ *      EINVAL          "shm" uninitialized. Error-message logged.
+ *      ECANCELED       Operating-system failure. Error-message logged.
+ */
+static int
+haveLock(
+    const struct shmhandle* const       shm,
+    int* const                          havLck)
+{
+    int status;
 
-/*  printf("<%d>locking %d\n",getpid(),shm->semid); */
-
-  DONE = 0;
-  while (!DONE)
-    {
-      op[0].sem_num = 0;
-      op[0].sem_op = -1;
-      op[0].sem_flg = 0;
-
-      if (semop (shm->semid, op, 1) == -1)
-	{
-	  serror ("semop lock failed");
-	  usleep (100);
-	}
-      else
-	DONE = 1;
+    if (0 > shm->semid) {
+        uerror("haveLock(): Invalid semaphore ID: %d", shm->semid);
+        status = EINVAL;
     }
-/*   printf("<%d> locked\n",getpid()); */
+    else {
+        int     semval = semctl(shm->semid, SI_LOCK, GETVAL);
+        int     pid = semctl(shm->semid, SI_LOCK, GETPID);
+
+        if (-1 == semval || -1 == pid) {
+            serror("haveLock(): semctl() failure");
+            status = ECANCELED;
+        }
+        else {
+            if (0 != semval) {
+                uerror("haveLock(): FIFO not locked: %d", semval);
+                *havLck = 0;
+            }
+            else if (getpid() != pid) {
+                uerror("haveLock(): FIFO locked by another process: %d", pid);
+                *havLck = 0;
+            }
+            else {
+                *havLck = 1;
+            }
+
+            status = 0;
+        }
+    }
+
+    return status;
+}
+
+/*
+ * Ensures that a semaphore index is either SI_READER or SI_WRITER.
+ *
+ * Arguments:
+ *      semIndex        Index to be vetted.
+ * Returns:
+ *      0               Success.
+ *      EINVAL          "semIndex" isn't SI_READER or SI_WRITER. Error-message
+ *                      logged.
+ */
+static int
+vetSemIndex(
+    const SemIndex      semIndex)
+{
+    if (SI_READER == semIndex || SI_WRITER == semIndex) {
+        return 0;
+    }
+
+    uerror("vetSemIndex(): Invalid semaphore index: %d", semIndex);
+
+    return EINVAL;
 }
 
 /*
@@ -398,11 +493,73 @@ shmfifo_lock (const struct shmhandle* const shm)
  * be locked.
  *
  * Arguments:
- *      shm     Pointer to the shared-memory FIFO.
+ *      shm             Pointer to the shared-memory FIFO.
+ *      semIndex        The index of the semaphore to wait upon. One of
+ *                      SI_READER or SI_WRITER.
  * Returns:
  *      0               Success. Another thread of control has locked and
  *                      released the FIFO. Upon return, the shared-memory FIFO
  *                      shall be locked.
+ *      EINVAL          "shm" uninitialized. Error-message logged.
+ *      EINVAL          The FIFO isn't locked by the current process.
+ *                      Error-message logged.
+ *      EINVAL          "semIndex" isn't SI_READER or SI_WRITER.
+ *      ECANCELED       Operating-system failure. Error-message logged.
+ * Raises:
+ *      SIGSEGV if "shm" is NULL.
+ */
+static int
+shmfifo_wait(
+    const struct shmhandle* const       shm,
+    const SemIndex                      semIndex)
+{
+    int havLck;
+    int status = haveLock(shm, &havLck);
+
+    if (0 == status) {
+        if (!havLck) {
+            status = EINVAL;
+        }
+        else if ((status = vetSemIndex(semIndex)) == 0) {
+            struct sembuf   op[3];
+
+            /* Release the lock */
+            op[0].sem_num = SI_LOCK;
+            op[0].sem_op = 1;
+            op[0].sem_flg = 0;
+
+            /* Wait for a notification from the other process */
+            op[1].sem_num = semIndex;
+            op[1].sem_op = -1;
+            op[1].sem_flg = 0;
+
+            /* Reacquire the lock */
+            op[0].sem_num = SI_LOCK;
+            op[0].sem_op = -1;
+            op[0].sem_flg = 0;
+
+            /* readnoaaport(1) hangs here */
+            if (semop(shm->semid, op, 3) == -1) {
+                serror("shmfifo_wait(): semop() failure");
+                status = ECANCELED;
+            }
+            else {
+                status = 0;                 /* success */
+            }
+        }
+    }
+
+    return status;
+}
+
+/*
+ * Waits for the reader process to be notified. The shared-memory FIFO must
+ * be locked.
+ *
+ * Arguments:
+ *      shm             Pointer to the shared-memory FIFO.
+ * Returns:
+ *      0               Success.
  *      EINVAL          "shm" uninitialized. Error-message logged.
  *      EINVAL          The FIFO isn't locked by the current process.
  *                      Error-message logged.
@@ -411,68 +568,69 @@ shmfifo_lock (const struct shmhandle* const shm)
  *      SIGSEGV if "shm" is NULL.
  */
 int
-shmfifo_wait(
+shmfifo_wait_reader(
     const struct shmhandle* const       shm)
 {
-    int status;
-    int pid;
-    int semval;
+    return shmfifo_wait(shm, SI_READER);
+}
 
-    if (0 > shm->semid) {
-        uerror("shmfifo_wait(): Invalid semaphore ID: %d", shm->semid);
-        status = EINVAL;
-    }
-    else if (((semval = semctl(shm->semid, 0, GETVAL)) == -1) ||
-            ((pid = semctl(shm->semid, 0, GETPID)) == -1)) {
-        serror("shmfifo_wait(): semctl() failure");
-        status = ECANCELED;
-    }
-    else if (0 != semval) {
-        uerror("shmfifo_wait(): FIFO not locked: %d", semval);
-        status = EINVAL;
-    }
-    else if (getpid() != pid) {
-        uerror("shmfifo_wait(): FIFO locked by another process: %d", pid);
-        status = EINVAL;
-    }
-    else {
-        /*
-         * Use the FIFO's semaphore-based lock to implement a brain-damaged
-         * condition variable: notification or signaling occurs when another
-         * thread of control acquires and releases the FIFO's semaphore-based
-         * lock (i.e., another thread of control does something with the FIFO).
-         *
-         * THIS SOLUTION TO THE PROBLEM OF IMPLEMENTING AN EVENT-DRIVEN FIFO IS
-         * VIABLE IF AND ONLY IF THERE ARE ONLY TWO THREADS OF CONTROL.
-         */
-        struct sembuf   op[2];
+/*
+ * Waits for the writer process to be notified. The shared-memory FIFO must
+ * be locked.
+ *
+ * Arguments:
+ *      shm             Pointer to the shared-memory FIFO.
+ * Returns:
+ *      0               Success.
+ *      EINVAL          "shm" uninitialized. Error-message logged.
+ *      EINVAL          The FIFO isn't locked by the current process.
+ *                      Error-message logged.
+ *      ECANCELED       Operating-system failure. Error-message logged.
+ * Raises:
+ *      SIGSEGV if "shm" is NULL.
+ */
+int
+shmfifo_wait_writer(
+    const struct shmhandle* const       shm)
+{
+    return shmfifo_wait(shm, SI_WRITER);
+}
 
-        /* Release the lock */
-        op[0].sem_num = 0;
-        op[0].sem_op = 1;
-        op[0].sem_flg = 0;
+/*
+ * Notifies the reader or writer process.
+ *
+ * Arguments:
+ *      shm             Pointer to the shared-memory FIFO data-structure.
+ *      semIndex        Which process to notify. One of SI_WRITER or SI_READER.
+ * Returns:
+ *      0               Success
+ *      ECANCELED       Operating-system failure. Error-message logged.
+ *      EINVAL          The FIFO isn't locked by the current process.
+ *                      Error-message logged.
+ *      EINVAL          "which" isn't SI_WRITER or SI_READER. Error-message
+ *                      logged.
+ * Precondition:
+ *      The FIFO is locked by the current process.
+ */
+static int
+shmfifo_notify(
+    const struct shmhandle*     shm,
+    const SemIndex              which)
+{
+    int havLck;
+    int status = haveLock(shm, &havLck);
 
-        /* Wait for the other process to acquire the lock */
-        op[1].sem_num = 0;
-        op[1].sem_op = 0;
-        op[1].sem_flg = 0;
-
-        if (semop(shm->semid, op, 2) == -1) {
-            serror("shmfifo_wait(): semop() failure");
-            status = ECANCELED;
+    if (0 == status) {
+        if (!havLck) {
+            status = EINVAL;
         }
-        else {
-            /* Reacquire the lock */
-            op[0].sem_num = 0;
-            op[0].sem_op = -1;
-            op[0].sem_flg = 0;
-
-            if (semop(shm->semid, op, 1) == -1) {
-                serror("shmfifo_wait(): semop() failure");
+        else if ((status = vetSemIndex(which)) == 0) {
+            if (semctl(shm->semid, which, SETVAL, 1)) {
+                serror("shmfifo_notify(): semctl() failure");
                 status = ECANCELED;
             }
             else {
-                status = 0;             /* success */
+                status = 0;
             }
         }
     }
@@ -480,38 +638,92 @@ shmfifo_wait(
     return status;
 }
 
-void
-shmfifo_unlock (const struct shmhandle* const shm)
+/*
+ * Notifies the writer process.
+ *
+ * Arguments:
+ *      shm             Pointer to the shared-memory FIFO data-structure.
+ * Returns:
+ *      0               Success
+ *      ECANCELED       Operating-system failure. Error-message logged.
+ *      EINVAL          The FIFO isn't locked by the current process.
+ *                      Error-message logged.
+ * Precondition:
+ *      The FIFO is locked by the current process.
+ */
+int
+shmfifo_notify_writer(
+    const struct shmhandle*     shm)
 {
-  int DONE;
-  struct sembuf op[1];
-  if (!shm)
-    {
-      uerror ("shm uninitialized\n");
-      return;
+    return shmfifo_notify(shm, SI_WRITER);
+}
+
+/*
+ * Notifies the reader process.
+ *
+ * Arguments:
+ *      shm             Pointer to the shared-memory FIFO data-structure.
+ * Returns:
+ *      0               Success
+ *      ECANCELED       Operating-system failure. Error-message logged.
+ *      EINVAL          The FIFO isn't locked by the current process.
+ *                      Error-message logged.
+ * Precondition:
+ *      The FIFO is locked by the current process.
+ */
+int
+shmfifo_notify_reader(
+    const struct shmhandle*     shm)
+{
+    return shmfifo_notify(shm, SI_READER);
+}
+
+/*
+ * Unlocks a shared-memory FIFO.
+ *
+ * Arguments:
+ *      shm             Pointer to the shared-memory FIFO data-structure.
+ * Returns:
+ *      0               Success.
+ *      ECANCELED       Operating-system failure. Error-message logged.
+ *      EINVAL          "shm" is uninitialized.
+ */
+int
+shmfifo_unlock(
+    const struct shmhandle* const       shm)
+{
+    int status;
+
+    if (NULL == shm) {
+        uerror("shmfifo_unlock(): Uninitialized shared-memory FIFO");
+        status = EINVAL;
     }
-  if (shm->semid < 0)
-    {
-      uerror ("semid uninitialized\n");
-      return;
+    else if (0 > shm->semid) {
+        uerror ("shmfifo_unlock(): Uninitialized semaphore");
+        status = EINVAL;
     }
-/*   printf("<%d> unlocking %d\n",getpid(),shm->semid); */
-  DONE = 0;
-  while (!DONE)
-    {
-      op[0].sem_num = 0;
-      op[0].sem_op = 1;
-      /*op[0].sem_flg = SEM_UNDO; */
-      op[0].sem_flg = 0;
-      if (semop (shm->semid, op, 1) == -1)
-	{
-	  serror ("semop unlock failed");
-	  usleep (100);
-	}
-      else
-	DONE = 1;
+    else {
+        struct sembuf   op[1];
+
+        /*   printf("<%d> unlocking %d\n",getpid(),shm->semid); */
+
+        op[0].sem_num = SI_LOCK;
+        op[0].sem_op = 1;
+        /*op[0].sem_flg = SEM_UNDO; */
+        op[0].sem_flg = 0;
+
+        if (semop(shm->semid, op, 1) == -1) {
+            serror("shmfifo_unlock(): semop(2) failure");
+            status = ECANCELED;
+        }
+        else {
+            status = 0;                 /* success */
+        }
+
+        /*   printf("unlocked. done\n");  */
     }
-/*   printf("unlocked. done\n");  */
+
+    return status;
 }
 
 
@@ -559,126 +771,141 @@ shmfifo_detach (struct shmhandle *shm)
 }
 
 
-
 /*
  * Reads one record's worth of data from the FIFO and writes it to a
  * client-supplied buffer. Blocks until data is available.
  *
+ * Precondition:
+ *      The FIFO is locked by the current process.
  * Arguments:
- *      shm     Pointer to the shared-memory FIFO data-structure. The FIFO
- *              must be unlocked.
- *      data    Pointer to the buffer into which to put data from the FIFO.
- *      sz      The size of the buffer in bytes.
+ *      shm             Pointer to the shared-memory FIFO data-structure. The
+ *                      FIFO must be unlocked.
+ *      data            Pointer to the buffer into which to put data from the
+ *                      FIFO.
+ *      sz              The size of the buffer in bytes.
+ *      nbytes          Pointer to the memory location to be set to the number
+ *                      of bytes read.
  * Returns:
- *      >0      The size of the record's data in bytes. Copied to the buffer.
- *      -1      "sz" is non-positive. Error-message logged.
- *      -2      Operating-system failure. Error-message logged.
- *      -3      FIFO is corrupt. Error-message logged.
- *      -4      The buffer is too small for the record's data.  No data is
- *              read.  Error-message logged.
+ *      0               Success. "*nbytes" is set to the number of bytes read.
+ *      ECANCELED       Operating-system failure. Error-message logged.
+ *      EINVAL          "shm" uninitialized. Error-message logged.
+ *      EINVAL          "sz" is non-positive. Error-message logged.
+ *      EINVAL          The buffer is too small for the record's data.  No data
+ *                      is read.  Error-message logged.
+ *      EIO             FIFO is corrupt. Error-message logged.
  * Raises:
  *      SIGSEGV if "shm" is NULL
  *      SIGSEGV if "data" is NULL
+ *      SIGSEGV if "nbytes" is NULL
  *      SIGABRT if "shm" is uninitialized
  */
 int
 shmfifo_get(
     const struct shmhandle* const       shm,
     void* const                         data,
-    const int                           sz)
+    const int                           sz,
+    int* const                          nbytes)
 {
     int status;
 
     if (sz <= 0) {
         uerror("shmfifo_get(): Non-positive number of bytes to read: %d", sz);
-        status = -1;
+        status = EINVAL;
     }
     else {
         int     loggedEmptyFifo = 0;
 
         shmfifo_printmemstatus(shm);
-        shmfifo_lock(shm);
 
-        for (status = 0; shmfifo_ll_memused(shm) == 0; ) {
-            if (!loggedEmptyFifo) {
-                unotice("shmfifo_get(): FIFO is empty");
-                loggedEmptyFifo = 1;
-            }
-            if (shmfifo_wait(shm) != 0) {
-                status = -2;
-                break;
-            }
-        }
-
-        if (0 == status) {
-            struct shmbh        header;
-
-            if (shmfifo_ll_memused(shm) < (int)sizeof(header)) {
-                uerror("shmfifo_get(): Insufficient data for a record: "
-                        "should be at least %d bytes; was %d bytes",
-                        sizeof(header), shmfifo_ll_memused(shm));
-                shmfifo_print(shm);
-
-                status = -3;
-            }
-            else {
-                shmfifo_ll_get(shm, &header, sizeof(header));
-
-                if (header.canary != 0xDEADBEEF) {
-                    uerror("shmfifo_get(): Invalid header sentinel: 0x%X",
-                            header.canary);
-
-                    status = -3;
+        if ((status = shmfifo_lock(shm)) == 0) {
+            for (status = 0; shmfifo_ll_memused(shm) == 0; ) {
+                if (!loggedEmptyFifo) {
+                    unotice("shmfifo_get(): FIFO is empty");
+                    loggedEmptyFifo = 1;
                 }
-                else if (shmfifo_ll_memused(shm) < header.sz) {
-                    uerror("shmfifo_get(): Inconsistent data-length of record: "
-                            "expected %d bytes; encountered %d bytes",
-                            header.sz, shmfifo_ll_memused(shm));
+                if ((status = shmfifo_wait_reader(shm)) != 0) {
+                    break;
+                }
+            }
+
+            if (0 == status) {
+                struct shmbh        header;
+
+                if (shmfifo_ll_memused(shm) < (int)sizeof(header)) {
+                    uerror("shmfifo_get(): Insufficient data for a record: "
+                            "should be at least %d bytes; was %d bytes",
+                            sizeof(header), shmfifo_ll_memused(shm));
                     shmfifo_print(shm);
 
-                    status = -3;
-                }
-                else if (header.sz > sz) {
-                    uerror("shmfifo_get(): Client-supplied buffer too small: "
-                            "need %d bytes; %d bytes supplied", header.sz, sz);
-                    shmfifo_ll_hrewind(shm);
-
-                    status = -4;
+                    status = EINVAL;
                 }
                 else {
-                    shmfifo_ll_get(shm, data, header.sz);
-                    if (loggedEmptyFifo) {
-                        unotice("shmfifo_get(): Got %d bytes of data from FIFO",
-                                header.sz);
+                    shmfifo_ll_get(shm, &header, sizeof(header));
+
+                    if (header.canary != 0xDEADBEEF) {
+                        uerror("shmfifo_get(): Invalid header sentinel: 0x%X",
+                                header.canary);
+
+                        status = EIO;
                     }
-                    shmfifo_printmemstatus(shm);
+                    else if (shmfifo_ll_memused(shm) < header.sz) {
+                        uerror("shmfifo_get(): "
+                                "Inconsistent data-length of record: "
+                                "expected %d bytes; encountered %d bytes",
+                                header.sz, shmfifo_ll_memused(shm));
+                        shmfifo_print(shm);
 
-                    status = header.sz;
+                        status = EIO;
+                    }
+                    else if (header.sz > sz) {
+                        uerror("shmfifo_get(): "
+                                "Client-supplied buffer too small: "
+                                "need %d bytes; %d bytes supplied",
+                                header.sz, sz);
+                        shmfifo_ll_hrewind(shm);
+
+                        status = EINVAL;
+                    }
+                    else {
+                        shmfifo_ll_get(shm, data, header.sz);
+
+                        if (loggedEmptyFifo) {
+                            unotice("shmfifo_get(): "
+                                    "Got %d bytes of data from FIFO",
+                                    header.sz);
+                        }
+
+                        shmfifo_printmemstatus(shm);
+
+                        if ((status == shmfifo_notify_writer(shm)) == 0) {
+                            *nbytes = header.sz;
+                        }
+                    }
                 }
-            }
-        }
+            }                           /* FIFO has data */
 
-        shmfifo_unlock(shm);
+            status = shmfifo_unlock(shm);
+        }                               /* shared-memory FIFO locked */
     }
 
     return status;
 }
 
-
 /*
  * Writes data to the shared-memory FIFO.
  *
  * Arguments:
- *      shm     Pointer to the shared-memory FIFO data-structure.
- *      data    Pointer to the data to be written.
- *      sz      The amount of data to be written in bytes.
+ *      shm             Pointer to the shared-memory FIFO data-structure.
+ *      data            Pointer to the data to be written.
+ *      sz              The amount of data to be written in bytes.
  * Returns:
- *      sz      Success.
- *      -1      Error. "errno" set to
- *                  E2BIG       "sz" is larger than the FIFO can handle.
- *                              Error-message logged.
- *                  EIO         I/O error. Error-message logged.
- *                  EINVAL      "sz" is negative. Error-message logged.
+ *      0               Success.
+ *      E2BIG           "sz" is larger than the FIFO can handle.  Error-message
+ *                      logged.
+ *      ECANCELED       Operating-system failure. Error-message logged.
+ *      EIO             I/O error. Error-message logged.
+ *      EINVAL          "sz" is negative. Error-message logged.
+ *      EINVAL          "shm" uninitialized. Error-message logged.
  */
 int
 shmfifo_put(
@@ -690,63 +917,63 @@ shmfifo_put(
 
     if (0 > sz) {
         uerror("shmfifo_put(): Invalid size argument: %d", sz);
-        errno = EINVAL;
-        status = -1;
+        status = EINVAL;
     }
     else {
-        struct shmbh    header;
-        const size_t    totalBytesToWrite = sz + sizeof(header);
-        size_t          maxSize;
-
         shmfifo_printmemstatus(shm);
-        shmfifo_lock(shm);
 
-        maxSize = shmfifo_ll_memused(shm) + shmfifo_ll_memfree(shm);
+        if ((status = shmfifo_lock(shm)) == 0) {
+            struct shmbh    header;
+            const size_t    totalBytesToWrite = sz + sizeof(header);
+            size_t          maxSize;
 
-        if (maxSize < totalBytesToWrite) {
-            uerror("shmfifo_put(): Record bigger than entire FIFO: "
-                    "record is %lu bytes; FIFO capacity is %lu bytes", 
-                    totalBytesToWrite, maxSize);
-            errno = E2BIG;
-            status = -1;
-        }
-        else {
-            int loggedNoRoom = 0;
-            int freeSpace;
+            maxSize = shmfifo_ll_memused(shm) + shmfifo_ll_memfree(shm);
 
-            status = sz;
+            if (maxSize < totalBytesToWrite) {
+                uerror("shmfifo_put(): Record bigger than entire FIFO: "
+                        "record is %lu bytes; FIFO capacity is %lu bytes", 
+                        totalBytesToWrite, maxSize);
+                status = E2BIG;
+            }
+            else {
+                int loggedNoRoom = 0;
+                int freeSpace;
 
-            /*
-             * Wait for the FIFO to have room for the data.
-             */
-            while ((freeSpace = shmfifo_ll_memfree(shm)) <= totalBytesToWrite) {
-                if (!loggedNoRoom) {
-                    uerror("shmfifo_put(): No room in FIFO: "
-                            "need %d bytes; only %d bytes available. "
-                            "Waiting...", totalBytesToWrite, freeSpace);
-                    loggedNoRoom = 1;
+                status = 0;
+
+                /*
+                 * Wait for the FIFO to have room for the data.
+                 */
+                while ((freeSpace = shmfifo_ll_memfree(shm)) <= 
+                        totalBytesToWrite) {
+                    if (!loggedNoRoom) {
+                        uerror("shmfifo_put(): No room in FIFO: "
+                                "need %d bytes; only %d bytes available. "
+                                "Waiting...", totalBytesToWrite, freeSpace);
+                        loggedNoRoom = 1;
+                    }
+                    if ((status = shmfifo_wait_writer(shm)) != 0) {
+                        break;
+                    }
                 }
-                if (shmfifo_wait(shm) != 0) {
-                    errno = EIO;
-                    status = -1;
-                    break;
+
+                if (0 == status) {
+                    header.sz = sz;
+                    header.canary = 0xDEADBEEF;
+                    shmfifo_ll_put(shm, &header, sizeof(header));
+                    shmfifo_ll_put(shm, data, sz);
+
+                    if (loggedNoRoom) {
+                        uerror("shmfifo_put(): Wrote %d bytes to FIFO",
+                                totalBytesToWrite);
+                    }
+
+                    status = shmfifo_notify_reader(shm);
                 }
             }
 
-            if (sz == status) {
-                header.sz = sz;
-                header.canary = 0xDEADBEEF;
-                shmfifo_ll_put(shm, &header, sizeof(header));
-                shmfifo_ll_put(shm, data, sz);
-
-                if (loggedNoRoom) {
-                    uerror("shmfifo_put(): Wrote %d bytes to FIFO",
-                            totalBytesToWrite);
-                }
-            }
-        }
-
-        shmfifo_unlock(shm);
+            status = shmfifo_unlock(shm);
+        }                               /* shared-memory FIFO locked */
     }
 
     return status;
@@ -757,7 +984,7 @@ shmfifo_dealloc (struct shmhandle *shm)
 {
   union semun ignored;
 
-  semctl (shm->semid, 1, IPC_RMID, ignored);
+  semctl (shm->semid, 0, IPC_RMID, ignored);    /* 2nd arg is ignored */
   shmctl (shm->sid, IPC_RMID, 0);
 }
 
