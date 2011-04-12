@@ -598,15 +598,16 @@ shmfifo_wait(
     const struct shmhandle* const       shm,
     const SemIndex                      semIndex)
 {
-    int status = checkLocked(shm);
-
+    int status = vetSemIndex(semIndex);
+    
     if (0 == status) {
-        if ((status = vetSemIndex(semIndex)) == 0) {
+        /* Release the lock */
+        if ((status = shmfifo_unlock(shm)) == 0) {
             struct sembuf   op[1];
 
-            /* Release the lock */
-            op[0].sem_num = SI_LOCK;
-            op[0].sem_op = 1;
+            /* Wait for a notification from the other process */
+            op[0].sem_num = semIndex;
+            op[0].sem_op = -1;
             op[0].sem_flg = 0;
 
             if (semop(shm->semid, op, 1) == -1) {
@@ -614,32 +615,13 @@ shmfifo_wait(
                 status = ECANCELED;
             }
             else {
-                /* Wait for a notification from the other process */
-                op[0].sem_num = semIndex;
-                op[0].sem_op = -1;
-                op[0].sem_flg = 0;
-
-                if (semop(shm->semid, op, 1) == -1) {
-                    serror("shmfifo_wait(): semop() failure");
-                    status = ECANCELED;
-                }
-                else {
-                    /* Reacquire the lock */
-                    op[0].sem_num = SI_LOCK;
-                    op[0].sem_op = -1;
-                    op[0].sem_flg = 0;
-
-                    if (semop(shm->semid, op, 1) == -1) {
-                        serror("shmfifo_wait(): semop() failure");
-                        status = ECANCELED;
-                    }
-                    else {
-                        status = 0;     /* success */
-                    }                   /* lock reacquired */
-                }                       /* notification occurred */
-            }                           /* lock released */
-        }                               /* valid "semIndex" */
-    }                                   /* FIFO is locked */
+                /* Reacquire the lock */
+                if ((status = shmfifo_lock(shm)) == 0) {
+                    status = 0;     /* success */
+                }                   /* lock reacquired */
+            }                       /* notification occurred */
+        }                           /* lock released */
+    }                               /* valid "semIndex" */
 
     return status;
 }
@@ -860,7 +842,7 @@ shmfifo_get(
         if ((status = shmfifo_lock(shm)) == 0) {
             for (status = 0; shmfifo_ll_memused(shm) == 0; ) {
                 if (!loggedEmptyFifo) {
-                    unotice("shmfifo_get(): FIFO is empty");
+                    uinfo("shmfifo_get(): FIFO is empty");
                     loggedEmptyFifo = 1;
                 }
                 if ((status = shmfifo_wait_reader(shm)) != 0) {
@@ -910,14 +892,14 @@ shmfifo_get(
                         shmfifo_ll_get(shm, data, header.sz);
 
                         if (loggedEmptyFifo) {
-                            unotice("shmfifo_get(): "
+                            uinfo("shmfifo_get(): "
                                     "Got %d bytes of data from FIFO",
                                     header.sz);
                         }
 
                         shmfifo_printmemstatus(shm);
 
-                        if ((status == shmfifo_notify_writer(shm)) == 0) {
+                        if ((status = shmfifo_notify_writer(shm)) == 0) {
                             *nbytes = header.sz;
                         }
                     }
