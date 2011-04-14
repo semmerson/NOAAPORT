@@ -1,10 +1,9 @@
-1.5.3.8
-	INSTALL file:
-		Removed extraneous comment about commenting-out ULOG_FACILITY_OVERRIDE.
+1.5.3.7 2011-04-14 14:49
+    INSTALL file:
+        Removed extraneous comment about commenting-out ULOG_FACILITY_OVERRIDE.
 		
-		Corrected spelling mistake.
-		
-1.5.3.7 2011-04-12 15:47:59
+        Corrected spelling mistake.
+
     shmfifo module:
         Corrected assignment bug.
 
