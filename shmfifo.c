@@ -9,7 +9,7 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 #define _XOPEN_SOURCE 500
 
@@ -287,7 +287,7 @@ shmfifo_create (int npages, int privsz, int nkey)
       key = (key_t) (DVBS_ID + nkey);
       /* EXCL creates an error condition if the memory already exists...
          we can use the existing memory if the program has not changed the
-         size of the segment or the private structure size 
+         size of the segment or the private structure size
       segment_id = shmget (key, npages * getpagesize (),
 			   IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);*/
       segment_id = shmget (key, npages * getpagesize (),
@@ -312,7 +312,7 @@ shmfifo_create (int npages, int privsz, int nkey)
   if ( p == (void *)-1 )
      {
      serror("shmat");
-     return NULL; 
+     return NULL;
      }
 
   p->read = p->write = sizeof (struct shmprefix) + privsz;
@@ -599,7 +599,7 @@ shmfifo_wait(
     const SemIndex                      semIndex)
 {
     int status = vetSemIndex(semIndex);
-    
+
     if (0 == status) {
         /* Release the lock */
         if ((status = shmfifo_unlock(shm)) == 0) {
@@ -953,7 +953,7 @@ shmfifo_put(
 
             if (maxSize < totalBytesToWrite) {
                 uerror("shmfifo_put(): Record bigger than entire FIFO: "
-                        "record is %lu bytes; FIFO capacity is %lu bytes", 
+                        "record is %lu bytes; FIFO capacity is %lu bytes",
                         totalBytesToWrite, maxSize);
                 status = E2BIG;
             }
@@ -966,7 +966,7 @@ shmfifo_put(
                 /*
                  * Wait for the FIFO to have room for the data.
                  */
-                while ((freeSpace = shmfifo_ll_memfree(shm)) <= 
+                while ((freeSpace = shmfifo_ll_memfree(shm)) <=
                         totalBytesToWrite) {
                     if (!loggedNoRoom) {
                         uerror("shmfifo_put(): No room in FIFO: "

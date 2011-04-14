@@ -181,9 +181,6 @@ local6.debug                                            /data/tmp/oconus.log
      Here, 4 is the number of days of all DVB-S readnoaaport invocation
      log files to keep online.
 
-   NOTE: If you comment out the ULOG_FACILITY_OVERRIDE variable in #6,
-      then you do not need to rotate readnoaaport log files here!
-
 8) Dvbs_multicast is the process which reads the UDP packets from
    each PID on the multicast. The reading of the UDP stream must be 
    able to keep up with the stream since there is no mechanism for
@@ -194,7 +191,7 @@ local6.debug                                            /data/tmp/oconus.log
 
       - Install the dvbs_multicast program setuid root. This is done by
         running "make install_setuids" as root in the installation
-        proceedure.  The program will stay resident in memory and
+        procedure.  The program will stay resident in memory and
         prevent being paged out if the program has sufficient
         permissions.
 

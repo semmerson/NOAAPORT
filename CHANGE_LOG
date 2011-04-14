@@ -1,47 +1,53 @@
+1.5.3.8
+	INSTALL file:
+		Removed extraneous comment about commenting-out ULOG_FACILITY_OVERRIDE.
+		
+		Corrected spelling mistake.
+		
 1.5.3.7 2011-04-12 15:47:59
-        shmfifo module:
-            Corrected assignment bug.
+    shmfifo module:
+        Corrected assignment bug.
 
-            Improved shmfifo_wait(): made use shmfifo_lock() and 
-            shmfifo_unlock().
+        Improved shmfifo_wait(): made use shmfifo_lock() and 
+        shmfifo_unlock().
 
 1.5.3.6 2011-04-12 14:37 
-        shmfifo module:
-            Split semaphore operation for waiting on a condition-variable
-            from 1 to 3 semop(2) calls.
+    shmfifo module:
+        Split semaphore operation for waiting on a condition-variable
+        from 1 to 3 semop(2) calls.
 
-            Added checkLocked() and checkUnlocked().
+        Added checkLocked() and checkUnlocked().
 
 1.5.3.5 2011-04-12 13:30 
-        shmfifo module:
-            Reworked semaphore signaling. Before, only 1 semaphore was used.
-            Now, 3 semaphores are used: one for locking, one as a writer
-            condition-variable, and one as a reader condition-variable.
+    shmfifo module:
+        Reworked semaphore signaling. Before, only 1 semaphore was used.
+        Now, 3 semaphores are used: one for locking, one as a writer
+        condition-variable, and one as a reader condition-variable.
 
 1.5.3.4 2011-04-08
-        Added "const" to many places in the "shmfifo" module.
+    Added "const" to many places in the "shmfifo" module.
 
-        Ensured NOTICE and ERROR level messages before calling shmfifo_wait()
-        in shmfifo_get() and shmfifo_put(), respectively.
+    Ensured NOTICE and ERROR level messages before calling shmfifo_wait()
+    in shmfifo_get() and shmfifo_put(), respectively.
 
 1.5.3.3 2011-04-08
-        Improved shmfifo_get(): made blocking and restructured.
+    Improved shmfifo_get(): made blocking and restructured.
 
-        Improved shmfifo_wait(): split the semaphore operations into 2 calls to
-        semop(2).
+    Improved shmfifo_wait(): split the semaphore operations into 2 calls to
+    semop(2).
 
-        Improved shmfifo_put(): added missing "break" to shmfifo_wait() loop
-        and rewrote loop to improve clarity.
+    Improved shmfifo_put(): added missing "break" to shmfifo_wait() loop
+    and rewrote loop to improve clarity.
 
-        Modified dvbs_multicast(1) to use blocking shmfifo_get().
+    Modified dvbs_multicast(1) to use blocking shmfifo_get().
 
-        Modified readnoaaport(1): rewrote _shm_bufread() to improve clarity
-        and to use blocking shmfifo_get().
+    Modified readnoaaport(1): rewrote _shm_bufread() to improve clarity
+    and to use blocking shmfifo_get().
         
 1.5.3.2 2011-04-07
-        Reverted file "readnoaaport.c" to tag "v1.5.2" to see if changes to
-        that file are responsible for causing no data-products to be inserted
-        into the product-queue. They are, apparently.
+    Reverted file "readnoaaport.c" to tag "v1.5.2" to see if changes to
+    that file are responsible for causing no data-products to be inserted
+    into the product-queue. They are, apparently.
 
 1.5.3.1 2011-04-07
     Improved readnoaaport(1):

@@ -37,7 +37,7 @@
 
 
 /* Local headers */
-#include "dvbs.h"
+#include  "dvbs.h"
 
 extern char *version_str;
 
@@ -291,7 +291,7 @@ main (int argc, char *argv[])
 
   if ((pq == NULL) && (dumpflag))
     {
-      if (status = pq_open (pqfname, PQ_DEFAULT, &pq))
+      if (pq_open (pqfname, PQ_DEFAULT, &pq))
 	{
 	  uerror ("couldn't open the product queue %s\0", pqfname);
 	  exit (-1);
@@ -374,7 +374,7 @@ main (int argc, char *argv[])
 	  exit (1);
 	}
 
-      /* Get IP socket port for multicast address as s_port[pid_channel-1] 
+      /* Get IP socket port for multicast address as s_port[pid_channel-1]
       sscanf (argv[optind], "%*d.%*d.%*d.%d", &pid_channel);
       if ((pid_channel < 1) || (pid_channel > MAX_DVBS_PID))
 	{
@@ -444,7 +444,7 @@ main (int argc, char *argv[])
                 if ( haslogged )
 		   unotice("recvfrom returned %d",n);
                 else
-		   if ( n == 0 ) 
+		   if ( n == 0 )
 		      uerror("recvfrom returns zero");
 		   else
 		      serror("recvfrom failure");
@@ -507,7 +507,7 @@ main (int argc, char *argv[])
             {
 	      if ( ulogIsVerbose () )
 		uinfo ("nothing in shmem, waiting...");
-              
+
 	      usleep (500);
             }
 
