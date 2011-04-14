@@ -5,3 +5,5 @@ readnoaaport
 dvbs_multicast
 tags
 CVS/*
+.cproject
+.project
