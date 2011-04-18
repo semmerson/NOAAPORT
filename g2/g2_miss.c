@@ -1,7 +1,7 @@
 #include "grib2.h"
 
 void g2_miss( gribfield *gfld, float *rmiss, int *nmiss )
-//$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //                .      .    .                                       .
 // SUBPROGRAM:    g2_miss 
 //   PRGMMR: Gilbert         ORG: W/NP11    DATE: 2004-12-16
@@ -30,7 +30,7 @@ void g2_miss( gribfield *gfld, float *rmiss, int *nmiss )
 //   LANGUAGE: C
 //   MACHINE:  IBM SP
 //
-//$$$
+//$$$*/
 {
     g2int     itype;    
 

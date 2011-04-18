@@ -6,7 +6,7 @@ g2int g2_unpack3(unsigned char *,g2int *,g2int **,g2int **,
                          g2int *,g2int **,g2int *);
 
 g2int getpoly(unsigned char *csec3,g2int *jj,g2int *kk,g2int *mm)
-//$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //                .      .    .                                       .
 // SUBPROGRAM:    getpoly 
 //   PRGMMR: Gilbert         ORG: W/NP11    DATE: 2002-12-11
@@ -34,20 +34,20 @@ g2int getpoly(unsigned char *csec3,g2int *jj,g2int *kk,g2int *mm)
 //   LANGUAGE: C
 //   MACHINE:  IBM SP
 //
-//$$$
+//$$$*/
 {
     
       g2int   *igdstmpl,*list_opt;
       g2int   *igds;
       g2int   iofst,igdtlen,num_opt,jerr;
 
-      iofst=0;       // set offset to beginning of section
+      iofst=0;       /* set offset to beginning of section*/
       jerr=g2_unpack3(csec3,&iofst,&igds,&igdstmpl,
                       &igdtlen,&list_opt,&num_opt);
       if (jerr == 0) {
-         switch ( igds[4] )     //  Template number
+         switch ( igds[4] )     /*  Template number*/
          {
-           case 50:     // Spherical harmonic coefficients
+           case 50:     /* Spherical harmonic coefficients*/
            case 51:
            case 52:
            case 53:
@@ -64,7 +64,7 @@ g2int getpoly(unsigned char *csec3,g2int *jj,g2int *kk,g2int *mm)
               *mm=0;
               break;
            }
-         }     // end switch
+         }     /* end switch*/
       }
       else {
          *jj=0;

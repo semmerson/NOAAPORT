@@ -4,7 +4,7 @@
 
 g2int g2_unpack6(unsigned char *cgrib,g2int *iofst,g2int ngpts,g2int *ibmap,
                g2int **bmap)
-//$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //                .      .    .                                       .
 // SUBPROGRAM:    g2_unpack6 
 //   PRGMMR: Gilbert         ORG: W/NP11    DATE: 2002-10-31
@@ -45,17 +45,17 @@ g2int g2_unpack6(unsigned char *cgrib,g2int *iofst,g2int ngpts,g2int *ibmap,
 //   LANGUAGE: C
 //   MACHINE:
 //
-//$$$//
+//$$$*/
 {
       g2int j,ierr,isecnum;
       g2int *lbmap=0;
       g2int *intbmap;
 
       ierr=0;
-      *bmap=0;    //NULL
+      *bmap=0;    /*NULL*/
 
-      *iofst=*iofst+32;    // skip Length of Section
-      gbit(cgrib,&isecnum,*iofst,8);         // Get Section Number
+      *iofst=*iofst+32;    /* skip Length of Section*/
+      gbit(cgrib,&isecnum,*iofst,8);         /* Get Section Number*/
       *iofst=*iofst+8; 
 
       if ( isecnum != 6 ) {
@@ -64,10 +64,10 @@ g2int g2_unpack6(unsigned char *cgrib,g2int *iofst,g2int ngpts,g2int *ibmap,
          return(ierr);
       }
 
-      gbit(cgrib,ibmap,*iofst,8);    // Get bit-map indicator
+      gbit(cgrib,ibmap,*iofst,8);    /* Get bit-map indicator*/
       *iofst=*iofst+8;
 
-      if (*ibmap == 0) {               // Unpack bitmap
+      if (*ibmap == 0) {               /* Unpack bitmap*/
          if (ngpts > 0) lbmap=(g2int *)calloc(ngpts,sizeof(g2int));
          if (lbmap == 0) {
             ierr=6;
@@ -83,15 +83,15 @@ g2int g2_unpack6(unsigned char *cgrib,g2int *iofst,g2int ngpts,g2int *ibmap,
            lbmap[j]=(g2int)intbmap[j];
          }
          free(intbmap);
-//      else if (*ibmap.eq.254)               ! Use previous bitmap
+/*      else if (*ibmap.eq.254)               ! Use previous bitmap
 //        return(ierr);
 //      else if (*ibmap.eq.255)               ! No bitmap in message
 //        bmap(1:ngpts)=.true.
 //      else {
 //        print *,'gf_unpack6: Predefined bitmap ',*ibmap,' not recognized.'
-//        ierr=4;
+//        ierr=4;*/
       }
       
-      return(ierr);    // End of Section 6 processing
+      return(ierr);    /* End of Section 6 processing*/
 
 }

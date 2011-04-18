@@ -3,7 +3,7 @@
 #include "grib2.h"
 
 g2int getdim(unsigned char *csec3,g2int *width,g2int *height,g2int *iscan)
-//$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //                .      .    .                                       .
 // SUBPROGRAM:    getdim 
 //   PRGMMR: Gilbert         ORG: W/NP11    DATE: 2002-12-11
@@ -31,7 +31,7 @@ g2int getdim(unsigned char *csec3,g2int *width,g2int *height,g2int *iscan)
 //   LANGUAGE: C
 //   MACHINE:  IBM SP
 //
-//$$$
+//$$$*/
 {
     
       g2int  *igdstmpl,*list_opt;
@@ -41,13 +41,13 @@ g2int getdim(unsigned char *csec3,g2int *width,g2int *height,g2int *iscan)
       igdstmpl=0;
       list_opt=0;
       igds=0;
-      iofst=0;       // set offset to beginning of section
+      iofst=0;       /* set offset to beginning of section*/
       jerr= g2_unpack3(csec3,&iofst,&igds,&igdstmpl,
                        &igdtlen,&list_opt,&num_opt);
       if (jerr == 0) {
-         switch ( igds[4] )     //  Template number
+         switch ( igds[4] )     /*  Template number*/
          {
-           case 0:    // Lat/Lon
+           case 0:    /* Lat/Lon*/
            case 1:
            case 2:
            case 3:
@@ -57,28 +57,28 @@ g2int getdim(unsigned char *csec3,g2int *width,g2int *height,g2int *iscan)
               *iscan=igdstmpl[18];
               break;
            }
-           case 10:   // Mercator
+           case 10:   /* Mercator*/
            {
               *width=igdstmpl[7];
               *height=igdstmpl[8];
               *iscan=igdstmpl[15];
               break;
            }
-           case 20:   // Polar Stereographic
+           case 20:   /* Polar Stereographic*/
            {
               *width=igdstmpl[7];
               *height=igdstmpl[8];
               *iscan=igdstmpl[17];
               break;
            }
-           case 30:   // Lambert Conformal
+           case 30:   /* Lambert Conformal*/
            {
               *width=igdstmpl[7];
               *height=igdstmpl[8];
               *iscan=igdstmpl[17];
               break;
            }
-           case 40:   // Gaussian
+           case 40:   /* Gaussian*/
            case 41:
            case 42:
            case 43:
@@ -88,14 +88,14 @@ g2int getdim(unsigned char *csec3,g2int *width,g2int *height,g2int *iscan)
               *iscan=igdstmpl[18];
               break;
            }
-           case 90:   // Space View/Orthographic
+           case 90:   /* Space View/Orthographic*/
            {
               *width=igdstmpl[7];
               *height=igdstmpl[8];
               *iscan=igdstmpl[16];
               break;
            }
-           case 110:   // Equatorial Azimuthal
+           case 110:   /* Equatorial Azimuthal*/
            {
               *width=igdstmpl[7];
               *height=igdstmpl[8];
@@ -109,7 +109,7 @@ g2int getdim(unsigned char *csec3,g2int *width,g2int *height,g2int *iscan)
               *iscan=0;
               break;
            }
-         }  // end switch
+         }  /* end switch*/
       }
       else {
          *width=0;

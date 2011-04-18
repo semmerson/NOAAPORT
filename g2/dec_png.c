@@ -1,5 +1,5 @@
 #ifndef USE_PNG
- void dummy(void) {}
+ void dec_png(void) {}
 #else   /* USE_PNG */
 
 #include <stdio.h>

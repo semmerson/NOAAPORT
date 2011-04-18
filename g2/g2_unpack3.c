@@ -5,7 +5,7 @@
 
 g2int g2_unpack3(unsigned char *cgrib,g2int *iofst,g2int **igds,g2int **igdstmpl,
                          g2int *mapgridlen,g2int **ideflist,g2int *idefnum)
-////$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*//$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //                .      .    .                                       .
 // SUBPROGRAM:    g2_unpack3 
 //   PRGMMR: Gilbert         ORG: W/NP11    DATE: 2002-10-31
@@ -65,7 +65,7 @@ g2int g2_unpack3(unsigned char *cgrib,g2int *iofst,g2int **igds,g2int **igdstmpl
 //   LANGUAGE: C
 //   MACHINE:
 //
-//$$$
+//$$$*/
 
 {
       g2int ierr,i,j,nbits,isecnum;
@@ -74,57 +74,57 @@ g2int g2_unpack3(unsigned char *cgrib,g2int *iofst,g2int **igds,g2int **igdstmpl
       gtemplate *mapgrid;
 
       ierr=0;
-      *igds=0;       // NULL
-      *igdstmpl=0;       // NULL
-      *ideflist=0;       // NULL
+      *igds=0;       /* NULL*/
+      *igdstmpl=0;       /* NULL*/
+      *ideflist=0;       /* NULL*/
 
-      gbit(cgrib,&lensec,*iofst,32);        // Get Length of Section
+      gbit(cgrib,&lensec,*iofst,32);        /* Get Length of Section*/
       *iofst=*iofst+32;
-      gbit(cgrib,&isecnum,*iofst,8);         // Get Section Number
+      gbit(cgrib,&isecnum,*iofst,8);         /* Get Section Number*/
       *iofst=*iofst+8;
 
       if ( isecnum != 3 ) {
          ierr=2;
          *idefnum=0;
          *mapgridlen=0;
-        // fprintf(stderr,"g2_unpack3: Not Section 3 data.\n");
+        /* fprintf(stderr,"g2_unpack3: Not Section 3 data.\n");*/
          return(ierr);
       }
 
       ligds=(g2int *)calloc(5,sizeof(g2int));
       *igds=ligds;
 
-      gbit(cgrib,ligds+0,*iofst,8);     // Get source of Grid def.
+      gbit(cgrib,ligds+0,*iofst,8);     /* Get source of Grid def.*/
       *iofst=*iofst+8;
-      gbit(cgrib,ligds+1,*iofst,32);    // Get number of grid pts.
+      gbit(cgrib,ligds+1,*iofst,32);    /* Get number of grid pts.*/
       *iofst=*iofst+32;
-      gbit(cgrib,ligds+2,*iofst,8);     // Get num octets for opt. list
+      gbit(cgrib,ligds+2,*iofst,8);     /* Get num octets for opt. list*/
       *iofst=*iofst+8;
-      gbit(cgrib,ligds+3,*iofst,8);     // Get interpret. for opt. list
+      gbit(cgrib,ligds+3,*iofst,8);     /* Get interpret. for opt. list*/
       *iofst=*iofst+8;
-      gbit(cgrib,ligds+4,*iofst,16);    // Get Grid Def Template num.
+      gbit(cgrib,ligds+4,*iofst,16);    /* Get Grid Def Template num.*/
       *iofst=*iofst+16;
 
       if (ligds[4] != 65535) {
-        //   Get Grid Definition Template
+        /*   Get Grid Definition Template*/
         mapgrid=getgridtemplate(ligds[4]);
-        if (mapgrid == 0) {         // undefined template
+        if (mapgrid == 0) {         /* undefined template*/
           ierr=5;
           return(ierr);
         }
         *mapgridlen=mapgrid->maplen;
-        //
+        /*
         //   Unpack each value into array igdstmpl from the
         //   the appropriate number of octets, which are specified in
         //   corresponding entries in array mapgrid.
-        //
+        */
         if (*mapgridlen > 0) {
            ligdstmpl=0;
            ligdstmpl=(g2int *)calloc(*mapgridlen,sizeof(g2int));
            if (ligdstmpl == 0) {
               ierr=6;
               *mapgridlen=0;
-              *igdstmpl=0;    //NULL
+              *igdstmpl=0;    /*NULL*/
               if( mapgrid != 0 ) free(mapgrid);
               return(ierr);
            }
@@ -146,17 +146,17 @@ g2int g2_unpack3(unsigned char *cgrib,g2int *iofst,g2int **igds,g2int **igdstmpl
           *iofst=*iofst+nbits;
           ibyttem=ibyttem+abs(mapgrid->map[i]);
         }
-        //
+        /*
         //   Check to see if the Grid Definition Template needs to be
         //   extended.
         //   The number of values in a specific template may vary
         //   depending on data specified in the "static" part of the
         //   gtemplate.
-        //
+        */
         if ( mapgrid->needext == 1 ) {
           free(mapgrid);
           mapgrid=extgridtemplate(ligds[4],ligdstmpl);
-          //   Unpack the rest of the Grid Definition Template
+          /*   Unpack the rest of the Grid Definition Template*/
           newlen=mapgrid->maplen+mapgrid->extlen;
           ligdstmpl=(g2int *)realloc(ligdstmpl,newlen*sizeof(g2int));
           *igdstmpl=ligdstmpl;
@@ -180,15 +180,15 @@ g2int g2_unpack3(unsigned char *cgrib,g2int *iofst,g2int **igds,g2int **igdstmpl
         if( mapgrid->ext != 0 ) free(mapgrid->ext);
         if( mapgrid != 0 ) free(mapgrid);
       }
-      else {              // No Grid Definition Template
+      else {              /* No Grid Definition Template*/
         *mapgridlen=0;
         *igdstmpl=0;
       }
-      //
+      /*
       //   Unpack optional list of numbers defining number of points
       //   in each row or column, if included.  This is used for non regular
       //   grids.
-      //
+      */
       if ( ligds[2] != 0 ) {
          nbits=ligds[2]*8;
          *idefnum=(lensec-14-ibyttem)/ligds[2];
@@ -196,7 +196,7 @@ g2int g2_unpack3(unsigned char *cgrib,g2int *iofst,g2int **igds,g2int **igdstmpl
          if (lideflist == 0) {
             ierr=6;
             *idefnum=0;
-            *ideflist=0;   //NULL
+            *ideflist=0;   /*NULL*/
             return(ierr);
          }
          else {
@@ -207,8 +207,8 @@ g2int g2_unpack3(unsigned char *cgrib,g2int *iofst,g2int **igds,g2int **igdstmpl
       }
       else {
          *idefnum=0;
-         *ideflist=0;    // NULL
+         *ideflist=0;    /* NULL*/
       }
       
-      return(ierr);    // End of Section 3 processing
+      return(ierr);    /* End of Section 3 processing*/
 }

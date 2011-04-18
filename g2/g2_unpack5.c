@@ -5,7 +5,7 @@
 
 g2int g2_unpack5(unsigned char *cgrib,g2int *iofst,g2int *ndpts,g2int *idrsnum,
                g2int **idrstmpl,g2int *mapdrslen)
-////$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*//$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //                .      .    .                                       .
 // SUBPROGRAM:    g2_unpack5 
 //   PRGMMR: Gilbert         ORG: W/NP11    DATE: 2002-10-31
@@ -49,7 +49,7 @@ g2int g2_unpack5(unsigned char *cgrib,g2int *iofst,g2int *ndpts,g2int *idrsnum,
 //   LANGUAGE: C
 //   MACHINE:  
 //
-//$$$//
+//$$$*/
 {
       g2int ierr,needext,i,j,nbits,isecnum;
       g2int lensec,isign,newlen;
@@ -57,27 +57,27 @@ g2int g2_unpack5(unsigned char *cgrib,g2int *iofst,g2int *ndpts,g2int *idrsnum,
       gtemplate *mapdrs;
 
       ierr=0;
-      *idrstmpl=0;       //NULL
+      *idrstmpl=0;       /*NULL*/
 
-      gbit(cgrib,&lensec,*iofst,32);        // Get Length of Section
+      gbit(cgrib,&lensec,*iofst,32);        /* Get Length of Section*/
       *iofst=*iofst+32;
-      gbit(cgrib,&isecnum,*iofst,8);         // Get Section Number
+      gbit(cgrib,&isecnum,*iofst,8);         /* Get Section Number*/
       *iofst=*iofst+8;
 
       if ( isecnum != 5 ) {
          ierr=2;
          *ndpts=0;
          *mapdrslen=0;
-        // fprintf(stderr,"g2_unpack5: Not Section 5 data.\n");
+        /* fprintf(stderr,"g2_unpack5: Not Section 5 data.\n");*/
          return(ierr);
       }
 
-      gbit(cgrib,ndpts,*iofst,32);    // Get num of data points
+      gbit(cgrib,ndpts,*iofst,32);    /* Get num of data points*/
       *iofst=*iofst+32;
-      gbit(cgrib,idrsnum,*iofst,16);     // Get Data Rep Template Num.
+      gbit(cgrib,idrsnum,*iofst,16);     /* Get Data Rep Template Num.*/
       *iofst=*iofst+16;
 
-      //   Gen Data Representation Template
+      /*   Gen Data Representation Template*/
       mapdrs=getdrstemplate(*idrsnum);
       if (mapdrs == 0) {
         ierr=7;
@@ -86,16 +86,16 @@ g2int g2_unpack5(unsigned char *cgrib,g2int *iofst,g2int *ndpts,g2int *idrsnum,
       }
       *mapdrslen=mapdrs->maplen;
       needext=mapdrs->needext;
-      //
+      /*
       //   Unpack each value into array ipdstmpl from the
       //   the appropriate number of octets, which are specified in
       //   corresponding entries in array mapdrs.
-      //
+      */
       if (*mapdrslen > 0) lidrstmpl=(g2int *)calloc(*mapdrslen,sizeof(g2int));
       if (lidrstmpl == 0) {
          ierr=6;
          *mapdrslen=0;
-         *idrstmpl=0;     //NULL
+         *idrstmpl=0;     /*NULL*/
          if ( mapdrs != 0 ) free(mapdrs);
          return(ierr);
       }
@@ -114,20 +114,20 @@ g2int g2_unpack5(unsigned char *cgrib,g2int *iofst,g2int *ndpts,g2int *idrsnum,
         }
         *iofst=*iofst+nbits;
       }
-      //
+      /*
       //   Check to see if the Data Representation Template needs to be
       //   extended.
       //   The number of values in a specific gtemplate may vary
       //   depending on data specified in the "static" part of the
       //   gtemplate.
-      //
+      */
       if ( needext == 1 ) {
         free(mapdrs);
         mapdrs=extdrstemplate(*idrsnum,lidrstmpl);
         newlen=mapdrs->maplen+mapdrs->extlen;
         lidrstmpl=(g2int *)realloc(lidrstmpl,newlen*sizeof(g2int));
         *idrstmpl=lidrstmpl;
-        //   Unpack the rest of the Data Representation Template
+        /*   Unpack the rest of the Data Representation Template*/
         j=0;
         for (i=*mapdrslen;i<newlen;i++) {
           nbits=abs(mapdrs->ext[j])*8;
@@ -147,6 +147,6 @@ g2int g2_unpack5(unsigned char *cgrib,g2int *iofst,g2int *ndpts,g2int *idrsnum,
       if( mapdrs->ext != 0 ) free(mapdrs->ext);
       if( mapdrs != 0 ) free(mapdrs);
 
-      return(ierr);    // End of Section 5 processing
+      return(ierr);    /* End of Section 5 processing*/
 
 }

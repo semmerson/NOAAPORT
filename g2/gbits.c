@@ -29,7 +29,7 @@ void gbits(unsigned char *in,g2int *iout,g2int iskip,g2int nbyte,g2int nskip,
       g2int nbit,index;
       static g2int ones[]={1,3,7,15,31,63,127,255};
 
-//     nbit is the start position of the field in bits
+/*     nbit is the start position of the field in bits */
       nbit = iskip;
       for (i=0;i<n;i++) {
          bitcnt = nbyte;
@@ -37,21 +37,21 @@ void gbits(unsigned char *in,g2int *iout,g2int iskip,g2int nbyte,g2int nskip,
          ibit=nbit%8;
          nbit = nbit + nbyte + nskip;
 
-//        first byte
-         tbit= ( bitcnt < (8-ibit) ) ? bitcnt : 8-ibit;  // find min
+/*        first byte */
+         tbit= ( bitcnt < (8-ibit) ) ? bitcnt : 8-ibit;  /* find min */
          itmp = (int)*(in+index) & ones[7-ibit];
          if (tbit != 8-ibit) itmp >>= (8-ibit-tbit);
          index++;
          bitcnt = bitcnt - tbit;
 
-//        now transfer whole bytes
+/*        now transfer whole bytes */
          while (bitcnt >= 8) {
              itmp = itmp<<8 | (int)*(in+index);
              bitcnt = bitcnt - 8;
              index++;
          }
 
-//        get data from last byte
+/*        get data from last byte */
          if (bitcnt > 0) {
              itmp = ( itmp << bitcnt ) | ( ((int)*(in+index) >> (8-bitcnt)) & ones[bitcnt-1] );
          }
@@ -79,8 +79,8 @@ void sbits(unsigned char *out,g2int *in,g2int iskip,g2int nbyte,g2int nskip,
       g2int nbit,index;
       static g2int ones[]={1,3,7,15,31,63,127,255};
 
-//     number bits from zero to ...
-//     nbit is the last bit of the field to be filled
+/*     number bits from zero to ... */
+/*     nbit is the last bit of the field to be filled */
 
       nbit = iskip + nbyte - 1;
       for (i=0;i<n;i++) {
@@ -90,9 +90,9 @@ void sbits(unsigned char *out,g2int *in,g2int iskip,g2int nbyte,g2int nskip,
          ibit=nbit%8;
          nbit = nbit + nbyte + nskip;
 
-//        make byte aligned 
+/*        make byte aligned  */
          if (ibit != 7) {
-             tbit= ( bitcnt < (ibit+1) ) ? bitcnt : ibit+1;  // find min
+             tbit= ( bitcnt < (ibit+1) ) ? bitcnt : ibit+1;  /* find min */
              imask = ones[tbit-1] << (7-ibit);
              itmp2 = (itmp << (7-ibit)) & imask;
              itmp3 = (int)*(out+index) & (255-imask);
@@ -102,9 +102,9 @@ void sbits(unsigned char *out,g2int *in,g2int iskip,g2int nbyte,g2int nskip,
              index--;
          }
 
-//        now byte aligned
+/*        now byte aligned */
 
-//        do by bytes
+/*        do by bytes */
          while (bitcnt >= 8) {
              out[index] = (unsigned char)(itmp & 255);
              itmp = itmp >> 8;
@@ -112,7 +112,7 @@ void sbits(unsigned char *out,g2int *in,g2int iskip,g2int nbyte,g2int nskip,
              index--;
          }
 
-//        do last byte
+/*        do last byte */
 
          if (bitcnt > 0) {
              itmp2 = itmp & ones[bitcnt-1];

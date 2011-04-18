@@ -1,7 +1,7 @@
 #include "grib2.h"
 
 void g2_rdieee(g2int *rieee,g2float *a,g2int num)
-//$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //                .      .    .                                       .
 // SUBPROGRAM:    g2_rdieee 
 //   PRGMMR: Gilbert         ORG: W/NP11    DATE: 2002-10-25
@@ -27,7 +27,7 @@ void g2_rdieee(g2int *rieee,g2float *a,g2int num)
 //   LANGUAGE: C
 //   MACHINE:  IBM SP
 //
-//$$$
+//$$$*/
 {
 
       g2int  j;
@@ -36,9 +36,9 @@ void g2_rdieee(g2int *rieee,g2float *a,g2int num)
       g2float  sign,temp;
       static g2float  two23,two126;
       static g2int test=0;
-      g2intu msk1=0x80000000;        // 10000000000000000000000000000000 binary
-      g2int msk2=0x7F800000;         // 01111111100000000000000000000000 binary
-      g2int msk3=0x007FFFFF;         // 00000000011111111111111111111111 binary
+      g2intu msk1=0x80000000;        /* 10000000000000000000000000000000 binary*/
+      g2int msk2=0x7F800000;         /* 01111111100000000000000000000000 binary*/
+      g2int msk3=0x007FFFFF;         /* 00000000011111111111111111111111 binary*/
 
       if ( test == 0 ) {
          two23=(g2float)int_power(2.0,-23);
@@ -47,13 +47,13 @@ void g2_rdieee(g2int *rieee,g2float *a,g2int num)
       }
 
       for (j=0;j<num;j++) {
-//
+/*
 //  Extract sign bit, exponent, and mantissa
-//
+*/
         isign=(rieee[j]&msk1)>>31;
         iexp=(rieee[j]&msk2)>>23;
         imant=(rieee[j]&msk3);
-        //printf("SAGieee= %ld %ld %ld\n",isign,iexp,imant);
+        /*printf("SAGieee= %ld %ld %ld\n",isign,iexp,imant);*/
 
         sign=1.0;
         if (isign == 1) sign=-1.0;

@@ -14,7 +14,7 @@ int g2_pack_gp(g2int *kfildo, g2int *ic, g2int *nxy,
     /* Initialized data */
 
     const  integer mallow = 1073741825;   /*  MALLOW=2**30+1  */
-//    static integer ifeed = 12;
+/*    static integer ifeed = 12;*/
     static integer ifirst = 0;
 
     /* System generated locals */
@@ -24,7 +24,7 @@ int g2_pack_gp(g2int *kfildo, g2int *ic, g2int *nxy,
     static integer j, k, l;
     static logical adda;
     static integer ired, kinc, mina, maxa, minb, maxb, minc, maxc, ibxx2[31];
-//    static char cfeed[1];
+/*    static char cfeed[1];*/
     static integer nenda, nendb, ibita, ibitb, minak, minbk, maxak, maxbk, 
 	    minck, maxck, nouta, lmiss, itest, nount;
     static integer ibitbs, mislla, misllb, misllc, iersav, lminpk, ktotal, 

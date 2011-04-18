@@ -2,7 +2,7 @@
 
 void cmplxpack(g2float *fld,g2int ndpts, g2int idrsnum,g2int *idrstmpl,
                unsigned char *cpack, g2int *lcpack)
-//$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //                .      .    .                                       .
 // SUBPROGRAM:    cmplxpack
 //   PRGMMR: Gilbert          ORG: W/NP11    DATE: 2004-08-27
@@ -57,11 +57,11 @@ void cmplxpack(g2float *fld,g2int ndpts, g2int idrsnum,g2int *idrstmpl,
 //   LANGUAGE: C
 //   MACHINE:  IBM SP
 //
-//$$$
+*/
 {
       
 
-      if ( idrstmpl[6] == 0 ) {       // No internal missing values
+      if ( idrstmpl[6] == 0 ) {       /* No internal missing values */
          compack(fld,ndpts,idrsnum,idrstmpl,cpack,lcpack);
       }
       else if ( idrstmpl[6] == 1  ||  idrstmpl[6] == 2) {

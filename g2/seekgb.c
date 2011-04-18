@@ -3,7 +3,7 @@
 #include "grib2.h"
 
 void seekgb(FILE *lugb,g2int iseek,g2int mseek,g2int *lskip,g2int *lgrib)
-//$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //
 // SUBPROGRAM: seekgb         Searches a file for the next GRIB message.
 //   PRGMMR: Gilbert          ORG: W/NP11      DATE: 2002-10-28
@@ -33,43 +33,43 @@ void seekgb(FILE *lugb,g2int iseek,g2int mseek,g2int *lskip,g2int *lgrib)
 // ATTRIBUTES:
 //   LANGUAGE: C
 //
-//$$$
+//$$$*/
 {
       g2int  ret;
       g2int k,k4,ipos,nread,lim,start,vers,lengrib;
       int    end;
       unsigned char *cbuf;
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
       *lgrib=0;
       cbuf=(unsigned char *)malloc(mseek);
       nread=mseek;
       ipos=iseek;
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//  LOOP UNTIL GRIB MESSAGE IS FOUND
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+/*  LOOP UNTIL GRIB MESSAGE IS FOUND*/
 
       while (*lgrib==0 && nread==mseek) {
 
-//  READ PARTIAL SECTION
+/*  READ PARTIAL SECTION*/
 
         ret=fseek(lugb,ipos,SEEK_SET);
         nread=fread(cbuf,sizeof(unsigned char),mseek,lugb);
         lim=nread-8;
 
-//  LOOK FOR 'GRIB...' IN PARTIAL SECTION
+/*  LOOK FOR 'GRIB...' IN PARTIAL SECTION*/
 
         for (k=0;k<lim;k++) {
           gbit(cbuf,&start,(k+0)*8,4*8);
           gbit(cbuf,&vers,(k+7)*8,1*8);
           if (start==1196575042 && (vers==1 || vers==2)) {
-//  LOOK FOR '7777' AT END OF GRIB MESSAGE
+/*  LOOK FOR '7777' AT END OF GRIB MESSAGE*/
             if (vers == 1) gbit(cbuf,&lengrib,(k+4)*8,3*8);
             if (vers == 2) gbit(cbuf,&lengrib,(k+12)*8,4*8);
             ret=fseek(lugb,ipos+k+lengrib-4,SEEK_SET);
-//          Hard code to 4 instead of sizeof(g2int)
+/*          Hard code to 4 instead of sizeof(g2int)*/
             k4=fread(&end,4,1,lugb);
-            if (k4 == 1 && end == 926365495) {      //GRIB message found
+            if (k4 == 1 && end == 926365495) {      /*GRIB message found*/
                 *lskip=ipos+k;
                 *lgrib=lengrib;
                 break;

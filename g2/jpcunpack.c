@@ -6,7 +6,7 @@
 
 g2int jpcunpack(unsigned char *cpack,g2int len,g2int *idrstmpl,g2int ndpts,
                 g2float *fld)
-//$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //                .      .    .                                       .
 // SUBPROGRAM:    jpcunpack
 //   PRGMMR: Gilbert          ORG: W/NP11    DATE: 2003-08-27
@@ -36,7 +36,7 @@ g2int jpcunpack(unsigned char *cpack,g2int len,g2int *idrstmpl,g2int ndpts,
 //   LANGUAGE: C
 //   MACHINE:  IBM SP
 //
-//$$$
+//$$$*/
 {
 
       g2int  *ifld;
@@ -47,10 +47,10 @@ g2int jpcunpack(unsigned char *cpack,g2int len,g2int *idrstmpl,g2int ndpts,
       bscale = int_power(2.0,idrstmpl[1]);
       dscale = int_power(10.0,-idrstmpl[2]);
       nbits = idrstmpl[3];
-//
+/*
 //  if nbits equals 0, we have a constant field where the reference value
 //  is the data value at each gridpoint
-//
+*/
       if (nbits != 0) {
 
          ifld=(g2int *)calloc(ndpts,sizeof(g2int));

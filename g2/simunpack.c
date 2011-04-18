@@ -3,7 +3,7 @@
 
 
 g2int simunpack(unsigned char *cpack,g2int *idrstmpl,g2int ndpts,g2float *fld)
-////$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*//$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //                .      .    .                                       .
 // SUBPROGRAM:    simunpack
 //   PRGMMR: Gilbert          ORG: W/NP11    DATE: 2002-10-29
@@ -34,13 +34,13 @@ g2int simunpack(unsigned char *cpack,g2int *idrstmpl,g2int ndpts,g2float *fld)
 //   LANGUAGE: C
 //   MACHINE:  
 //
-//$$$//
+//$$$*/
 {
 
       g2int  *ifld;
       g2int  j,nbits;
       g2float ref,bscale,dscale;
-//	g2int  itype;
+/*	g2int  itype;*/
       
       g2_rdieee(idrstmpl+0,&ref,1);
       bscale = int_power(2.0,idrstmpl[1]);
@@ -54,10 +54,10 @@ g2int simunpack(unsigned char *cpack,g2int *idrstmpl,g2int ndpts,g2float *fld)
          return(1);
       }
       
-//
+/*
 //  if nbits equals 0, we have a constant field where the reference value
 //  is the data value at each gridpoint
-//
+*/
       if (nbits != 0) {
          gbits(cpack,ifld,0,nbits,0,ndpts);
          for (j=0;j<ndpts;j++) {

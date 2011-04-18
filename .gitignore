@@ -7,3 +7,16 @@ tags
 CVS/*
 .cproject
 .project
+*.lo
+autom4te.cache
+config.h
+*.log
+config.status
+.deps
+.libs
+*.la
+*.loT
+*~
+stamp-h1
+stamp-h1
+Makefile

@@ -2,7 +2,7 @@
 #define _gridtemplates_H
 #include "grib2.h"
 
-//   PRGMMR: Gilbert         ORG: W/NP11    DATE: 2001-10-26
+/*   PRGMMR: Gilbert         ORG: W/NP11    DATE: 2001-10-26
 //
 // ABSTRACT: This Fortran Module contains info on all the available 
 //   GRIB2 Grid Definition Templates used in Section 3 (GDS).
@@ -34,10 +34,10 @@
 // 2007-08-16  Vuong     -  Added GDT 3.204  Curvilinear Orthogonal Grid
 // 2008-07-08  Vuong     -  Added GDT 3.32768 Rot Lat/Lon E-grid (Arakawa)
 //
-////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////*/
 
-      #define MAXGRIDTEMP 25              // maximum number of templates
-      #define MAXGRIDMAPLEN 200           // maximum template map length
+      #define MAXGRIDTEMP 25              /* maximum number of templates */
+      #define MAXGRIDMAPLEN 200           /* maximum template map length */
 
       struct gridtemplate
       {
@@ -48,55 +48,55 @@
       };
 
       const struct gridtemplate templatesgrid[MAXGRIDTEMP] = {
-             // 3.0: Lat/Lon grid
+             /* 3.0: Lat/Lon grid */
          { 0, 19, 0, {1,1,4,1,4,1,4,4,4,4,4,-4,4,1,-4,4,4,4,1} },
-             // 3.1: Rotated Lat/Lon grid
+             /* 3.1: Rotated Lat/Lon grid */
          { 1, 22, 0, {1,1,4,1,4,1,4,4,4,4,4,-4,4,1,-4,4,4,4,1,-4,4,4} },
-             // 3.2: Stretched Lat/Lon grid
+             /* 3.2: Stretched Lat/Lon grid */
          { 2, 22, 0, {1,1,4,1,4,1,4,4,4,4,4,-4,4,1,-4,4,4,4,1,-4,4,-4} },
-             // 3.3: Stretched & Rotated Lat/Lon grid
+             /* 3.3: Stretched & Rotated Lat/Lon grid */
          { 3, 25, 0, {1,1,4,1,4,1,4,4,4,4,4,-4,4,1,-4,4,4,4,1,-4,4,4,-4,4,-4} },
-             // 3.10: Mercator
+             /* 3.10: Mercator */
          {10, 19, 0, {1,1,4,1,4,1,4,4,4,-4,4,1,-4,-4,4,1,4,4,4} },
-             // 3.20: Polar Stereographic Projection
+             /* 3.20: Polar Stereographic Projection */
          {20, 18, 0, {1,1,4,1,4,1,4,4,4,-4,4,1,-4,4,4,4,1,1} },
-             // 3.30: Lambert Conformal
+             /* 3.30: Lambert Conformal */
          {30, 22, 0, {1,1,4,1,4,1,4,4,4,-4,4,1,-4,4,4,4,1,1,-4,-4,-4,4} },
-             // 3.31: Albers equal area
+             /* 3.31: Albers equal area */
          {31, 22, 0, {1,1,4,1,4,1,4,4,4,-4,4,1,-4,4,4,4,1,1,-4,-4,-4,4} },
-             // 3.40: Guassian Lat/Lon
+             /* 3.40: Guassian Lat/Lon */
          {40, 19, 0, {1,1,4,1,4,1,4,4,4,4,4,-4,4,1,-4,4,4,4,1} },
-             // 3.41: Rotated Gaussian Lat/Lon
+             /* 3.41: Rotated Gaussian Lat/Lon */
          {41, 22, 0, {1,1,4,1,4,1,4,4,4,4,4,-4,4,1,-4,4,4,4,1,-4,4,4} },
-             // 3.42: Stretched Gaussian Lat/Lon
+             /* 3.42: Stretched Gaussian Lat/Lon */
          {42, 22, 0, {1,1,4,1,4,1,4,4,4,4,4,-4,4,1,-4,4,4,4,1,-4,4,-4} },
-             // 3.43: Stretched and Rotated Gaussian Lat/Lon
+             /* 3.43: Stretched and Rotated Gaussian Lat/Lon */
          {43, 25, 0, {1,1,4,1,4,1,4,4,4,4,4,-4,4,1,-4,4,4,4,1,-4,4,4,-4,4,-4} },
-             // 3.50: Spherical Harmonic Coefficients
+             /* 3.50: Spherical Harmonic Coefficients */
          {50, 5, 0, {4,4,4,1,1} },
-             // 3.51: Rotated Spherical Harmonic Coefficients
+             /* 3.51: Rotated Spherical Harmonic Coefficients */
          {51, 8, 0, {4,4,4,1,1,-4,4,4} },
-             // 3.52: Stretched Spherical Harmonic Coefficients
+             /* 3.52: Stretched Spherical Harmonic Coefficients */
          {52, 8, 0, {4,4,4,1,1,-4,4,-4} },
-             // 3.53: Stretched and Rotated Spherical Harmonic Coefficients
+             /* 3.53: Stretched and Rotated Spherical Harmonic Coefficients */
          {53, 11, 0, {4,4,4,1,1,-4,4,4,-4,4,-4} },
-             // 3.90: Space View Perspective or orthographic
+             /* 3.90: Space View Perspective or orthographic */
          {90, 21, 0, {1,1,4,1,4,1,4,4,4,-4,4,1,4,4,4,4,1,4,4,4,4} },
-             // 3.100: Triangular grid based on an icosahedron
+             /* 3.100: Triangular grid based on an icosahedron */
          {100, 11, 0, {1,1,2,1,-4,4,4,1,1,1,4} },
-             // 3.110: Equatorial Azimuthal equidistant
+             /* 3.110: Equatorial Azimuthal equidistant */
          {110, 16, 0, {1,1,4,1,4,1,4,4,4,-4,4,1,4,4,1,1} },
-             // 3.120: Azimuth-range projection
+             /* 3.120: Azimuth-range projection */
          {120, 7, 1, {4,4,-4,4,4,4,1} },
-             // 3.204: Curvilinear Orthogonal Grid
+             /* 3.204: Curvilinear Orthogonal Grid */
          {204, 19, 0, {1,1,4,1,4,1,4,4,4,4,4,-4,4,1,-4,4,4,4,1} },
-             // 3.32768: Rot Lat/Lon E-grid (Arakawa)
+             /* 3.32768: Rot Lat/Lon E-grid (Arakawa) */
          {32768, 19, 0, {1,1,4,1,4,1,4,4,4,4,4,-4,4,1,-4,4,4,4,1} },
-             // 3.1000: Cross Section Grid
+             /* 3.1000: Cross Section Grid */
          {1000, 20, 1, {1,1,4,1,4,1,4,4,4,4,-4,4,1,4,4,1,2,1,1,2} },
-             // 3.1100: Hovmoller Diagram Grid
+             /* 3.1100: Hovmoller Diagram Grid */
          {1100, 28, 0, {1,1,4,1,4,1,4,4,4,4,-4,4,1,-4,4,1,4,1,-4,1,1,-4,2,1,1,1,1,1} },
-             // 3.1200: Time Section Grid
+             /* 3.1200: Time Section Grid */
          {1200, 16, 1, {4,1,-4,1,1,-4,2,1,1,1,1,1,2,1,1,2} }
 
       } ;

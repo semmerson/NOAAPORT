@@ -66,9 +66,9 @@ g2int g2_unpack1(unsigned char *cgrib,g2int *iofst,g2int **ids,g2int *idslen)
       *idslen=13;
       *ids=0;
 
-      gbit(cgrib,&lensec,*iofst,32);        // Get Length of Section
+      gbit(cgrib,&lensec,*iofst,32);        /* Get Length of Section*/
       *iofst=*iofst+32;
-      gbit(cgrib,&isecnum,*iofst,8);         // Get Section Number
+      gbit(cgrib,&isecnum,*iofst,8);         /* Get Section Number*/
       *iofst=*iofst+8;
 
       if ( isecnum != 1 ) {
@@ -78,11 +78,11 @@ g2int g2_unpack1(unsigned char *cgrib,g2int *iofst,g2int **ids,g2int *idslen)
          return(ierr);
       }
 
-      //
+      /*
       //   Unpack each value into array ids from the
       //   the appropriate number of octets, which are specified in
       //   corresponding entries in array mapid.
-      //
+      */
       *ids=(g2int *)calloc(*idslen,sizeof(g2int));
       if (*ids == 0) {
          ierr=6;
@@ -95,5 +95,5 @@ g2int g2_unpack1(unsigned char *cgrib,g2int *iofst,g2int **ids,g2int *idslen)
         *iofst=*iofst+nbits;
       }
       
-      return(ierr);    // End of Section 1 processing
+      return(ierr);    /* End of Section 1 processing*/
 }

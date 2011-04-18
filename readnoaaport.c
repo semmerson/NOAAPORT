@@ -20,6 +20,13 @@
 #include "shmfifo.h"
 
 #include "ldm.h"
+#undef PACKAGE
+#undef PACKAGE_BUGREPORT
+#undef PACKAGE_NAME
+#undef PACKAGE_STRING
+#undef PACKAGE_TARNAME
+#undef PACKAGE_VERSION
+#undef VERSION
 #include "globals.h"
 #include "md5.h"
 #include "ulog.h"

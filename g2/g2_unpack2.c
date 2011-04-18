@@ -3,7 +3,7 @@
 #include "grib2.h"
 
 g2int g2_unpack2(unsigned char *cgrib,g2int *iofst,g2int *lencsec2,unsigned char **csec2)
-////$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*//$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //                .      .    .                                       .
 // SUBPROGRAM:    g2_unpack2 
 //   PRGMMR: Gilbert         ORG: W/NP11    DATE: 2002-10-31
@@ -38,7 +38,7 @@ g2int g2_unpack2(unsigned char *cgrib,g2int *iofst,g2int *lencsec2,unsigned char
 //   LANGUAGE: C
 //   MACHINE: 
 //
-//$$$//
+//$$$//*/
 {
 
       g2int ierr,isecnum;
@@ -46,12 +46,12 @@ g2int g2_unpack2(unsigned char *cgrib,g2int *iofst,g2int *lencsec2,unsigned char
 
       ierr=0;
       *lencsec2=0;
-      *csec2=0;    // NULL
+      *csec2=0;    /* NULL*/
 
-      gbit(cgrib,&lensec,*iofst,32);        // Get Length of Section
+      gbit(cgrib,&lensec,*iofst,32);        /* Get Length of Section*/
       *iofst=*iofst+32;
       *lencsec2=lensec-5;
-      gbit(cgrib,&isecnum,*iofst,8);         // Get Section Number
+      gbit(cgrib,&isecnum,*iofst,8);         /* Get Section Number*/
       *iofst=*iofst+8;
       ipos=(*iofst/8);
 
@@ -69,12 +69,12 @@ g2int g2_unpack2(unsigned char *cgrib,g2int *iofst,g2int *lencsec2,unsigned char
          return(ierr);
       }
       
-      //printf(" SAGIPO %d \n",(int)ipos);
+      /*printf(" SAGIPO %d \n",(int)ipos);*/
       for (j=0;j<*lencsec2;j++) {
          *(*csec2+j)=cgrib[ipos+j];
       }
       *iofst=*iofst+(*lencsec2*8);
 
-      return(ierr);    // End of Section 2 processing
+      return(ierr);    /* End of Section 2 processing*/
 
 }

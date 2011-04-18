@@ -10,7 +10,7 @@ int g2_reduce(g2int *kfildo, g2int *jmin, g2int *jmax,
 {
     /* Initialized data */
 
-//    static integer ifeed = 12;
+/*    static integer ifeed = 12;*/
 
     /* System generated locals */
     integer i__1, i__2;
@@ -19,10 +19,10 @@ int g2_reduce(g2int *kfildo, g2int *jmin, g2int *jmax,
     static integer newboxtp, j, l, m, jj, lxn, left;
     static real pimp;
     static integer move, novl;
-//    static char cfeed[1];
+/*    static char cfeed[1];*/
     static integer lxnkp, iorigb, ibxx2m1, movmin,
 	     ntotbt[31], ntotpr, newboxt;
-//	static integer nboxj[31];
+/*	static integer nboxj[31];*/
     integer *newbox, *newboxp;
 
 

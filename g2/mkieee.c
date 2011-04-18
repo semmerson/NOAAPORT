@@ -4,7 +4,7 @@
 
 
 void mkieee(g2float *a,g2int *rieee,g2int num)
-//$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //                .      .    .                                       .
 // SUBPROGRAM:    mkieee 
 //   PRGMMR: Gilbert         ORG: W/NP11    DATE: 2002-10-29
@@ -32,7 +32,7 @@ void mkieee(g2float *a,g2int *rieee,g2int num)
 //   LANGUAGE: C
 //   MACHINE:  
 //
-//$$$
+//$$$*/
 {
 
       g2int  j,n,ieee,iexp,imant;
@@ -40,9 +40,9 @@ void mkieee(g2float *a,g2int *rieee,g2int num)
 
       static double  two23,two126;
       static g2int test=0;
-    //g2intu msk1=0x80000000;        // 10000000000000000000000000000000 binary
-    //g2int msk2=0x7F800000;         // 01111111100000000000000000000000 binary
-    //g2int msk3=0x007FFFFF;         // 00000000011111111111111111111111 binary
+    /*g2intu msk1=0x80000000;        // 10000000000000000000000000000000 binary*/
+    /*g2int msk2=0x7F800000;         // 01111111100000000000000000000000 binary*/
+    /*g2int msk3=0x007FFFFF;         // 00000000011111111111111111111111 binary*/
 
       if ( test == 0 ) {
          two23=(double)int_power(2.0,23);
@@ -50,7 +50,7 @@ void mkieee(g2float *a,g2int *rieee,g2int num)
          test=1;
       }
 
-      alog2=0.69314718;       //  ln(2.0)
+      alog2=0.69314718;       /*  ln(2.0)*/
 
       for (j=0;j<num;j++) {
       
@@ -61,9 +61,9 @@ void mkieee(g2float *a,g2int *rieee,g2int num)
           continue;
         }
         
-//
+/*
 //  Set Sign bit (bit 31 - leftmost bit)
-//
+*/
         if (a[j] < 0.0) {
           ieee= 1 << 31;
           atemp=-1.0*a[j];
@@ -72,10 +72,10 @@ void mkieee(g2float *a,g2int *rieee,g2int num)
           ieee= 0 << 31;
           atemp=a[j];
         }
-        //printf("sign %ld %x \n",ieee,ieee);
-//
+        /*printf("sign %ld %x \n",ieee,ieee);*/
+/*
 //  Determine exponent n with base 2
-//
+*/
         if ( atemp >= 1.0 ) {
            n = 0;
            while ( int_power(2.0,n+1) <= atemp ) {
@@ -88,16 +88,16 @@ void mkieee(g2float *a,g2int *rieee,g2int num)
               n--;
            }
         }
-        //n=(g2int)floor(log(atemp)/alog2);
+        /*n=(g2int)floor(log(atemp)/alog2);*/
         iexp=n+127;
-        if (n >  127) iexp=255;     // overflow
+        if (n >  127) iexp=255;     /* overflow*/
         if (n < -127) iexp=0;
-        //printf("exp %ld %ld \n",iexp,n);
-        //      set exponent bits ( bits 30-23 )
+        /*printf("exp %ld %ld \n",iexp,n);*/
+        /*      set exponent bits ( bits 30-23 )*/
         ieee = ieee | ( iexp << 23 );
-//
+/*
 //  Determine Mantissa
-// 
+*/ 
         if (iexp != 255) {
           if (iexp != 0) 
             atemp=(atemp/int_power(2.0,n))-1.0;
@@ -108,12 +108,12 @@ void mkieee(g2float *a,g2int *rieee,g2int num)
         else {
           imant=0;
         }
-        //printf("mant %ld %x \n",imant,imant);
-        //      set mantissa bits ( bits 22-0 )
+        /*printf("mant %ld %x \n",imant,imant);
+        //      set mantissa bits ( bits 22-0 )*/
         ieee = ieee | imant;
-//
+/*
 //  Transfer IEEE bit string to rieee array
-//
+*/
         rieee[j]=ieee;
 
       }

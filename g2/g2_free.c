@@ -2,7 +2,7 @@
 #include  "grib2.h"
 
 void g2_free(gribfield *gfld)
-//$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //                .      .    .                                       .
 // SUBPROGRAM:    g2_free 
 //   PRGMMR: Gilbert         ORG: W/NP11    DATE: 2002-10-28
@@ -26,7 +26,7 @@ void g2_free(gribfield *gfld)
 //   LANGUAGE: C
 //   MACHINE:  
 //
-//$$$
+//$$$*/
 { 
 
       if (gfld->idsect != 0 ) free(gfld->idsect);

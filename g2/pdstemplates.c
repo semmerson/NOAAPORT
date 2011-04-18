@@ -5,7 +5,7 @@
 g2int getpdsindex(g2int number);
 
 g2int getpdsindex(g2int number)
-///$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*/$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //                .      .    .                                       .
 // SUBPROGRAM:    getpdsindex
 //   PRGMMR: Gilbert         ORG: W/NP11    DATE: 2001-06-28
@@ -33,7 +33,7 @@ g2int getpdsindex(g2int number)
 //   LANGUAGE: C
 //   MACHINE:  IBM SP
 //
-//$$$/
+//$$$*/
 {
            g2int j,getpdsindex=-1;
 
@@ -49,7 +49,7 @@ g2int getpdsindex(g2int number)
 
 
 gtemplate *getpdstemplate(g2int number)
-///$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*/$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //                .      .    .                                       .
 // SUBPROGRAM:    getpdstemplate 
 //   PRGMMR: Gilbert         ORG: W/NP11    DATE: 2000-05-11
@@ -80,7 +80,7 @@ gtemplate *getpdstemplate(g2int number)
 //   LANGUAGE: C
 //   MACHINE:  IBM SP
 //
-//$$$/
+//$$$*/
 {
            g2int index;
            gtemplate *new;
@@ -95,20 +95,20 @@ gtemplate *getpdstemplate(g2int number)
               new->needext=templatespds[index].needext;
               new->map=(g2int *)templatespds[index].mappds;
               new->extlen=0;
-              new->ext=0;        //NULL
+              new->ext=0;        /*NULL*/
               return(new);
            }
            else {
              printf("getpdstemplate: PDS Template 4.%d not defined.\n",(int)number);
-             return(0);        //NULL
+             return(0);        /*NULL*/
            }
 
-         return(0);        //NULL
+         return(0);        /*NULL*/
 }
          
         
 gtemplate *extpdstemplate(g2int number,g2int *list)
-///$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*/$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //                .      .    .                                       .
 // SUBPROGRAM:    extpdstemplate 
 //   PRGMMR: Gilbert         ORG: W/NP11    DATE: 2000-05-11
@@ -139,7 +139,7 @@ gtemplate *extpdstemplate(g2int number,g2int *list)
 //   LANGUAGE: C
 //   MACHINE:  IBM SP
 //
-//$$$
+//$$$*/
 {
            gtemplate *new;
            g2int index,i,j,k,l;

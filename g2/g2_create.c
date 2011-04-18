@@ -4,7 +4,7 @@
 #define MAPSEC1LEN 13
 
 g2int g2_create(unsigned char *cgrib,g2int *listsec0,g2int *listsec1)
-//$$$  SUBPROGRAM DOCUMENTATION BLOCK
+/*$$$  SUBPROGRAM DOCUMENTATION BLOCK
 //                .      .    .                                       .
 // SUBPROGRAM:    g2_create 
 //   PRGMMR: Gilbert         ORG: W/NP11    DATE: 2002-10-31
@@ -62,7 +62,7 @@ g2int g2_create(unsigned char *cgrib,g2int *listsec0,g2int *listsec1)
 //   LANGUAGE: C
 //   MACHINE:  
 //
-//$$$
+//$$$*/
 {
 
       g2int  ierr;
@@ -72,52 +72,52 @@ g2int g2_create(unsigned char *cgrib,g2int *listsec0,g2int *listsec1)
       g2int   i,lensec0,lensec1,iofst,ibeg,nbits,len;
 
       ierr=0;
-//
+/*
 //  Currently handles only GRIB Edition 2.
-//  
+*/  
       if (listsec0[1] != 2) {
         printf("g2_create: can only code GRIB edition 2.");
         ierr=-1;
         return (ierr);
       }
-//
+/*
 //  Pack Section 0 - Indicator Section 
 //  ( except for total length of GRIB message )
-//
-      cgrib[0]=0x47;   // 'G'            // Beginning of GRIB message
-      cgrib[1]=0x52;   // 'R'
-      cgrib[2]=0x49;   // 'I'
-      cgrib[3]=0x42;   // 'B'
-      sbit(cgrib,&zero,32,16);           // reserved for future use
-      sbit(cgrib,listsec0+0,48,8);       // Discipline
-      sbit(cgrib,listsec0+1,56,8);       // GRIB edition number
-      lensec0=16;      // bytes (octets)
-//
+*/
+      cgrib[0]=0x47;   /* 'G'            // Beginning of GRIB message */
+      cgrib[1]=0x52;   /* 'R'*/
+      cgrib[2]=0x49;   /* 'I'*/
+      cgrib[3]=0x42;   /* 'B'*/
+      sbit(cgrib,&zero,32,16);           /* reserved for future use*/
+      sbit(cgrib,listsec0+0,48,8);       /* Discipline*/
+      sbit(cgrib,listsec0+1,56,8);       /* GRIB edition number*/
+      lensec0=16;      /* bytes (octets)*/
+/*
 //  Pack Section 1 - Identification Section
-//
-      ibeg=lensec0*8;        //   Calculate offset for beginning of section 1
-      iofst=ibeg+32;         //   leave space for length of section
-      sbit(cgrib,&one,iofst,8);     // Store section number ( 1 )
+*/
+      ibeg=lensec0*8;        /*   Calculate offset for beginning of section 1*/
+      iofst=ibeg+32;         /*   leave space for length of section*/
+      sbit(cgrib,&one,iofst,8);     /* Store section number ( 1 )*/
       iofst=iofst+8;
-      //
+      /*
       //   Pack up each input value in array listsec1 into the
       //   the appropriate number of octets, which are specified in
       //   corresponding entries in array mapsec1.
-      //
+      */
       for (i=0;i<mapsec1len;i++) {
         nbits=mapsec1[i]*8;
         sbit(cgrib,listsec1+i,iofst,nbits);
         iofst=iofst+nbits;
       }
-      //
+      /*
       //   Calculate length of section 1 and store it in octets
       //   1-4 of section 1.
-      //
+      */
       lensec1=(iofst-ibeg)/8;
       sbit(cgrib,&lensec1,ibeg,32);
-//
+/*
 //  Put current byte total of message into Section 0
-//
+*/
       sbit(cgrib,&zero,64,32);
       len=lensec0+lensec1;
       sbit(cgrib,&len,96,32);
