@@ -1,3 +1,5 @@
+#define _XOPEN_SOURCE 500
+
 #include "gb2def.h"
 
 void gb2_proc( gribfield *gfld, char *param )

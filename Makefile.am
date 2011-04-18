@@ -16,11 +16,11 @@ SUBDIRS			= zlib g2 gempak libpng tables
 
 distName 		= $(PACKAGE)-$(VERSION)
 distArchive 		= $(distName).tar.gz
-EXTRA_DIST 		= CHANGE_LOG COPYRIGHT INSTALL extractDecls
+EXTRA_DIST 		= CHANGE_LOG COPYRIGHT INSTALL
 DISTCLEANFILES		= *.log $(distArchive)
 
 lib_LTLIBRARIES		= libnoaaport.la
-libnoaaport_la_SOURCES	= noaaport_version.c shmfifo.c
+libnoaaport_la_SOURCES	= noaaport_version.c shmfifo.c shmfifo.h
 libnoaaport_la_LIBADD	= g2/lib.la gempak/lib.la libpng/libpng.la zlib/lib.la
 
 bin_PROGRAMS		= dvbs_multicast readnoaaport
@@ -62,6 +62,9 @@ readnoaaport_CPPFLAGS 	= \
 	-I$(top_srcdir)/g2 -I$(top_srcdir)/gempak -I$(top_srcdir)/zlib
 
 DISTCHECK_CONFIGURE_FLAGS	= --disable-root-actions --disable-shared
+
+shmfifo.h:	$(srcdir)/shmfifo.h.in $(srcdir)/shmfifo.c
+	./extractDecls $(srcdir)/shmfifo.h.in $(srcdir)/shmfifo.c >$@
 
 libpng/libpng.la:
 	cd libpng && $(MAKE) $(AM_MAKEFLAGS) all

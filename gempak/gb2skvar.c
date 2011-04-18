@@ -1,3 +1,5 @@
+#define _XOPEN_SOURCE 500
+
 #include "gb2def.h"
 
 void  gb2_skvar( int disc, int cat, int id, int pdtn, G2vars_t *vartbl,

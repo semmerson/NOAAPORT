@@ -20,3 +20,5 @@ config.status
 stamp-h1
 stamp-h1
 Makefile
+*.tar.gz
+shmfifo.h

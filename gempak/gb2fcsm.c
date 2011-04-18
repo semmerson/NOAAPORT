@@ -1,3 +1,5 @@
+#define _XOPEN_SOURCE 500
+
 #include "gb2def.h"
 
 int gb2_fcsm(int ifcst, int unit)

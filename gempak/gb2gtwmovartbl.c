@@ -1,3 +1,5 @@
+#define _XOPEN_SOURCE 500
+
 #include "gb2def.h"
 
 void  gb2_gtwmovartbl( char *wmovartbl, int iver, G2vars_t **g2vartbl, 

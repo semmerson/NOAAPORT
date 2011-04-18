@@ -1,3 +1,5 @@
+#define _XOPEN_SOURCE 500
+
 #include "gb2def.h"
 
 void  gb2_sklvl( int lvl1, int lvl2, G2lvls *lvltbl,
