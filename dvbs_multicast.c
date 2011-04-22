@@ -1,6 +1,14 @@
-/*
- *   Copyright 2004, University Corporation for Atmospheric Research
- *   See COPYRIGHT file for copying and redistribution conditions.
+/**
+ *   Copyright 2011, University Corporation for Atmospheric Research.
+ *   See file COPYRIGHT for copying and redistribution conditions.
+ */
+
+/**
+ *   @file dvbs_multicast.c
+ *
+ *   This file contains the code for the \c dvbs_multicast(1) program. This
+ *   program captures broadcast UDP packets from a NOAAPORT DVB-S receiver and
+ *   writes the packet data to a shared-memory FIFO.
  */
 #define _XOPEN_SOURCE 500
 
@@ -155,6 +163,73 @@ set_sigactions (void)
 }
 
 
+/**
+ * Captures broadcast UDP packets from a NOAAPORT DVB-S receiver and writes
+ * the data into a shared-memory FIFO or an LDM product-queue.
+ *
+ * Usage:
+ *
+ *     dvbs_multicast [-dmnrvx] [-b <em>npage</em>] [-l <em>log</em>] [-q <em>queue</em>] [-I <em>interface</em>] <em>mcastAddr</em>\n
+ *
+ * Where:
+ * <dl>
+ *      <dt>-b <em>npage</em></dt>
+ *      <dd>Use \e npage as the size, in pages, for the shared-memory FIFO.
+ *      The number of bytes in a page can be found via the command
+ *      "getconf PAGE_SIZE".</dd>
+ *
+ *      <dt>-d</dt>
+ *      <dd>Write the UDP packet data directly into the LDM product-queue
+ *      rather than into the shared-memory FIFO. Note that the LDM
+ *      data-products so created will consist of the individual data packets
+ *      rather than the higher-level NOAAPORT data-products.</dd>
+ *
+ *      <dt>-I <em>interface</em></dt>
+ *      <dd>Listen for broadcast UDP packets on interface \e interface.
+ *      The default is to listen on all interfaces.</dd>
+ *
+ *      <dt>-l <em>log</em></dt>
+ *      <dd>Log to \e log. if \e log is "-", then logging occurs to the 
+ *      standard error stream; otherwise, \e log is the pathname of a file to
+ *      which logging will occur. If not specified, then log messages will go
+ *      to the system logging daemon. </dd>
+ *
+ *      <dt>-m</dt>
+ *      <dd>Create a non-private shared-memory FIFO and write data to it (the
+ *      normal case).  If not specified, then a private shared-memory FIFO will
+ *      be created and a child process will be spawned to read from it (the
+ *      test case).</dd>
+ *
+ *      <dt>-n</dt>
+ *      <dd>Log messages of level NOTICE and higher priority.</dd>
+ *
+ *      <dt>-q <em>queue</em></dt>
+ *      <dd>Use \e queue as the pathname of the LDM product-queue. The default
+ *      is to use the default LDM pathname of the product-queue.</dd>
+ *
+ *      <dt>-p <em>niceness</em></dt>
+ *      <dd>Set the priority of this process to \e niceness. Negative values
+ *      have higher priority. Not normally done.</dd>
+ *
+ *      <dt>-r</dt>
+ *      <dd>Attempt to set this process to the highest priority using the
+ *      POSIX round-robin real-time scheduler. Not usually done.</dd>
+ *
+ *      <dt>-v</dt>
+ *      <dd>Log messages of level INFO and higher priority. This will log
+ *      information on every received UDP packet.</dd>
+ *
+ *      <dt>-x</dt>
+ *      <dd>Log messages of level DEBUG and higher priority.</dd>
+ *
+ *      <dt><em>mcastAddr</em></dt>
+ *      <dd>Multicast address of the UDP packets to listen for (e.g., 
+ *      "224.0.1.1").</dd>
+ * </dl>
+ *
+ * @retval 0 if successful.
+ * @retval 1 if an error occurred. At least one error-message is logged.
+ */
 int
 main (int argc, char *argv[])
 {
@@ -294,7 +369,7 @@ main (int argc, char *argv[])
       if (pq_open (pqfname, PQ_DEFAULT, &pq))
 	{
 	  uerror ("couldn't open the product queue %s\0", pqfname);
-	  exit (-1);
+	  exit (1);
 	}
       prod.info.feedtype = EXP;
       prod.info.ident = prodident;
@@ -313,7 +388,7 @@ main (int argc, char *argv[])
   if (atexit (cleanup) != 0)
     {
       serror ("atexit");
-      exit (-1);
+      exit (1);
     }
 
   /* Get IP socket port for multicast address as s_port[pid_channel-1] */
@@ -351,7 +426,7 @@ main (int argc, char *argv[])
       if (shmfifo_attach (shm) == -1)
 	{
 	  uerror ("parent cannot attach");
-	  exit (-1);
+	  exit (1);
 	};
 
       mypriv.counter = 0;
@@ -466,13 +541,25 @@ main (int argc, char *argv[])
 		    (unsigned char) msg[9]) << 8) +
 		  (unsigned char) msg[10]) << 8) + (unsigned char) msg[11];
 
-	      if (ulogIsDebug ())
-		udebug ("received %d bytes", n);
-	      if ((lastnum != 0) && (lastnum + 1 != sbnnum))
-                uerror ("Gap in SBN last %lu, this %lu, gap %lu", lastnum,
-                        sbnnum, sbnnum - lastnum);
-	      else if (ulogIsVerbose ())
-		uinfo ("SBN number %u", sbnnum);
+              if (ulogIsDebug ())
+                udebug ("received %d bytes", n);
+
+              if (sbnnum <= lastnum) {
+                unotice("Retrograde packet number: previous=%lu, latest=%lu, "
+                    "difference=%lu", lastnum, sbnnum, lastnum - sbnnum);
+              }
+              else {
+                unsigned long   gap = sbnnum - lastnum - 1;
+
+                if ((lastnum != 0) && (0 < gap)) {
+                  uerror ("Gap in SBN last %lu, this %lu, gap %lu", lastnum,
+                          sbnnum, gap);
+                }
+                else if (ulogIsVerbose ()) {
+                  uinfo ("SBN number %u", sbnnum);
+                }
+              }
+
 	      lastnum = sbnnum;
 
 	      if ((status = shmfifo_put (shm, msg, n)) != 0 &&
@@ -495,7 +582,7 @@ main (int argc, char *argv[])
       if (shmfifo_attach (shm) == -1)
 	{
 	  uerror ("child cannot attach");
-	  exit (-1);
+	  exit (1);
 	}
 
 

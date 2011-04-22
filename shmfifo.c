@@ -1023,7 +1023,7 @@ shmfifo_put(
                     shmfifo_ll_put(shm, data, sz);
 
                     if (loggedNoRoom) {
-                        uerror("shmfifo_put(): Wrote %d bytes to FIFO",
+                        uinfo("shmfifo_put(): Wrote %d bytes to FIFO",
                                 totalBytesToWrite);
                     }
 

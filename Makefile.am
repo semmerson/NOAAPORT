@@ -9,15 +9,24 @@
 ################################################################################
 
 LDMHOME			= @LDMHOME@
+LDMSRC			= $(LDMHOME)/src
 SUDO			= @SUDO@
 SU			= @SU@
+
+BUILT_SOURCES		= shmfifo.h
 
 SUBDIRS			= zlib g2 gempak libpng tables
 
 distName 		= $(PACKAGE)-$(VERSION)
 distArchive 		= $(distName).tar.gz
-EXTRA_DIST 		= CHANGE_LOG COPYRIGHT INSTALL
-DISTCLEANFILES		= *.log $(distArchive)
+EXTRA_DIST 		= \
+    	CHANGE_LOG \
+    	COPYRIGHT \
+	Doxyfile \
+    	extractDecls \
+	$(srcdir)/html \
+	mainpage.h.in
+DISTCLEANFILES		= mainpage.h *.log $(distArchive)
 
 lib_LTLIBRARIES		= libnoaaport.la
 libnoaaport_la_SOURCES	= noaaport_version.c shmfifo.c shmfifo.h
@@ -54,108 +63,121 @@ readnoaaport_SOURCES	= \
 	readpsh.c\
 	readsbn.c \
 	redbook_header.c \
-	shmfifo.h \
 	wgrib.c \
 	wmo_header.c \
 	wmo_header.h
 readnoaaport_CPPFLAGS 	= \
 	-I$(top_srcdir)/g2 -I$(top_srcdir)/gempak -I$(top_srcdir)/zlib
 
+TAGS_FILES		= \
+	$(LDMSRC)/pq/*.c $(LDMSRC)/pq/*.h \
+	$(LDMSRC)/protocol/*.c $(LDMSRC)/protocol/*.h \
+	$(LDMSRC)/ulog/*.c $(LDMSRC)/ulog/*.h \
+	$(LDMSRC)/misc/*.c $(LDMSRC)/misc/*.h \
+	$(LDMSRC)/registry/*.c $(LDMSRC)/registry/*.h \
+	$(LDMSRC)/rpc/*.c $(LDMSRC)/rpc/*.h
+
 DISTCHECK_CONFIGURE_FLAGS	= --disable-root-actions --disable-shared
 
-shmfifo.h:	$(srcdir)/shmfifo.h.in $(srcdir)/shmfifo.c
+shmfifo.h:	$(srcdir)/shmfifo.h.in \
+		$(srcdir)/shmfifo.c \
+		$(srcdir)/extractDecls
 	./extractDecls $(srcdir)/shmfifo.h.in $(srcdir)/shmfifo.c >$@
 
 libpng/libpng.la:
 	cd libpng && $(MAKE) $(AM_MAKEFLAGS) all
 
-#
-#installed_programs:	all
-#	for prog in $(INSTALLED_PROGRAMS); do \
-#	    $(MAKE) $(BINDIR)/$$prog PROG=$$prog LDM_PREFIX=$(LDM_PREFIX) \
-#		|| exit 1; \
-#	done
-#
-#$(BINDIR)/$(PROG):	$(PROG)
-#	rm -f $@
-#	cp $(PROG) $@
-#
-#install_setuids:
-#	chown root $(DESTDIR)$(BINDIR)/dvbs_multicast
-#	chmod 4755 $(DESTDIR)$(BINDIR)/dvbs_multicast
-#	@if ls -l $(BINDIR)/dvbs_multicast | grep root >/dev/null; then \
-#	    : true; \
-#	else \
-#	    echo; \
-#	    echo "\
-#ERROR: The program (../bin/dvbs_multicast) is not owned by \"root\" or does \
-#not have the setuid bit enabled.  The command \"make install_setuids\" will \
-#have to be manually executed by the superuser on a system that allows these \
-#actions." \
-#	    | fmt; \
-#	    echo; \
-#	    exit 1; \
-#	fi
-#
-#noaaport_version.c: 	VERSION
-#	echo 'const char* version_str = "'`cat VERSION`'";' >$@
-#
-#readnoaaport: 		$(READNOAAPORT_OBJS) zlib/libz.a libpng/libpng.a \
-#			shmfifo.o g2/g2c.a gempak/gemgrib.a
-#	$(CC) -o $@ $(CFLAGS) $(READNOAAPORT_OBJS) shmfifo.o g2/g2c.a \
-#	    gempak/gemgrib.a $(LDM_LIBRARIES) libpng/libpng.a zlib/libz.a -lm \
-#	    $(LIBS)
-#
-#test: 			readnoaaport
-#	test -f /tmp/test.pq || pqcreate -s 2m /tmp/test.pq
-#	./readnoaaport -q /tmp/test.pq -l - -nvx nwstgdump.data
-#	rm /tmp/test.pq
-#
-#clean: 			clean_Zlib clean_PNGlib clean_g2lib clean_gemlib
-#	rm -f *.o *.i $(BUILT_PROGRAMS)
-#
-#clean_Zlib:
-#	cd zlib ; \
-#	make clean
-#
-#clean_PNGlib:
-#	cd libpng ; \
-#	make clean
-#
-#clean_g2lib:
-#	cd g2 ; \
-#	make clean
-#
-#clean_gemlib:
-#	cd gempak ; \
-#	make clean
-#
-#zlib/libz.a:
-#	cd zlib ; \
-#	make all CFLAGS="$(CFLAGS)"
-#
-#libpng/libpng.a:
-#	cd libpng ; \
-#	make all CFLAGS="$(CFLAGS) -I../zlib"
-#
-#g2/g2c.a:
-#	cd g2 ; \
-#	make all CFLAGS="$(CFLAGS)"
-#
-#gempak/gemgrib.a:
-#	cd gempak ; \
-#	make all CC='$(CC)' CFLAGS='$(CFLAGS)' \
-#	    CPPFLAGS="-I../g2 -I../$(LDM_PREFIX)/include \
-#	    -DLDMHOME='\"$$LDMHOME\"'"
-#
-#tardist: 		clean
-#	version=`cat VERSION`; \
-#	id=noaaport-$$version \
-#	&& cd .. \
-#	&& rm -f $$id  \
-#	&& ln -s noaaport $$id \
-#	&& pax -w -x ustar $$id/* | gzip > noaaport-$$version.tar.gz \
-#	&& rm $$id
-#
-#.c.i:
-#	$(COMPILE) $(CPPFLAGS) -E -o $@ $<
+install-exec-hook:
+if INCLUDE_ROOT_ACTIONS
+	@echo
+	@echo "\
+The next step will perform those installation actions that must be executed \
+by the superuser. \
+If this step doesn't work (for example, if you don't enter \
+root's password), then the superuser will have to manually execute the \
+command \"$(MAKE) root-actions\"." \
+	| fmt >/dev/tty
+	@echo >/dev/tty
+if HAVE_SUDO
+	$(SUDO) $(MAKE) $(AM_MAKEFLAGS) root-actions 2>/dev/tty
+else
+if HAVE_SU
+	@printf "Enter root's password (or don't): " >/dev/tty
+	@$(SU) root -c 'PATH='$$PATH' $(MAKE) $(AM_MAKEFLAGS) root-actions' \
+	    </dev/tty 2>/dev/tty
+	@echo >/dev/tty
+endif
+endif
+else
+	@echo
+	@echo "\
+NOTE: The command \"$(MAKE) root-actions\" will have to be executed by the \
+superuser in order to complete the installation process." \
+	| fmt
+	@echo
+endif
+
+root-actions:		install_setuids
+
+install_setuids:
+	chown root $(DESTDIR)$(bindir)/dvbs_multicast
+	chmod 4755 $(DESTDIR)$(bindir)/dvbs_multicast
+	@if ls -l $(bindir)/dvbs_multicast | grep root >/dev/null; then \
+	    : true; \
+	else \
+	    echo; \
+	    echo "\
+ERROR: The program (../bin/dvbs_multicast) is not owned by \"root\" or does \
+not have the setuid bit enabled.  The command \"make install_setuids\" will \
+have to be manually executed by the superuser on a system that allows these \
+actions." \
+	    | fmt; \
+	    echo; \
+	    exit 1; \
+	fi
+
+installcheck-local:
+	pqcreate -c -s 2m /tmp/readnoaaport-test.pq
+	$(DESTDIR)$(bindir)/readnoaaport -l- -q /tmp/readnoaaport-test.pq \
+	    $(srcdir)/nwstgdump.data
+	rm /tmp/readnoaaport-test.pq
+
+check-local:		readnoaaport
+	pqcreate -c -s 2m /tmp/readnoaaport-test.pq
+	./readnoaaport -l- -q /tmp/readnoaaport-test.pq \
+	    $(srcdir)/nwstgdump.data
+	rm /tmp/readnoaaport-test.pq
+
+valgrind:		readnoaaport
+	pqcreate -c -s 2m /tmp/readnoaaport-test.pq
+	$(LIBTOOL) --mode=execute valgrind --leak-check=yes \
+	    readnoaaport -l- -q /tmp/readnoaaport-test.pq nwstgdump.data
+	rm /tmp/readnoaaport-test.pq
+
+debug:			readnoaaport
+	pqcreate -c -s 2m /tmp/readnoaaport-test.pq
+	echo 'handle SIGCONT pass noprint nostop' >/tmp/readnoaaport.gdb
+	echo 'run -l- -q /tmp/readnoaaport-test.pq nwstgdump.data' \
+	    >>/tmp/readnoaaport.gdb
+	$(LIBTOOL) --mode=execute gdb -x /tmp/readnoaaport.gdb readnoaaport
+	rm /tmp/readnoaaport-test.pq /tmp/readnoaaport.gdb
+
+all-local:		$(srcdir)/html
+
+$(srcdir)/html:		$(srcdir)/mainpage.h.in
+	rm -rf $(srcdir)/html
+	cd $(srcdir) && doxygen Doxyfile
+
+install-html:		$(srcdir)/html $(DESTDIR)$(htmldir)
+	cp -R $(srcdir)/html/* $(DESTDIR)$(htmldir)
+
+$(DESTDIR)$(htmldir):
+	mkdir -p $@
+
+install-data-hook:	install-html
+
+uninstall-hook:
+	chmod -R +w $(DESTDIR)$(htmldir)
+	rm -rf $(DESTDIR)$(htmldir)
+
+.PHONY:			install-html

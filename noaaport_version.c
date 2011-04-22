@@ -1,1 +1,3 @@
-const char* version_str = "1.5.3.7";
+#include <config.h>
+
+const char* version_str = PACKAGE_VERSION;

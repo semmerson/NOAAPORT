@@ -216,6 +216,7 @@ AC_C_CONST
 AC_TYPE_SIZE_T
 
 AC_CONFIG_FILES([Makefile
+                 mainpage.h
 		 g2/Makefile
                  gempak/Makefile
                  tables/Makefile

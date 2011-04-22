@@ -1,6 +1,14 @@
 /*
- *   Copyright 2010, University Corporation for Atmospheric Research
+ *   Copyright 2010, University Corporation for Atmospheric Research.
  *   See COPYRIGHT file for copying and redistribution conditions.
+ */
+
+/**
+ *   @file readnoaaport.c
+ *
+ *   This file contains the code for the \c readnoaaport(1) program. This
+ *   program reads NOAAPORT data from a shared-memory FIFO or a file, creates
+ *   LDM data-products, and writes the data-products into an LDM product-queue.
  */
 #define _XOPEN_SOURCE 500
 
@@ -250,6 +258,18 @@ int _shm_bufread(
     return status;
 }
 
+/*
+ * Reads data from a file descriptor.
+ *
+ * Arguments:
+ *      fd              The file descriptor from which to read data.
+ *      buf             Pointer to the buffer into which to put the data.
+ *      want            The amount of data to read in bytes.
+ * Returns:
+ *      0               Success.
+ *      -2              I/O error. Error-message logged.
+ *      -3              End-of-file.
+ */
 int
 _fd_bufread (int fd, char *buf, int bsiz)
 {
@@ -307,12 +327,17 @@ _fd_bufread (int fd, char *buf, int bsiz)
 	  idle = 0;
 	  nread = read (fd, buf + bread, (size_t) bsiz - bread);
 	  bread = bread + nread;
+          if (nread == -1)
+            {
+              serror("_fd_bufread(): read() failure");
+              return -2;
+            }
 	  if (nread == 0)
 	    {
 	      if (ulogIsVerbose ())
 		uinfo ("End of Input");
 	      DONE = 1;
-	      return (-2);
+	      return (-3);
 	    }
 	  if (bread < (size_t) bsiz)
 	    {
@@ -321,19 +346,32 @@ _fd_bufread (int fd, char *buf, int bsiz)
 	    }
 	  else
 	    return (0);
-
 	}
       else
 	{
-	  uerror ("select returned %d but fd not set", ready);
+	  uerror ("_fd_bufread(): select() returned %d but fd not set", ready);
 	  idle += TV_SEC;
-	  return (-1);
+	  return (-2);
 	}
 
     }
   return (0);
 }
 
+/*
+ * Reads data.
+ *
+ * Arguments:
+ *      fd              The file descriptor from which to read data if "shm"
+ *                      is NULL.
+ *      buf             Pointer to the buffer into which to put the data.
+ *      want            The amount of data to read in bytes.
+ * Returns:
+ *      0               Success.
+ *      -1              Pre-condition failure. Error-message logged.
+ *      -2              I/O error. Error-message logged.
+ *      -3              End-of-file.
+ */
 int bufread (int fd, char *buf, int bsiz)
 {
 if ( shm == NULL )
@@ -342,6 +380,52 @@ else
    return ( _shm_bufread(buf, bsiz) );
 }
 
+/**
+ * Reads NOAAPORT data from a shared-memory FIFO or a file, creates LDM data-products,
+ * and inserts the data-products into an LDM product-queue.
+ *
+ * Usage:
+ *
+ *     readnoaaport [-nvx] [-q <em>queue</em>] [-u <em>n</em>] [-m mcastAddr] [path]\n
+ *
+ * Where:
+ * <dl>
+ *      <dt>-l <em>log</em></dt>
+ *      <dd>Log to \e log. if \e log is "-", then logging occurs to the 
+ *      standard error stream; otherwise, \e log is the pathname of a file to
+ *      which logging will occur. If not specified, then log messages will go
+ *      to the system logging daemon. </dd>
+ *
+ *      <dt>-m <em>mcastAddr</em></dt>
+ *      <dd>Use the shared-memory FIFO associated with the UDP
+ *      multicast address \e mcastAddr.</dd>
+ *
+ *      <dt>-n</dt>
+ *      <dd>Log messages of level NOTICE and higher priority.</dd>
+ *
+ *      <dt>-q <em>queue</em></dt>
+ *      <dd>Use \e queue as the pathname of the LDM product-queue. The default
+ *      is to use the default LDM pathname of the product-queue.</dd>
+ *
+ *      <dt>-u <em>n</em></dt>
+ *      <dd>If logging is to the system logging daemon, then use facility 
+ *      <b>local</b><em>n</em>. The default is to use the LDM facility.
+ *
+ *      <dt>-v</dt>
+ *      <dd>Log messages of level INFO and higher priority. Each data-product
+ *      will generate a log message.</dd>
+ *
+ *      <dt>-x</dt>
+ *      <dd>Log messages of level DEBUG and higher priority.</dd>
+ *
+ *      <dt><em>path</em></dt>
+ *      <dd>Pathname of the file from which to read data. The default is to use
+ *      a shared-memory FIFO.</dd>
+ * </dl>
+ *
+ * @retval 0 if successful.
+ * @retval 1 if an error occurred. At least one error-message is logged.
+ */
 int
 main (argc, argv)
      int argc;
@@ -516,6 +600,8 @@ if ( atexit(cleanup) != 0)
       /* look for first byte == 255  and a valid SBN checksum */
 
       if ((status = bufread (fd, prodmmap, 1)) != 0) {
+        if (-3 == status)
+          break;
         abort();
       }
       if ((b1 = (unsigned char) prodmmap[0]) != 255) {

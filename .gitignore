@@ -22,3 +22,8 @@ stamp-h1
 Makefile
 *.tar.gz
 shmfifo.h
+core.*
+*.swp
+Doxyfile
+mainpage.h
+html
