@@ -164,7 +164,7 @@ set_sigactions (void)
 
 
 /**
- * Captures broadcast UDP packets from a NOAAPORT DVB-S receiver and writes
+ * Captures NOAAPORT broadcast UDP packets from a DVB-S receiver and writes
  * the data into a shared-memory FIFO or an LDM product-queue.
  *
  * Usage:
@@ -176,7 +176,7 @@ set_sigactions (void)
  *      <dt>-b <em>npage</em></dt>
  *      <dd>Use \e npage as the size, in pages, for the shared-memory FIFO.
  *      The number of bytes in a page can be found via the command
- *      "getconf PAGE_SIZE".</dd>
+ *      \c "getconf PAGE_SIZE".</dd>
  *
  *      <dt>-d</dt>
  *      <dd>Write the UDP packet data directly into the LDM product-queue
@@ -189,7 +189,7 @@ set_sigactions (void)
  *      The default is to listen on all interfaces.</dd>
  *
  *      <dt>-l <em>log</em></dt>
- *      <dd>Log to \e log. if \e log is "-", then logging occurs to the 
+ *      <dd>Log to \e log. if \e log is \c "-", then logging occurs to the 
  *      standard error stream; otherwise, \e log is the pathname of a file to
  *      which logging will occur. If not specified, then log messages will go
  *      to the system logging daemon. </dd>
@@ -224,7 +224,7 @@ set_sigactions (void)
  *
  *      <dt><em>mcastAddr</em></dt>
  *      <dd>Multicast address of the UDP packets to listen for (e.g., 
- *      "224.0.1.1").</dd>
+ *      \c "224.0.1.1").</dd>
  * </dl>
  *
  * @retval 0 if successful.

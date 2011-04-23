@@ -1,93 +1,116 @@
 /**
- * Copyright 2011, University Corporation for Atmospheric Research.
- * See file COPYRIGHT for copying and redistribution conditions.
- *
  * @mainpage @PACKAGE_STRING@ 
  *
+ * @section contents Table of Contents
+ * - \ref legal
+ * - \ref introduction
+ * - \ref installation
+ * - \ref configuration
+ * - \ref logging
+ * - \ref performance
+ *
+ * <hr>
+ *
+ * @section legal Legal
+ * \verbinclude COPYRIGHT
+ *
+ * <hr>
+ *
  * @section introduction Introduction
- * This package captures broadcast UDP packets from a NOAAPORT DVB-S receiver,
+ * This package captures NOAAPORT broadcast UDP packets from a DVB-S receiver,
  * creates LDM data-products from the data, and inserts those products into an
  * LDM product-queue. The main components of this package are 1) the \link
- * dvbs_multicast.c \c dvbs_multicast(1) \endlink program; 2) a shared-memory
- * FIFO ; and 3) the \link readnoaaport.c \c readnoaaport(1) \endlink program.
+ * dvbs_multicast.c \c dvbs_multicast \endlink program; 2) a shared-memory
+ * FIFO ; and 3) the \link readnoaaport.c \c readnoaaport \endlink program.
  * The shared-memory FIFO is used to buffer the flow of data from the \link
- * dvbs_multicast.c \c dvbs_multicast(1) \endlink program to the \link
- * readnoaaport.c \c readnoaaport(1) \endlink program.
+ * dvbs_multicast.c \c dvbs_multicast \endlink program to the \link
+ * readnoaaport.c \c readnoaaport \endlink program.
+ *
+ * <hr>
  *
  * @section installation Installation
  * As the LDM user in that user's home directory, get and unpack the
  * distribution:
- *     \code
- *     wget ftp://ftp.unidata.ucar.edu/pub/noaaport/@PACKAGE_STRING@.tar.gz
- *     gunzip -c @PACKAGE_STRING@.tar.gz | tar -xf -
- *     \endcode
+ * \verbatim
+ wget ftp://ftp.unidata.ucar.edu/pub/noaaport/@PACKAGE_STRING@.tar.gz
+ gunzip -c @PACKAGE_STRING@.tar.gz | tar -xf -
+\endverbatim
  * Drop into the package directory and build the package using the same options
  * that were used to build the LDM package (which are displayed near the top
- * of the file "config.log" in the top-level LDM source-directory):
- *     \code
- *     cd @PACKAGE_STRING@
- *     ./configure [--disable-max-size] [--disable-root-actions] [CC=...] >configure.log 2>&1
- *     make install >make.log 2>&1
- *     \endcode
- * Unless the option \c --disable-root-actions is given, the \c configure(1)
+ * of the file \c config.log in the top-level LDM source-directory):
+ * \verbatim
+ cd @PACKAGE_STRING@
+ ./configure [--disable-max-size] [--disable-root-actions] [CC=...] >configure.log 2>&1
+ make install >make.log 2>&1
+\endverbatim
+ * Unless the option \c --disable-root-actions is given, the \c configure
  * script will ask for the password of the superuser (i.e., \c root) or,
  * failing that, the password of the LDM user (in order to use
- * <tt>sudo(1)</tt>). The reason for this is because the \link dvbs_multicast.c
- * \c dvbs_multicast(1) \endlink program must be owned by "root" in order to
- * lock itself into memory (so that it's not swapped-out by the
+ * <tt>sudo(1)</tt>). The reason for this is because each \link dvbs_multicast.c
+ * \c dvbs_multicast \endlink process must be owned by \c root in
+ * order to lock itself into memory (so that it's not swapped-out by the
  * memory-management system) in order to reduce the risk of missing a broadcast
  * UDP packet. You may choose to not give root's password or the LDM user's
- * password to the \c configure(1) script -- in which case the superuser (root)
+ * password to the \c configure script -- in which case the superuser (root)
  * will have to manually execute the command <tt>make root-actions</tt> after
  * the package has been installed.
  *
+ * <hr>
+ *
  * @section configuration Configuration
  * Edit the LDM configuration file, \c ~/etc/ldmd.conf, and add the entries
- * needed to read and process the DVB-S stream(s).  Here's what our \c ldmd.conf
- * lines look like at this moment:
+ * needed to read and process the DVB-S stream(s).  Here's one possibility:
  *
- * \code
- * # DVB-S broadcast UDP listening and shared-memory writing processes
- * EXEC    "dvbs_multicast -m 224.0.1.1"
- * EXEC    "dvbs_multicast -m 224.0.1.2"
- * EXEC    "dvbs_multicast -m 224.0.1.3"
- * EXEC    "dvbs_multicast -m 224.0.1.4"
- * #
- * # Shared-memory reading and data-product creation & insertion processes
- * EXEC    "readnoaaport -m 224.0.1.1 -n -u 3"
- * EXEC    "readnoaaport -m 224.0.1.2 -n -u 4"
- * EXEC    "readnoaaport -m 224.0.1.3 -n -u 5"
- * EXEC    "readnoaaport -m 224.0.1.4 -n -u 6"
- * \endcode
- * (Note that, in our configuration, each \link readnoaaport.c \c
- * readnoaaport(1) \endlink process uses a different logging facility via the
- * "-u" option.)
+ * \verbatim
+ # DVB-S broadcast UDP listening and shared-memory writing processes
+ EXEC    "dvbs_multicast -m 224.0.1.1"
+ EXEC    "dvbs_multicast -m 224.0.1.2"
+ EXEC    "dvbs_multicast -m 224.0.1.3"
+ EXEC    "dvbs_multicast -m 224.0.1.4"
+
+ # Shared-memory reading and data-product creation & insertion processes
+ EXEC    "readnoaaport -m 224.0.1.1"
+ EXEC    "readnoaaport -m 224.0.1.2"
+ EXEC    "readnoaaport -m 224.0.1.3"
+ EXEC    "readnoaaport -m 224.0.1.4"
+\endverbatim
  *
- * The \c ldmd.conf actions execute a \link dvbs_multicast.c \c
- * dvbs_multicast(1) \endlink process for each available PID from the UDP
+ * The \c ldmd.conf actions create a \link dvbs_multicast.c \c
+ * dvbs_multicast \endlink process for each available PID from the UDP
  * multicast stream. Each such process places the received packets into a
  * shared-memory buffer for reading by a corresponding \link readnoaaport.c \c
- * readnoaaport(1) \endlink process.  There must be one \link readnoaaport.c \c
- * readnoaaport(1) \endlink process for each \link dvbs_multicast.c \c
- * dvbs_multicast(1) \endlink process.
+ * readnoaaport \endlink process.  There must be one \link readnoaaport.c \c
+ * readnoaaport \endlink process for each \link dvbs_multicast.c \c
+ * dvbs_multicast \endlink process.
+ *
+ * <hr>
  *
  * @section logging Logging
- * The \link readnoaaport.c \c readnoaaport(1) \endlink
+ * The \link readnoaaport.c \c readnoaaport \endlink
  * executable that turns ingested data into IDD products 
  * and injects the products into the LDM queue is written to use the LDM 
- * logging facilities.  The default log file for the LDM is, typicall,
- * \c ~/logs/ldmd.log.  We find it more useful to override the
- * default logging so that each instance of
+ * logging facilities.  The default log file for the LDM is, typically,
+ * \c ~/logs/ldmd.log.  We've found it useful to override the
+ * default logging and have each instance of
  * \link readnoaaport.c \c readnoaaport \endlink
- * writes to its
- * own log file.  We do this via the "-u X" option, where "X"
- * is the LOCAL"X" logging facility.  
+ * write a notice of every processed product to its own log file.
+ * We do this via the
+ * \c -n and \c -u \e X options, where \e X refers to
+ * the <tt>local</tt><em>X</em> logging facility:
+ *
+ * \verbatim
+ EXEC    "readnoaaport -m 224.0.1.1 -n -u 3"
+ EXEC    "readnoaaport -m 224.0.1.2 -n -u 4"
+ EXEC    "readnoaaport -m 224.0.1.3 -n -u 5"
+ EXEC    "readnoaaport -m 224.0.1.4 -n -u 6"
+\endverbatim
  *
  * If you are not interested in logging to seperate files, simply omit
- * the "-u X" option. The "-n" flag will notify the log of each product
+ * the \c -u \e X option. The \c -n flag will notify the log of
+ * each product
  * that is received, which is useful for monitoring data that is
- * received from the incoming NOAAPORT source. Remove the "-n" argument
- * to
+ * received from the incoming NOAAPORT source. Remove the \c -n
+ * argument to
  * \link readnoaaport.c \c readnoaaport \endlink
  * if you do not want to be notified of every product
  * that is received.
@@ -96,70 +119,71 @@
  * configuration lines to \c /etc/syslog.conf. 
  * The standard additions to \c /etc/syslog.conf for the LDM are:
  *
- * - inclusion of local0.none in the default system logginf file
+ * - Inclusion of \c local0.none in the default system logginf file
  *
- * - addition of a line that says where to write log messages for log
+ * - Addition of a line that says where to write log messages for log
  *   facility '0'.
  *
- * Here is an example of how this looks on our Fedora Core Linux 1
- * system:
- * \code
- * *.info;mail.none;news.none;authpriv.none;cron.none;local0.none       /var/log/messages
- *
- * # LDM logging
- * local0.debug                                                         /home/ldm/logs/ldmd.log
- * \endcode
+ * Here is an example of how this looks on our Fedora Linux system:
+ * \verbatim
+ *.info;mail.none;news.none;authpriv.none;cron.none;local0.none       /var/log/messages
+
+ # LDM logging
+ local0.debug                                                         /home/ldm/logs/ldmd.log
+\endverbatim
  *
  * To setup \c syslogd(8) to log to a different file for each ingest script,
  * one has to add more entries to \c /etc/syslog.conf.  Here is an example
- * of how we have \c /etc/syslog.conf setup on our Fedora Core 1 system
- * that is running the LDM and ingesting the nwstg2 and oconus streams
- * in the current test DVB-S NOAAPORT stream:
- * \code
- * *.info;mail.none;news.none;authpriv.none;cron.none;local0.none;local3.none;local4.none;local5.none;local6.none  /var/log/messages
- *
- * # LDM logging
- * local0.debug                         /home/ldm/logs/ldmd.log
- *
- * #
- * # LDM NOAAport ingest logging
- * #
- * local3.debug                         /data/tmp/nwstg.log
- * local4.debug                         /data/tmp/goes.log
- * local5.debug                         /data/tmp/nwstg2.log
- * local6.debug                         /data/tmp/oconus.log
- * \endcode
+ * of how we have \c /etc/syslog.conf setup on our Fedora system
+ * that is running the LDM and ingesting the \c nwstg2 and \c oconus streams
+ * in the current DVB-S NOAAPORT stream:
+ * \verbatim
+ *.info;mail.none;news.none;authpriv.none;cron.none;local0.none;local3.none;local4.none;local5.none;local6.none  /var/log/messages
+
+ # LDM logging
+ local0.debug                         /home/ldm/logs/ldmd.log
+
+ #
+ # LDM NOAAport ingest logging
+ #
+ local3.debug                         /data/tmp/nwstg.log
+ local4.debug                         /data/tmp/goes.log
+ local5.debug                         /data/tmp/nwstg2.log
+ local6.debug                         /data/tmp/oconus.log
+\endverbatim
  *
  * \note
  *
  * - Given the limited number of log facilities, one might be forced
- * to combine logging for more than one DVB-S ingest routine
+ * to combine logging for more than one DVB-S ingest process.
  *
- * - Modifications to \c /etc/syslog.conf must be done as 'root'
+ * - Modifications to \c /etc/syslog.conf must be done as \c root.
  *
  * - While some operating systems do not care what the white space is
  * in \c /etc/syslog.conf, some do.  It is always safest to make sure that
- * white spaces in non-comment lines are tabs.  (Important!)
+ * white spaces in non-comment lines are tabs.  (Important!).
  *
  * The log files for our NOAAPORT ingest processes can become very large
  * in a hurry.  Because of this, it is best to rotate the files
  * once-per-day.  Here is the \c crontab(1) entry we currently use to do the
  * file rotation:
- * \code
- * # rotate NOAAport ingest logs
- * 0 0 * * * bin/nplog_rotate 4
- * \endcode
+ * \verbatim
+ # rotate NOAAport ingest logs
+ 0 0 * * * bin/nplog_rotate 4
+\endverbatim
  *
  * Here, 4 is the number of days of all DVB-S readnoaaport invocation
  * log files to keep online.
  *
+ * <hr>
+ *
  * @section performance Performance
- * \link dvbs_multicast.c \c dvbs_multicast(1) \endlink
+ * \link dvbs_multicast.c \c dvbs_multicast \endlink
  * is the process which reads the UDP packets from
  * each PID on the multicast. The reading of the UDP stream must be 
  * able to keep up with the stream since there is no mechanism for
  * UDP packets to be retransmitted. We have found that the process which reads
- * these UDP packets can see "Gaps" in the data stream if the process
+ * these UDP packets can see gaps in the data stream if the process
  * is swapped out by the operating system. To alleviate this possibilty
  * we recommend the following:
  *
@@ -167,12 +191,17 @@
  *      \link dvbs_multicast.c \c dvbs_multicast \endlink
  *      is owned by \c root and setuid. This will be done by the installation
  *      process \e if the superuser's password was given to the \c
- *      configure(1) script or the LDM user has \c sudo(1) privileges and
- *      the LDM user's password was given to the \c configure(1) script.
+ *      configure script or the LDM user has \c sudo(1) privileges and
+ *      the LDM user's password was given to the \c configure script.
  *      Otherwise, the command <tt>make root-actions</tt> must be executed by
- *      the superuser (i.e., "root") after the package has been installed.
+ *      the superuser (i.e., \c root) after the package has been
+ *      installed.
  *      This will ensure that the program stays resident in memory and will
  *      not be paged-out.
+ *
+ *    - Do \e not have each
+ *      \link readnoaaport.c \c readnoaaport \endlink
+ *      process log every data-product that it processes.
  *
  *    - Consider an LDM product-queue small enough to fit into available
  *      memory to avoiding the need for the system to do lots of paging.

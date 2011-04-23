@@ -165,6 +165,7 @@ debug:			readnoaaport
 all-local:		$(srcdir)/html
 
 $(srcdir)/html:		$(srcdir)/mainpage.h.in
+	./config.status
 	rm -rf $(srcdir)/html
 	cd $(srcdir) && doxygen Doxyfile
 
@@ -180,4 +181,28 @@ uninstall-hook:
 	chmod -R +w $(DESTDIR)$(htmldir)
 	rm -rf $(DESTDIR)$(htmldir)
 
-.PHONY:			install-html
+FTPDIR	= /web/ftp/pub/$(PACKAGE)
+WEBDIR	= /web/content/software/$(PACKAGE)/$(VERSION)
+
+$(FTPDIR) \
+$(WEBDIR):
+	mkdir -p $@
+
+commit:
+	git commit -a
+
+tag:
+	git tag -f v$(VERSION)
+
+ftp:			tag dist $(FTPDIR)
+	cp $(distArchive) $(FTPDIR)
+	chmod u+rw,g+rw,o=r $(FTPDIR)/$(distArchive)
+	rm -f $(FTPDIR)/$(PACKAGE).tar.gz
+	$(LN_S) $(distArchive) $(FTPDIR)/$(PACKAGE).tar.gz
+
+web-update:		$(srcdir)/html $(WEBDIR)
+	cp -R html/* $(WEBDIR)
+
+available:		ftp web-update
+
+.PHONY:			install-html commit tag ftp web-update available

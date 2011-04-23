@@ -349,6 +349,8 @@ TAGS_FILES = \
 	$(LDMSRC)/rpc/*.c $(LDMSRC)/rpc/*.h
 
 DISTCHECK_CONFIGURE_FLAGS = --disable-root-actions --disable-shared
+FTPDIR = /web/ftp/pub/$(PACKAGE)
+WEBDIR = /web/content/software/$(PACKAGE)/$(VERSION)
 all: $(BUILT_SOURCES) config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -1279,6 +1281,7 @@ debug:			readnoaaport
 all-local:		$(srcdir)/html
 
 $(srcdir)/html:		$(srcdir)/mainpage.h.in
+	./config.status
 	rm -rf $(srcdir)/html
 	cd $(srcdir) && doxygen Doxyfile
 
@@ -1294,7 +1297,28 @@ uninstall-hook:
 	chmod -R +w $(DESTDIR)$(htmldir)
 	rm -rf $(DESTDIR)$(htmldir)
 
-.PHONY:			install-html
+$(FTPDIR) \
+$(WEBDIR):
+	mkdir -p $@
+
+commit:
+	git commit -a
+
+tag:
+	git tag -f v$(VERSION)
+
+ftp:			tag dist $(FTPDIR)
+	cp $(distArchive) $(FTPDIR)
+	chmod u+rw,g+rw,o=r $(FTPDIR)/$(distArchive)
+	rm -f $(FTPDIR)/$(PACKAGE).tar.gz
+	$(LN_S) $(distArchive) $(FTPDIR)/$(PACKAGE).tar.gz
+
+web-update:		$(srcdir)/html $(WEBDIR)
+	cp -R html/* $(WEBDIR)
+
+available:		ftp web-update
+
+.PHONY:			install-html commit tag ftp web-update available
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

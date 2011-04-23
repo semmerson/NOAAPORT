@@ -10,6 +10,8 @@
         Demoted message about finally writing to the shared-memory buffer from
         ERROR to INFO.
 
+    HTML documentation correctly generated and installed.
+
 1.5.3.7 2011-04-14 14:49
     INSTALL file:
         Removed extraneous comment about commenting-out ULOG_FACILITY_OVERRIDE.
