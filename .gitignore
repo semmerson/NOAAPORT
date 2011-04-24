@@ -24,6 +24,5 @@ Makefile
 shmfifo.h
 core.*
 *.swp
-Doxyfile
 mainpage.h
 html
