@@ -1,5 +1,6 @@
 1.5.3.8:
-    Migrated to automake(1).
+    Building:
+        Migrated to automake(1).
 
     dvbs_multicast(1):
         Corrected off-by-one packet-number gap values.
@@ -15,7 +16,8 @@
         Demoted message about finally writing to the shared-memory buffer from
         ERROR to INFO.
 
-    HTML documentation correctly generated and installed.
+    Installation:
+        HTML documentation correctly generated and installed.
 
 1.5.3.7 2011-04-14 14:49
     INSTALL file:
