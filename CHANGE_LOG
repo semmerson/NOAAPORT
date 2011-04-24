@@ -19,6 +19,9 @@
     Installation:
         HTML documentation correctly generated and installed.
 
+    Misc:
+        Added README file.
+
 1.5.3.7 2011-04-14 14:49
     INSTALL file:
         Removed extraneous comment about commenting-out ULOG_FACILITY_OVERRIDE.
