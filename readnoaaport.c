@@ -42,8 +42,7 @@
 #include "libpng/png.h"
 
 #include "dvbs.h"
-
-extern char *version_str;
+#include "config.h"
 
 /*
  * function prototypes
@@ -56,7 +55,6 @@ void pngout_end ();
 void process_prod (prodstore prod, char *PROD_NAME,
 		   char *memheap, size_t heapsize, MD5_CTX * md5try,
 		   char *pqfname, psh_struct * psh, sbn_struct * sbn);
-
 void pngwrite (char *memheap);
 void png_set_memheap (char *memheap, MD5_CTX * md5ctxp);
 void png_header (char *memheap, int length);
@@ -65,20 +63,19 @@ int png_get_prodlen ();
 
 int prod_isascii (char *pname, char *prod, size_t psize);
 
-unsigned long idle = 0;
-fd_set readfds;
-fd_set exceptfds;
-static int DONE = 0;
-
-static const char *FOS_TRAILER = "\015\015\012\003";
-
-struct shmhandle *shm = NULL;
-
+static unsigned long            idle = 0;
+static fd_set                   readfds;
+static fd_set                   exceptfds;
+static int                      DONE = 0;
+static const char*              FOS_TRAILER = "\015\015\012\003";
+static struct shmhandle*        shm = NULL;
 /*
  * Output statistics if requested
  */
-volatile sig_atomic_t logstats = 0;
-unsigned long nmissed = 0;
+static volatile sig_atomic_t    logstats = 0;
+static unsigned long            nmissed = 0;
+
+
 void
 dump_stats ()
 {
@@ -427,9 +424,9 @@ else
  * @retval 1 if an error occurred. At least one error-message is logged.
  */
 int
-main (argc, argv)
-     int argc;
-     char *argv[];
+main(
+     int argc,
+     char *argv[])
 {
   const char *pqfname;
   int fd;
@@ -539,7 +536,7 @@ main (argc, argv)
     (void) fclose (stderr);
   logfd =
     openulog (ubasename (argv[0]), (LOG_CONS | LOG_PID), LOG_LDM, logfname);
-  unotice ("Starting Up %s", version_str);
+  unotice ("Starting Up %s", PACKAGE_VERSION);
 
   if (logfname == NULL || !(*logfname == '-' && logfname[1] == 0))
     {

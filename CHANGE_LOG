@@ -6,6 +6,11 @@
 
         Added logging of retrograde packet numbers.
 
+        Hid unnecessarily visible information.
+
+    readnoaaport(1):
+        Hid unnecessarily visible information.
+
     shmfifo(3) module:
         Demoted message about finally writing to the shared-memory buffer from
         ERROR to INFO.

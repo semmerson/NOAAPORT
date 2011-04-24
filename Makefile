@@ -88,7 +88,7 @@ am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)" \
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libnoaaport_la_DEPENDENCIES = g2/lib.la gempak/lib.la libpng/libpng.la \
 	zlib/lib.la
-am_libnoaaport_la_OBJECTS = noaaport_version.lo shmfifo.lo
+am_libnoaaport_la_OBJECTS = shmfifo.lo
 libnoaaport_la_OBJECTS = $(am_libnoaaport_la_OBJECTS)
 PROGRAMS = $(bin_PROGRAMS)
 am_dvbs_multicast_OBJECTS = dvbs_multicast.$(OBJEXT)
@@ -304,7 +304,7 @@ EXTRA_DIST = \
 
 DISTCLEANFILES = mainpage.h *.log $(distArchive)
 lib_LTLIBRARIES = libnoaaport.la
-libnoaaport_la_SOURCES = noaaport_version.c shmfifo.c shmfifo.h
+libnoaaport_la_SOURCES = shmfifo.c shmfifo.h
 libnoaaport_la_LIBADD = g2/lib.la gempak/lib.la libpng/libpng.la zlib/lib.la
 dist_bin_SCRIPTS = \
 	dvbs_goes \
@@ -533,7 +533,6 @@ distclean-compile:
 	-rm -f *.tab.c
 
 include ./$(DEPDIR)/dvbs_multicast.Po
-include ./$(DEPDIR)/noaaport_version.Plo
 include ./$(DEPDIR)/readnoaaport-grib2name.Po
 include ./$(DEPDIR)/readnoaaport-gribid.Po
 include ./$(DEPDIR)/readnoaaport-png_io.Po
@@ -1062,8 +1061,7 @@ check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) check-local
 check: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) check-recursive
-all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(SCRIPTS) config.h \
-		all-local
+all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(SCRIPTS) config.h
 install-binPROGRAMS: install-libLTLIBRARIES
 
 installdirs: installdirs-recursive
@@ -1181,8 +1179,8 @@ uninstall-am: uninstall-binPROGRAMS uninstall-dist_binSCRIPTS \
 	install-exec-am install-strip tags-recursive uninstall-am
 
 .PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
-	all all-am all-local am--refresh check check-am check-local \
-	clean clean-binPROGRAMS clean-generic clean-libLTLIBRARIES \
+	all all-am am--refresh check check-am check-local clean \
+	clean-binPROGRAMS clean-generic clean-libLTLIBRARIES \
 	clean-libtool ctags ctags-recursive dist dist-all dist-bzip2 \
 	dist-gzip dist-lzma dist-shar dist-tarZ dist-xz dist-zip \
 	distcheck distclean distclean-compile distclean-generic \
@@ -1278,8 +1276,6 @@ debug:			readnoaaport
 	$(LIBTOOL) --mode=execute gdb -x /tmp/readnoaaport.gdb readnoaaport
 	rm /tmp/readnoaaport-test.pq /tmp/readnoaaport.gdb
 
-all-local:		$(srcdir)/html
-
 $(srcdir)/html:		$(srcdir)/mainpage.h.in
 	./config.status
 	rm -rf $(srcdir)/html
@@ -1316,9 +1312,11 @@ ftp:			tag dist $(FTPDIR)
 web-update:		$(srcdir)/html $(WEBDIR)
 	cp -R html/* $(WEBDIR)
 
-available:		ftp web-update
+release:		ftp web-update commit tag
 
-.PHONY:			install-html commit tag ftp web-update available
+available:		release
+
+.PHONY:		install-html commit tag ftp web-update available release
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

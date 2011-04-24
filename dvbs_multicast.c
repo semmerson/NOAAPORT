@@ -1,14 +1,14 @@
-/**
+/*
  *   Copyright 2011, University Corporation for Atmospheric Research.
  *   See file COPYRIGHT for copying and redistribution conditions.
  */
-
 /**
  *   @file dvbs_multicast.c
  *
  *   This file contains the code for the \c dvbs_multicast(1) program. This
  *   program captures broadcast UDP packets from a NOAAPORT DVB-S receiver and
- *   writes the packet data to a shared-memory FIFO.
+ *   writes the packet data to a shared-memory FIFO or directly to an LDM
+ *   product-queue.
  */
 #define _XOPEN_SOURCE 500
 
@@ -39,26 +39,33 @@
 
 /* LDM headers */
 #include "ldm.h"
+#undef PACKAGE
+#undef PACKAGE_BUGREPORT
+#undef PACKAGE_NAME
+#undef PACKAGE_STRING
+#undef PACKAGE_TARNAME
+#undef PACKAGE_VERSION
+#undef VERSION
 #include "pq.h"
 #include "ulog.h"
 #include "globals.h"
 
-
 /* Local headers */
 #include  "dvbs.h"
+#include  "config.h"
 
-extern char *version_str;
+struct shmfifo_priv {
+    int counter;
+};
 
-#define MAX_MSG 10000
-#define CBUFPAG 2000
+static const int                MAX_MSG = 10000;
+static const int                CBUFPAG = 2000;
+static struct shmhandle*        shm = NULL;
+static int                      child = 0;
+static int                      memsegflg = 0;
+static struct shmfifo_priv      mypriv;
+static volatile sig_atomic_t    logmypriv = 0;
 
-/* #define MAX_PID 8		.* eg 124.0.1.8 *.
-int s_port[] = { 1201, 1202, 1203, 1204, 1205, 1206, 1207, 1208 }; */
-
-
-/* prototypes */
-void cleanup ();
-void mypriv_stats ();
 
 static void
 usage (char *av0 /*  id string */ )
@@ -76,21 +83,11 @@ usage (char *av0 /*  id string */ )
   exit (1);
 }
 
-struct shmhandle *shm = NULL;
-int child = 0;
-int memsegflg = 0;
 
-struct shmfifo_priv
+static void
+mypriv_stats(void)
 {
-  int counter;
-};
-
-struct shmfifo_priv mypriv;
-
-volatile sig_atomic_t logmypriv=0;
-void mypriv_stats ()
-{
-unotice("wait count %d",mypriv.counter);
+    unotice("wait count %d",mypriv.counter);
 }
 
 
@@ -160,6 +157,38 @@ set_sigactions (void)
 #endif
   (void) sigaction (SIGINT, &sigact, NULL);
   (void) sigaction (SIGPIPE, &sigact, NULL);
+}
+
+
+static void
+cleanup ()
+{
+  int status;
+
+  unotice ("cleanup %d", child);
+
+  if (shm != NULL)
+    shmfifo_detach (shm);
+
+  if ( ( ! memsegflg ) && ( child == 0 ) )		/* child */
+    return;
+
+  if ( ! memsegflg )
+     {
+     unotice ("waiting for child");
+     wait (&status);
+     }
+
+  if (shm != NULL)
+    shmfifo_dealloc (shm);
+
+  if (pq != NULL)
+    {
+      udebug ("Closing product_queue\0");
+      pq_close (pq);
+    }
+  unotice ("parent exiting");
+
 }
 
 
@@ -325,7 +354,7 @@ main (int argc, char *argv[])
     (void) fclose (stderr);
   logfd =
     openulog (ubasename (argv[0]), (LOG_CONS | LOG_PID), LOG_LDM, logfname);
-  unotice ("Starting Up %s", version_str);
+  unotice ("Starting Up %s", PACKAGE_VERSION);
 
   /*
    * Use mlockall command to prevent paging of our process, then exit root privileges
@@ -648,36 +677,3 @@ main (int argc, char *argv[])
   cleanup ();
   return 0;
 }
-
-
-void
-cleanup ()
-{
-  int status;
-
-  unotice ("cleanup %d", child);
-
-  if (shm != NULL)
-    shmfifo_detach (shm);
-
-  if ( ( ! memsegflg ) && ( child == 0 ) )		/* child */
-    return;
-
-  if ( ! memsegflg )
-     {
-     unotice ("waiting for child");
-     wait (&status);
-     }
-
-  if (shm != NULL)
-    shmfifo_dealloc (shm);
-
-  if (pq != NULL)
-    {
-      udebug ("Closing product_queue\0");
-      pq_close (pq);
-    }
-  unotice ("parent exiting");
-
-}
-

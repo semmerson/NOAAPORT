@@ -29,7 +29,7 @@ EXTRA_DIST 		= \
 DISTCLEANFILES		= mainpage.h *.log $(distArchive)
 
 lib_LTLIBRARIES		= libnoaaport.la
-libnoaaport_la_SOURCES	= noaaport_version.c shmfifo.c shmfifo.h
+libnoaaport_la_SOURCES	= shmfifo.c shmfifo.h
 libnoaaport_la_LIBADD	= g2/lib.la gempak/lib.la libpng/libpng.la zlib/lib.la
 
 bin_PROGRAMS		= dvbs_multicast readnoaaport
@@ -162,8 +162,6 @@ debug:			readnoaaport
 	$(LIBTOOL) --mode=execute gdb -x /tmp/readnoaaport.gdb readnoaaport
 	rm /tmp/readnoaaport-test.pq /tmp/readnoaaport.gdb
 
-all-local:		$(srcdir)/html
-
 $(srcdir)/html:		$(srcdir)/mainpage.h.in
 	./config.status
 	rm -rf $(srcdir)/html
@@ -203,6 +201,8 @@ ftp:			tag dist $(FTPDIR)
 web-update:		$(srcdir)/html $(WEBDIR)
 	cp -R html/* $(WEBDIR)
 
-available:		ftp web-update
+release:		ftp web-update commit tag
 
-.PHONY:			install-html commit tag ftp web-update available
+available:		release
+
+.PHONY:		install-html commit tag ftp web-update available release
