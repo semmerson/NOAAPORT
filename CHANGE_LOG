@@ -1,9 +1,12 @@
-1.6.0.1
+1.6.0.1	2011-04-26 15:59:54-06:00
     Distribution:
         Incremented minor version number due to change in build and install
         mechanism.
 
         Made "make release" and "make available" different.
+
+        Ignore failure of "make commit" because there might be nothing to
+        commit.
 
 1.5.3.10 2011-04-26
     Distribution:

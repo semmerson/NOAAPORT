@@ -188,7 +188,16 @@ $(WEBDIR):
 	mkdir -p $@
 
 commit:
-	git commit -a
+	-git commit -a
+
+timestamp:
+	if ! git status -a; then \
+	    : true; \
+	else \
+	    echo "$(VERSION)	`date --rfc-3339=seconds`" >CHANGE_LOG.tmp; \
+	    cat CHANGE_LOG >>CHANGE_LOG.tmp; \
+	    mv CHANGE_LOG.tmp CHANGE_LOG; \
+	fi
 
 tag:
 	git tag -f v$(VERSION)
@@ -202,8 +211,8 @@ ftp:			dist $(FTPDIR)
 web-update:		$(srcdir)/html $(WEBDIR)
 	cp -R html/* $(WEBDIR)
 
-release:		dist commit tag
+release:		timestamp dist commit tag
 
 available:		release ftp web-update
 
-.PHONY:		install-html commit tag ftp web-update available release
+.PHONY:	install-html commit tag ftp web-update available release timestamp
