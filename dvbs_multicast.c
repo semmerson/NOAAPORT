@@ -11,6 +11,7 @@
  *   product-queue.
  */
 #define _XOPEN_SOURCE 500
+#define __EXTENSIONS__
 
 #include <errno.h>
 #include <stdio.h>
@@ -58,7 +59,7 @@ struct shmfifo_priv {
     int counter;
 };
 
-static const int                MAX_MSG = 10000;
+#define                         MAX_MSG 10000
 static const int                CBUFPAG = 2000;
 static struct shmhandle*        shm = NULL;
 static int                      child = 0;
@@ -263,7 +264,8 @@ int
 main (int argc, char *argv[])
 {
   const char *pqfname;
-  int sd, rc, n, cliLen;
+  int sd, rc, n;
+  socklen_t cliLen;
   struct ip_mreq mreq;
   struct sockaddr_in cliAddr, servAddr;
   struct in_addr mcastAddr;

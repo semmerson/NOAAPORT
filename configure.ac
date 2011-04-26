@@ -8,7 +8,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(NOAAPORT, 1.5.3.8, support-noaaport@unidata.ucar.edu)
+AC_INIT(NOAAPORT, 1.6.0.1, support-noaaport@unidata.ucar.edu)
 AC_CONFIG_SRCDIR([shmfifo.c])
 AC_CONFIG_AUX_DIR([.])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
@@ -95,7 +95,8 @@ CFLAGS=${CFLAGS:--O}
 CPPFLAGS=${CPPFLAGS:--DNDEBUG}
 
 # Checks for programs.
-AC_PROG_CC(c89 cc gcc)
+AC_PROG_CC([c89 cc gcc])
+AC_USE_SYSTEM_EXTENSIONS
 AM_PROG_CC_C_O
 if test -z "$CC"; then
     AC_MSG_ERROR([no C compiler found])
@@ -201,10 +202,11 @@ AC_SUBST([LDMHOME])
 AC_MSG_RESULT([$LDMHOME])
 
 # Checks for libraries.
-AC_SEARCH_LIBS([gethostbyname], [nsl], , 
-    AC_MSG_ERROR([cannot find function gethostbyname()]))
+AC_SEARCH_LIBS([sched_setscheduler], [rt])
 AC_SEARCH_LIBS([socket], [socket], , 
     AC_MSG_ERROR([cannot find function socket()]))
+AC_SEARCH_LIBS([gethostbyname], [nsl], , 
+    AC_MSG_ERROR([cannot find function gethostbyname()]))
 
 # Checks for header files.
 AC_HEADER_STDC
@@ -222,6 +224,8 @@ AC_CONFIG_FILES([Makefile
                  tables/Makefile
                  zlib/Makefile])
 
+export CC
 AC_CONFIG_SUBDIRS([libpng])
+#(cd libpng && ./configure --cache-file=../autom4te.cache --srcdir=$srcdir/libpng --prefix=$prefix CC="$CC")
 
 AC_OUTPUT

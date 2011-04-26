@@ -24,6 +24,7 @@ EXTRA_DIST 		= \
     	COPYRIGHT \
 	Doxyfile \
     	extractDecls \
+	shmfifo.hin \
 	$(srcdir)/html \
 	mainpage.h.in
 DISTCLEANFILES		= mainpage.h *.log $(distArchive)
@@ -79,10 +80,10 @@ TAGS_FILES		= \
 
 DISTCHECK_CONFIGURE_FLAGS	= --disable-root-actions --disable-shared
 
-shmfifo.h:	$(srcdir)/shmfifo.h.in \
+shmfifo.h:	$(srcdir)/shmfifo.hin \
 		$(srcdir)/shmfifo.c \
 		$(srcdir)/extractDecls
-	./extractDecls $(srcdir)/shmfifo.h.in $(srcdir)/shmfifo.c >$@
+	./extractDecls $(srcdir)/shmfifo.hin $(srcdir)/shmfifo.c >$@
 
 libpng/libpng.la:
 	cd libpng && $(MAKE) $(AM_MAKEFLAGS) all

@@ -4,6 +4,15 @@
 #include "gemprm.h"
 
 #include "ldm.h"
+#undef PACKAGE
+#undef PACKAGE_BUGREPORT
+#undef PACKAGE_NAME
+#undef PACKAGE_STRING
+#undef PACKAGE_TARNAME
+#undef PACKAGE_VERSION
+#undef VERSION
+
+#include "config.h"
 
 #define	LDM_ETC_PATH	LDMHOME "/etc"
 

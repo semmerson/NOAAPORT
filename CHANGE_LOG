@@ -1,4 +1,26 @@
-1.5.3.8:
+1.6.0.1
+    Distribution:
+        Incremented minor version number due to change in build and install
+        mechanism.
+
+1.5.3.10 2011-04-26
+    Distribution:
+        Renamed "shmfifo.h.in" to "shmfifo.hin".
+
+    configure(1):
+        Added check for function "sched_setscheduler()".
+
+        Added setting of environment variable CC before invocation of
+        "libpng/configure" so that configure(1) scripts would use the same
+        compiler.
+
+1.5.3.9 2011-04-24 15:03
+    Distribution:
+        Added missing "shmfifo.h.in" to EXTRA_DIST.
+
+        Added AC_USE_SYSTEM_EXTENSIONS to "configure.ac".
+
+1.5.3.8 2011-04-25 13:41
     Building:
         Migrated to automake(1).
 
