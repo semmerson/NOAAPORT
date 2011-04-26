@@ -224,18 +224,18 @@ OBJEXT = o
 PACKAGE = noaaport
 PACKAGE_BUGREPORT = support-noaaport@unidata.ucar.edu
 PACKAGE_NAME = NOAAPORT
-PACKAGE_STRING = NOAAPORT 1.5.3.10
+PACKAGE_STRING = NOAAPORT 1.6.0.1
 PACKAGE_TARNAME = noaaport
-PACKAGE_VERSION = 1.5.3.10
+PACKAGE_VERSION = 1.6.0.1
 PATH_SEPARATOR = :
 RANLIB = ranlib
 SED = /bin/sed
 SET_MAKE = 
 SHELL = /bin/sh
 STRIP = strip
-SU = 
+SU = /bin/su
 SUDO = 
-VERSION = 1.5.3.10
+VERSION = 1.6.0.1
 abs_builddir = /home/steve/ldm/package/noaaport
 abs_srcdir = /home/steve/ldm/package/noaaport
 abs_top_builddir = /home/steve/ldm/package/noaaport
@@ -1211,26 +1211,26 @@ libpng/libpng.la:
 	cd libpng && $(MAKE) $(AM_MAKEFLAGS) all
 
 install-exec-hook:
-#	@echo
-#	@echo "\
-#The next step will perform those installation actions that must be executed \
-#by the superuser. \
-#If this step doesn't work (for example, if you don't enter \
-#root's password), then the superuser will have to manually execute the \
-#command \"$(MAKE) root-actions\"." \
-#	| fmt >/dev/tty
-#	@echo >/dev/tty
-##	$(SUDO) $(MAKE) $(AM_MAKEFLAGS) root-actions 2>/dev/tty
-##	@printf "Enter root's password (or don't): " >/dev/tty
-##	@$(SU) root -c 'PATH='$$PATH' $(MAKE) $(AM_MAKEFLAGS) root-actions' \
-##	    </dev/tty 2>/dev/tty
-##	@echo >/dev/tty
 	@echo
 	@echo "\
-NOTE: The command \"$(MAKE) root-actions\" will have to be executed by the \
-superuser in order to complete the installation process." \
-	| fmt
-	@echo
+The next step will perform those installation actions that must be executed \
+by the superuser. \
+If this step doesn't work (for example, if you don't enter \
+root's password), then the superuser will have to manually execute the \
+command \"$(MAKE) root-actions\"." \
+	| fmt >/dev/tty
+	@echo >/dev/tty
+#	$(SUDO) $(MAKE) $(AM_MAKEFLAGS) root-actions 2>/dev/tty
+	@printf "Enter root's password (or don't): " >/dev/tty
+	@$(SU) root -c 'PATH='$$PATH' $(MAKE) $(AM_MAKEFLAGS) root-actions' \
+	    </dev/tty 2>/dev/tty
+	@echo >/dev/tty
+#	@echo
+#	@echo "\
+#NOTE: The command \"$(MAKE) root-actions\" will have to be executed by the \
+#superuser in order to complete the installation process." \
+#	| fmt
+#	@echo
 
 root-actions:		install_setuids
 
