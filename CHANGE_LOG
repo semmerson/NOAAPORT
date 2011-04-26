@@ -3,6 +3,8 @@
         Incremented minor version number due to change in build and install
         mechanism.
 
+        Made "make release" and "make available" different.
+
 1.5.3.10 2011-04-26
     Distribution:
         Renamed "shmfifo.h.in" to "shmfifo.hin".

@@ -1304,7 +1304,7 @@ commit:
 tag:
 	git tag -f v$(VERSION)
 
-ftp:			tag dist $(FTPDIR)
+ftp:			dist $(FTPDIR)
 	cp $(distArchive) $(FTPDIR)
 	chmod u+rw,g+rw,o=r $(FTPDIR)/$(distArchive)
 	rm -f $(FTPDIR)/$(PACKAGE).tar.gz
@@ -1313,9 +1313,9 @@ ftp:			tag dist $(FTPDIR)
 web-update:		$(srcdir)/html $(WEBDIR)
 	cp -R html/* $(WEBDIR)
 
-release:		ftp web-update commit tag
+release:		dist commit tag
 
-available:		release
+available:		release ftp web-update
 
 .PHONY:		install-html commit tag ftp web-update available release
 
