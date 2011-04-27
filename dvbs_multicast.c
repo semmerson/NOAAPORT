@@ -55,6 +55,10 @@
 #include  "dvbs.h"
 #include  "config.h"
 
+#ifndef HAVE_GET_QUEUE_PATH
+#include "paths.h"
+#endif
+
 struct shmfifo_priv {
     int counter;
 };
@@ -78,7 +82,11 @@ usage (char *av0 /*  id string */ )
 		  "\t-v           Verbose, tell me about each packet\n");
   (void) fprintf (stderr, "\t-x           Log debug messages\n");
   (void) fprintf (stderr, "\t-l logfile   Default logs to syslogd\n");
+#ifdef HAVE_GET_QUEUE_PATH
   (void) fprintf (stderr, "\t-q queue     default \"%s\"\n", getQueuePath());
+#else
+  (void) fprintf (stderr, "\t-q queue     default \"%s\"\n", DEFAULT_QUEUE);
+#endif
   (void) fprintf (stderr, "\t-d           dump packets, no output");
   (void) fprintf (stderr, "\t-b pagnum    Number of pages for shared memory buffer\n");
   exit (1);
@@ -263,7 +271,11 @@ cleanup ()
 int
 main (int argc, char *argv[])
 {
-  const char *pqfname;
+#ifdef HAVE_GET_QUEUE_PATH
+  const char *pqfname = getQueuePath();
+#else
+  const char *pqfname = DEFAULT_QUEUE;
+#endif
   int sd, rc, n;
   socklen_t cliLen;
   struct ip_mreq mreq;
@@ -312,7 +324,7 @@ main (int argc, char *argv[])
 	logfname = optarg;
 	break;
       case 'q':
-	setQueuePath(optarg);
+        pqfname = optarg;
 	break;
       case 'I':
 	imr_interface = optarg;
@@ -342,8 +354,6 @@ main (int argc, char *argv[])
 	usage (argv[0]);
 	break;
       }
-
-  pqfname = getQueuePath();
 
   (void) setulogmask (logmask);
   if (argc - optind < 1)

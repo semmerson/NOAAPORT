@@ -8,7 +8,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(NOAAPORT, 1.6.0.2, support-noaaport@unidata.ucar.edu)
+AC_INIT(NOAAPORT, 1.6.0.3, support-noaaport@unidata.ucar.edu)
 AC_CONFIG_SRCDIR([shmfifo.c])
 AC_CONFIG_AUX_DIR([.])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
@@ -200,6 +200,15 @@ AM_COND_IF([MAINTAINER], [LDMHOME=$prefix],
     [test -z "$LDMHOME" && LDMHOME=$HOME])
 AC_SUBST([LDMHOME])
 AC_MSG_RESULT([$LDMHOME])
+
+# Checks LDM version.
+version=`ldmadmin config | grep version | awk '{print $3}'`
+major=`echo $version | awk -F . '{print $1}'`
+minor=`echo $version | awk -F . '{print $2}'`
+if test \( $major -gt 6 \) -o \( $major -eq 6 -a $minor -ge 9 \); then
+    AC_DEFINE([HAVE_GET_QUEUE_PATH], [1], 
+        [Define to 1 if the LDM function getQueuePath() exists])
+fi
 
 # Checks for libraries.
 AC_SEARCH_LIBS([sched_setscheduler], [rt])

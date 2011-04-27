@@ -224,7 +224,9 @@ ftp:			dist $(FTPDIR)
 web-update:		$(srcdir)/html $(WEBDIR)
 	cp -R html/* $(WEBDIR)
 
-available:		release ftp web-update
+# Apparently, there's no rule to create $(distArchive); consequently, it can
+# be used as a prerequisite.
+available:		$(distArchive) ftp web-update
 
 .PHONY:	\
 	available \

@@ -44,6 +44,10 @@
 #include "dvbs.h"
 #include "config.h"
 
+#ifndef HAVE_GET_QUEUE_PATH
+#include "paths.h"
+#endif
+
 /*
  * function prototypes
  */
@@ -177,7 +181,11 @@ usage (char *av0		/*  id string */
   (void) fprintf (stderr, "\t-l logfile   Default logs to syslogd\n");
   (void) fprintf (stderr,
 		  "\t-f type      Claim to be feedtype \"type\", one of \"hds\", \"ddplus\", ...\n");
+#ifdef HAVE_GET_QUEUE_PATH
   (void) fprintf (stderr, "\t-q queue     default \"%s\"\n", getQueuePath());
+#else
+  (void) fprintf (stderr, "\t-q queue     default \"%s\"\n", DEFAULT_QUEUE);
+#endif
   (void) fprintf (stderr, "\t-u number    default LOCAL0\n");
   exit (1);
 }
@@ -428,7 +436,11 @@ main(
      int argc,
      char *argv[])
 {
-  const char *pqfname;
+#ifdef HAVE_GET_QUEUE_PATH
+  const char *pqfname = getQueuePath();
+#else
+  const char *pqfname = DEFAULT_QUEUE;
+#endif
   int fd;
   char *prodmmap, *memheap = NULL;
   size_t heapsize, heapcount;
@@ -486,7 +498,7 @@ main(
 	logfname = optarg;
 	break;
       case 'q':
-	setQueuePath(optarg);
+        pqfname = optarg;
 	break;
       case 'u':
 	ulog_facility = atoi(optarg);
@@ -522,8 +534,6 @@ main(
 	usage (argv[0]);
 	break;
       }
-
-  pqfname = getQueuePath();
 
   (void) setulogmask (logmask);
   if (argc - optind < 0)

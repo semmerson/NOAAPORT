@@ -6,6 +6,9 @@
 /* Define to 1 if you have the <errno.h> header file. */
 #undef HAVE_ERRNO_H
 
+/* Define to 1 if the LDM function getQueuePath() exists */
+#undef HAVE_GET_QUEUE_PATH
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
