@@ -1,4 +1,7 @@
-1.6.0.1	2011-04-26 15:59:54-06:00
+1.6.0.2	2011-04-27 12:08:58-06:00
+        Improved "make release".
+
+1.6.0.1
     Distribution:
         Incremented minor version number due to change in build and install
         mechanism.

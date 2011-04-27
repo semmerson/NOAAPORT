@@ -1298,20 +1298,33 @@ $(FTPDIR) \
 $(WEBDIR):
 	mkdir -p $@
 
+releaseCheck:
+	@newVersion=`head -1 CHANGE_LOG`; \
+	echo $$newVersion | egrep -q '^[0-9](\.[0-9])*$$' || exit 1; \
+	if test "$$newVersion" = "$(VERSION)"; then \
+	    echo 1>&2 "Version $(VERSION) already released!"; \
+	    exit 1; \
+	fi
+
+versionUpdate:
+	newVersion=`head -1 CHANGE_LOG`; \
+	sed '/^AC_INIT(/s/[0-9][0-9.]*,/'"$$newVersion"',/' configure.ac \
+	    >configure.ac.tmp
+	mv configure.ac.tmp configure.ac
+
+timestamp:
+	sed '1s/$$/	'"`date --rfc-3339=seconds`"'/' CHANGE_LOG \
+	    >CHANGE_LOG.tmp
+	mv CHANGE_LOG.tmp CHANGE_LOG
+
 commit:
 	-git commit -a
 
-timestamp:
-	if ! git status -a; then \
-	    : true; \
-	else \
-	    echo "$(VERSION)	`date --rfc-3339=seconds`" >CHANGE_LOG.tmp; \
-	    cat CHANGE_LOG >>CHANGE_LOG.tmp; \
-	    mv CHANGE_LOG.tmp CHANGE_LOG; \
-	fi
-
 tag:
 	git tag -f v$(VERSION)
+
+release:	releaseCheck versionUpdate Makefile
+	$(MAKE) timestamp dist commit tag
 
 ftp:			dist $(FTPDIR)
 	cp $(distArchive) $(FTPDIR)
@@ -1322,11 +1335,19 @@ ftp:			dist $(FTPDIR)
 web-update:		$(srcdir)/html $(WEBDIR)
 	cp -R html/* $(WEBDIR)
 
-release:		timestamp dist commit tag
-
 available:		release ftp web-update
 
-.PHONY:	install-html commit tag ftp web-update available release timestamp
+.PHONY:	\
+	available \
+	commit \
+	ftp \
+	install-html \
+	release \
+	releaseCheck \
+	tag \
+	timestamp \
+	versionUpdate \
+	web-update
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
