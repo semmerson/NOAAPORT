@@ -1,3 +1,7 @@
+1.6.0.11	2011-04-28 16:48:29-06:00
+    Reformatted "dvbs_multicast.c" and "readnoaaport.c" (I couldn't take it
+    anymore).
+
 1.6.0.10	2011-04-28 10:39:39-06:00
     Improved "make web-update": added creation of .htaccess file that prevents
     UPC decoration.

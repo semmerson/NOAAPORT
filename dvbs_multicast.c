@@ -29,10 +29,8 @@
 
 /* If we are setuid root, we can lock memory so it won't be swapped out */
 #include <sys/mman.h>
-
 /* setpriority */
 #include <sys/resource.h>
-
 #include <assert.h>
 #include <wait.h>
 
@@ -56,7 +54,7 @@
 #include  "config.h"
 
 #ifndef HAVE_GET_QUEUE_PATH
-#include "paths.h"
+#include "paths.h"      /* pre LDM 6.9 style */
 #endif
 
 struct shmfifo_priv {
@@ -71,135 +69,127 @@ static int                      memsegflg = 0;
 static struct shmfifo_priv      mypriv;
 static volatile sig_atomic_t    logmypriv = 0;
 
-
-static void
-usage (char *av0 /*  id string */ )
+static void usage(
+    const char* const av0)      /*  id string */
 {
-  (void) fprintf (stderr, "Usage: %s [options] mcast_address\t\nOptions:\n",
-		  av0);
-  (void) fprintf (stderr, "\t-n           Log notice messages\n");
-  (void) fprintf (stderr,
-		  "\t-v           Verbose, tell me about each packet\n");
-  (void) fprintf (stderr, "\t-x           Log debug messages\n");
-  (void) fprintf (stderr, "\t-l logfile   Default logs to syslogd\n");
+      (void)fprintf(stderr, "Usage: %s [options] mcast_address\t\nOptions:\n",
+              av0);
+      (void)fprintf(stderr, "\t-n           Log notice messages\n");
+      (void)fprintf(stderr, "\t-v           Verbose, tell me about each "
+              "packet\n");
+      (void)fprintf(stderr, "\t-x           Log debug messages\n");
+      (void)fprintf(stderr, "\t-l logfile   Default logs to syslogd\n");
 #ifdef HAVE_GET_QUEUE_PATH
-  (void) fprintf (stderr, "\t-q queue     default \"%s\"\n", getQueuePath());
+      (void)fprintf(stderr, "\t-q queue     default \"%s\"\n", getQueuePath());
 #else
-  (void) fprintf (stderr, "\t-q queue     default \"%s\"\n", DEFAULT_QUEUE);
+      (void)fprintf(stderr, "\t-q queue     default \"%s\"\n", DEFAULT_QUEUE);
 #endif
-  (void) fprintf (stderr, "\t-d           dump packets, no output");
-  (void) fprintf (stderr, "\t-b pagnum    Number of pages for shared memory buffer\n");
-  exit (1);
+      (void)fprintf(stderr, "\t-d           dump packets, no output");
+      (void)fprintf(stderr, "\t-b pagnum    Number of pages for shared memory "
+              "buffer\n");
+      exit(1);
 }
 
-
-static void
-mypriv_stats(void)
+static void mypriv_stats(void)
 {
     unotice("wait count %d",mypriv.counter);
 }
 
-
 /*
- * called upon receipt of signals
+ * Called upon receipt of signals
  */
-static void
-signal_handler (int sig)
+static void signal_handler(
+        const int       sig)
 {
 #ifdef SVR3SIGNALS
-  /*
-   * Some systems reset handler to SIG_DFL upon entry to handler.
-   * In that case, we reregister our handler.
-   */
-  (void) signal (sig, signal_handler);
+    /*
+     * Some systems reset handler to SIG_DFL upon entry to handler.
+     * In that case, we reregister our handler.
+     */
+    (void)signal(sig, signal_handler);
 #endif
-  switch (sig)
-    {
+
+    switch (sig) {
     case SIGINT:
-      exit (0);
+        exit(0);
     case SIGTERM:
-      exit(0);
+        exit(0);
     case SIGPIPE:
-      return;
+        return;
     case SIGUSR1:
-      logmypriv = !0;
-      return;
+        logmypriv = !0;
+        return;
     case SIGUSR2:
-      rollulogpri ();
-      return;
+        rollulogpri();
+        return;
     }
-  return;
+
+    return;
 }
 
 /*
- * register the signal_handler
+ * Register the signal_handler
  */
-static void
-set_sigactions (void)
+static void set_sigactions(void)
 {
-  struct sigaction sigact;
+    struct sigaction sigact;
 
-  sigemptyset (&sigact.sa_mask);
-  sigact.sa_flags = 0;
+    sigemptyset(&sigact.sa_mask);
+    sigact.sa_flags = 0;
 
-  /* Ignore these */
-  sigact.sa_handler = SIG_IGN;
-  (void) sigaction (SIGHUP, &sigact, NULL);
-  (void) sigaction (SIGALRM, &sigact, NULL);
-  (void) sigaction (SIGCHLD, &sigact, NULL);
-  (void) sigaction (SIGCONT, &sigact, NULL);
+    /* Ignore these */
+    sigact.sa_handler = SIG_IGN;
+    (void)sigaction(SIGHUP, &sigact, NULL);
+    (void)sigaction(SIGALRM, &sigact, NULL);
+    (void)sigaction(SIGCHLD, &sigact, NULL);
+    (void)sigaction(SIGCONT, &sigact, NULL);
 
-  /* Handle these */
+    /* Handle these */
 #ifdef SA_RESTART		/* SVR4, 4.3+ BSD */
-  /* usually, restart system calls */
-  sigact.sa_flags |= SA_RESTART;
+    /* Usually, restart system calls */
+    sigact.sa_flags |= SA_RESTART;
 #endif
-  sigact.sa_handler = signal_handler;
-  (void) sigaction (SIGTERM, &sigact, NULL);
-  (void) sigaction (SIGUSR1, &sigact, NULL);
-  (void) sigaction (SIGUSR2, &sigact, NULL);
+    sigact.sa_handler = signal_handler;
+    (void)sigaction(SIGTERM, &sigact, NULL);
+    (void)sigaction(SIGUSR1, &sigact, NULL);
+    (void)sigaction(SIGUSR2, &sigact, NULL);
 
-  /* Don't restart after interrupt */
-  sigact.sa_flags = 0;
+    /* Don't restart after interrupt */
+    sigact.sa_flags = 0;
 #ifdef SA_INTERRUPT		/* SunOS 4.x */
-  sigact.sa_flags |= SA_INTERRUPT;
+    sigact.sa_flags |= SA_INTERRUPT;
 #endif
-  (void) sigaction (SIGINT, &sigact, NULL);
-  (void) sigaction (SIGPIPE, &sigact, NULL);
+    (void)sigaction(SIGINT, &sigact, NULL);
+    (void)sigaction(SIGPIPE, &sigact, NULL);
 }
 
-
-static void
-cleanup ()
+static void cleanup(void)
 {
-  int status;
+    int status;
 
-  unotice ("cleanup %d", child);
+    unotice("cleanup %d", child);
 
-  if (shm != NULL)
-    shmfifo_detach (shm);
+    if (shm != NULL)
+        shmfifo_detach(shm);
 
-  if ( ( ! memsegflg ) && ( child == 0 ) )		/* child */
-    return;
+    if ((!memsegflg ) && (child == 0))		/* child */
+        return;
 
-  if ( ! memsegflg )
-     {
-     unotice ("waiting for child");
-     wait (&status);
-     }
-
-  if (shm != NULL)
-    shmfifo_dealloc (shm);
-
-  if (pq != NULL)
-    {
-      udebug ("Closing product_queue\0");
-      pq_close (pq);
+    if (!memsegflg) {
+        unotice("waiting for child");
+        wait(&status);
     }
-  unotice ("parent exiting");
 
+    if (shm != NULL)
+        shmfifo_dealloc(shm);
+
+    if (pq != NULL) {
+        udebug("Closing product_queue\0");
+        pq_close(pq);
+    }
+
+    unotice("parent exiting");
 }
-
 
 /**
  * Captures NOAAPORT broadcast UDP packets from a DVB-S receiver and writes
@@ -268,424 +258,419 @@ cleanup ()
  * @retval 0 if successful.
  * @retval 1 if an error occurred. At least one error-message is logged.
  */
-int
-main (int argc, char *argv[])
+int main(
+    const int           argc,
+    char* const         argv[])
 {
 #ifdef HAVE_GET_QUEUE_PATH
-  const char *pqfname = getQueuePath();
+    const char*         pqfname = getQueuePath();
 #else
-  const char *pqfname = DEFAULT_QUEUE;
+    const char*         pqfname = DEFAULT_QUEUE;
 #endif
-  int sd, rc, n;
-  socklen_t cliLen;
-  struct ip_mreq mreq;
-  struct sockaddr_in cliAddr, servAddr;
-  struct in_addr mcastAddr;
-  struct hostent *h;
-  int pid_channel, dumpflag = 0;
-  char *imr_interface=NULL;
+    int                 sd, rc, n;
+    socklen_t           cliLen;
+    struct ip_mreq      mreq;
+    struct sockaddr_in  cliAddr, servAddr;
+    struct in_addr      mcastAddr;
+    struct hostent*     h;
+    int                 pid_channel, dumpflag = 0;
+    char*               imr_interface = NULL;
+    FILE*               f = stdout;
+    extern int          optind;
+    extern int          opterr;
+    extern char*        optarg;
+    int                 ch;
+    int                 logmask = LOG_MASK(LOG_ERR);
+    int                 logfd;
+    int                 status, ipri=0, rtflag = 0;
+    int                 bufpag = CBUFPAG;
+    product             prod;
+    static char*        prodident = "dvbs";
 
-  FILE *f = stdout;
+    opterr = 1;
 
-  extern int optind;
-  extern int opterr;
-  extern char *optarg;
-  int ch;
-  int logmask = LOG_MASK (LOG_ERR);
-  int logfd;
+    while ((ch = getopt(argc, argv, "dmnrvxl:q:b:p:I:")) != EOF) {
+        switch (ch) {
+        case 'v':
+            logmask |= LOG_MASK(LOG_INFO);
+            break;
+        case 'x':
+            logmask |= LOG_MASK(LOG_DEBUG);
+            break;
+        case 'n':
+            logmask |= LOG_MASK(LOG_NOTICE);
+            break;
+        case 'l':
+            if (optarg[0] == '-' && optarg[1] != 0) {
+                fprintf(stderr, "logfile \"%s\" ??\n", optarg);
+                usage(argv[0]);
+            }
+            /* else */
+            logfname = optarg;
+            break;
+        case 'q':
+            pqfname = optarg;
+            break;
+        case 'I':
+            imr_interface = optarg;
+            break;
+        case 'r':
+            rtflag = 1;
+            break;
+        case 'd':
+            dumpflag = 1;
+            break;
+        case 'b':
+            bufpag = atoi(optarg);
 
-  int status, ipri=0, rtflag = 0;
-  int bufpag = CBUFPAG;
+            if (bufpag < 500)
+                bufpag = 500;
+            if (bufpag > 40000)
+                bufpag = 40000;
 
-  product prod;
-  static char *prodident = "dvbs";
+            break;
+        case 'm':
+            memsegflg = 1;
+            break;
+        case 'p':
+            ipri = atoi(optarg);
 
+            if (ipri < -20) /* generally PRIO_MIN ... PRIO_MAX */
+                ipri = -20;
+            else if (ipri > 20)
+                ipri = 20;
 
-  opterr = 1;
-  while ((ch = getopt (argc, argv, "dmnrvxl:q:b:p:I:")) != EOF)
-    switch (ch)
-      {
-      case 'v':
-	logmask |= LOG_MASK (LOG_INFO);
-	break;
-      case 'x':
-	logmask |= LOG_MASK (LOG_DEBUG);
-	break;
-      case 'n':
-	logmask |= LOG_MASK (LOG_NOTICE);
-	break;
-      case 'l':
-	if (optarg[0] == '-' && optarg[1] != 0)
-	  {
-	    fprintf (stderr, "logfile \"%s\" ??\n", optarg);
-	    usage (argv[0]);
-	  }
-	/* else */
-	logfname = optarg;
-	break;
-      case 'q':
-        pqfname = optarg;
-	break;
-      case 'I':
-	imr_interface = optarg;
-	break;
-      case 'r':
-	rtflag = 1;
-	break;
-      case 'd':
-	dumpflag = 1;
-	break;
-      case 'b':
-	bufpag = atoi(optarg);
-        if ( bufpag < 500 ) bufpag = 500;
-        if ( bufpag > 40000 ) bufpag = 40000;
-	break;
-      case 'm':
-	memsegflg = 1;
-	break;
-      case 'p':
-	ipri = atoi(optarg);
-        if ( ipri < -20 ) /* generally PRIO_MIN ... PRIO_MAX */
-           ipri = -20;
-        else if ( ipri > 20)
-           ipri = 20;
-	break;
-      case '?':
-	usage (argv[0]);
-	break;
-      }
+            break;
+        case '?':
+            usage(argv[0]);
+            break;
+        }
+    }
 
-  (void) setulogmask (logmask);
-  if (argc - optind < 1)
-    usage (argv[0]);
+    (void)setulogmask(logmask);
 
-  /*
-   * initialize logger
-   */
-  if (logfname == NULL || !(*logfname == '-' && logfname[1] == 0))
-    (void) fclose (stderr);
-  logfd =
-    openulog (ubasename (argv[0]), (LOG_CONS | LOG_PID), LOG_LDM, logfname);
-  unotice ("Starting Up %s", PACKAGE_VERSION);
+    if (argc - optind < 1)
+        usage(argv[0]);
 
-  /*
-   * Use mlockall command to prevent paging of our process, then exit root privileges
-   */
-  if ( mlockall ( MCL_CURRENT|MCL_FUTURE ) != 0 )
-      serror ("mlockall");
+    /*
+     * Initialize logger
+     */
+    if (logfname == NULL || !(*logfname == '-' && logfname[1] == 0))
+        (void)fclose(stderr);
 
-  if ( rtflag )
-    {
+    logfd = openulog(ubasename(argv[0]), (LOG_CONS | LOG_PID), LOG_LDM,
+            logfname);
+
+    unotice("Starting Up %s", PACKAGE_VERSION);
+
+    /*
+     * Use mlockall command to prevent paging of our process, then exit root
+     * privileges
+     */
+    if (mlockall( MCL_CURRENT|MCL_FUTURE ) != 0 )
+        serror("mlockall");
+
+    if (rtflag) {
 #ifdef _POSIX_PRIORITY_SCHEDULING
-     {
-     struct sched_param schedparam;
-     if ( ( schedparam.sched_priority = sched_get_priority_max ( SCHED_RR ) ) != -1 )
-        {
-        status = sched_setscheduler(0, SCHED_RR, &schedparam );
-        if ( status != -1 )
-           unotice("Realtime scheduler %d",status);
-        else
-           serror("scheduler");
-        }
-     }
+       {
+           struct sched_param   schedparam;
+           if ((schedparam.sched_priority = sched_get_priority_max(SCHED_RR))
+                   != -1) {
+              status = sched_setscheduler(0, SCHED_RR, &schedparam);
+
+              if (status != -1)
+                  unotice("Realtime scheduler %d",status);
+              else
+                  serror("scheduler");
+           }
+       }
 #else
-     uerror ( "rtmode not configured" );
+       uerror("rtmode not configured");
 #endif
-   }
-  else if ( ipri != 0 )
-     {
-     if ( setpriority (PRIO_PROCESS, 0, ipri) != 0 )
-        serror("setpriority");
-
-     }
-
-
-  if (logfname == NULL || !(*logfname == '-' && logfname[1] == 0))
-    {
-      setbuf (fdopen (logfd, "a"), NULL);
+    }
+    else if (ipri != 0) {
+       if (setpriority(PRIO_PROCESS, 0, ipri) != 0)
+           serror("setpriority");
     }
 
-  if ((pq == NULL) && (dumpflag))
-    {
-      if (pq_open (pqfname, PQ_DEFAULT, &pq))
-	{
-	  uerror ("couldn't open the product queue %s\0", pqfname);
-	  exit (1);
-	}
-      prod.info.feedtype = EXP;
-      prod.info.ident = prodident;
-      prod.info.origin = argv[optind];
-      memset (prod.info.signature, 0, 16);
+    if (logfname == NULL || !(*logfname == '-' && logfname[1] == 0)) {
+        setbuf(fdopen(logfd, "a"), NULL);
     }
 
-  /*
-   * set up signal handlers
-   */
-  set_sigactions ();
-
-  /*
-   * register atexit routine
-   */
-  if (atexit (cleanup) != 0)
-    {
-      serror ("atexit");
-      exit (1);
-    }
-
-  /* Get IP socket port for multicast address as s_port[pid_channel-1] */
-  sscanf (argv[optind], "%*d.%*d.%*d.%d", &pid_channel);
-  if ((pid_channel < 1) || (pid_channel > MAX_DVBS_PID))
-    {
-      uerror ("multicast address %s outside range of expected server ports\n", argv[optind]);
-      exit (1);
-    }
-  /* test shmfifo */
-
-  while ( shm == NULL )
-     {
-     if ( memsegflg )
-        shm = shmfifo_create (bufpag, sizeof (struct shmfifo_priv), s_port[pid_channel - 1]);
-     else
-        shm = shmfifo_create (bufpag, sizeof (struct shmfifo_priv), -1);
-
-     if ( shm == NULL )
-        {
-        uerror("shmfifo_create failed....waiting");
-        sleep(2);
+    if ((pq == NULL) && (dumpflag)) {
+        if (pq_open(pqfname, PQ_DEFAULT, &pq)) {
+            uerror("couldn't open the product queue %s\0", pqfname);
+            exit(1);
         }
-     }
 
-  if ( ! memsegflg )
-     child = fork ();
+        prod.info.feedtype = EXP;
+        prod.info.ident = prodident;
+        prod.info.origin = argv[optind];
 
-  /*if (child = fork ())*/
-  if ( ( memsegflg ) || ( child != 0 ) )
-    {				/* parent start */
-      unsigned long sbnnum, lastnum = 0;
-      char msg[MAX_MSG];
+        memset(prod.info.signature, 0, 16);
+    }
 
-      if (shmfifo_attach (shm) == -1)
-	{
-	  uerror ("parent cannot attach");
-	  exit (1);
-	};
+    /*
+     * Set up signal handlers
+     */
+    set_sigactions();
 
-      mypriv.counter = 0;
-      shmfifo_setpriv (shm, &mypriv);
+    /*
+     * Register atexit routine
+     */
+    if (atexit(cleanup) != 0) {
+        serror("atexit");
+        exit(1);
+    }
 
-      h = gethostbyname (argv[optind]);
-      if (h == NULL)
-	{
-	  printf ("%s : unknown group '%s'\n", argv[0], argv[optind]);
-	  exit (1);
-	}
+    /* Get IP socket port for multicast address as s_port[pid_channel-1] */
+    sscanf(argv[optind], "%*d.%*d.%*d.%d", &pid_channel);
 
-      memcpy (&mcastAddr, h->h_addr_list[0], h->h_length);
+    if ((pid_channel < 1) || (pid_channel > MAX_DVBS_PID)) {
+        uerror("multicast address %s outside range of expected server ports\n",
+                argv[optind]);
+        exit(1);
+    }
 
-      /* check given address is multicast */
-      if (!IN_MULTICAST (ntohl (mcastAddr.s_addr)))
-	{
-	  printf ("%s : given address '%s' is not multicast\n", argv[0],
-		  inet_ntoa (mcastAddr));
-	  exit (1);
-	}
+    /* Test shmfifo */
+    while (shm == NULL) {
+       shm = (memsegflg)
+           ? shmfifo_create(bufpag, sizeof(struct shmfifo_priv),
+                   s_port[pid_channel - 1])
+           : shmfifo_create(bufpag, sizeof(struct shmfifo_priv), -1);
 
-      /* Get IP socket port for multicast address as s_port[pid_channel-1]
-      sscanf (argv[optind], "%*d.%*d.%*d.%d", &pid_channel);
-      if ((pid_channel < 1) || (pid_channel > MAX_DVBS_PID))
-	{
-	  printf
-	    ("multicast address %s outside range of expected server ports\n",
-	     argv[optind]);
-	  exit (1);
-	}*/
+       if (shm == NULL) {
+          uerror("shmfifo_create failed....waiting");
+          sleep(2);
+       }
+    }
 
-      /* create socket */
-      sd = socket (AF_INET, SOCK_DGRAM, 0);
-      if (sd < 0)
-	{
-	  printf ("%s : cannot create socket\n", argv[0]);
-	  exit (1);
-	}
+    if (!memsegflg)
+        child = fork();
 
-      /* bind port */
-      servAddr.sin_family = AF_INET;
-      servAddr.sin_addr.s_addr = htonl (INADDR_ANY);
-      servAddr.sin_port = htons (s_port[pid_channel - 1]);
-      if (bind (sd, (struct sockaddr *) &servAddr, sizeof (servAddr)) < 0)
-	{
-	  printf ("%s : cannot bind port %d \n", argv[0],
-		  s_port[pid_channel - 1]);
-	  exit (1);
-	}
+    if ((memsegflg) || (child != 0)) {
+        /* Parent */
+        unsigned long   sbnnum, lastnum = 0;
+        char            msg[MAX_MSG];
 
-      /* join multicast group */
-      mreq.imr_multiaddr.s_addr = mcastAddr.s_addr;
-      if ( imr_interface == NULL )
-         mreq.imr_interface.s_addr = htonl (INADDR_ANY);
-      else
-      mreq.imr_interface.s_addr = inet_addr(imr_interface);
-      /*mreq.imr_interface.s_addr = inet_addr("192.168.0.83");*/
+        if (shmfifo_attach(shm) == -1) {
+            uerror("parent cannot attach");
+            exit(1);
+        };
 
-      rc =
-	setsockopt (sd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (void *) &mreq,
-		    sizeof (mreq));
-      if (rc < 0)
-	{
-	  printf ("%s : cannot join multicast group '%s'", argv[0],
-		  inet_ntoa (mcastAddr));
-	  exit (1);
-	}
-      else
-	{
+        mypriv.counter = 0;
 
-	  /* infinite server loop */
-	  while (1)
-	    {
-	    static int haslogged=0;
+        shmfifo_setpriv(shm, &mypriv);
 
-	      /* check to see if we need to log any information from signal handler */
-	      if ( logmypriv ) {
-		 mypriv_stats();
-	         logmypriv = 0;
-	      }
+        h = gethostbyname(argv[optind]);
 
-	      cliLen = sizeof (cliAddr);
-	      n =
-		recvfrom (sd, msg, MAX_MSG, 0, (struct sockaddr *) &cliAddr,
-			  &cliLen);
+        if (h == NULL) {
+            printf("%s : unknown group '%s'\n", argv[0], argv[optind]);
+            exit(1);
+        }
 
-	      if ( n <= 0 )
-		{
-                if ( haslogged )
-		   unotice("recvfrom returned %d",n);
-                else
-		   if ( n == 0 )
-		      uerror("recvfrom returns zero");
-		   else
-		      serror("recvfrom failure");
-		haslogged = !0;
-		sleep (1);
-                continue;
-		}
+        memcpy(&mcastAddr, h->h_addr_list[0], h->h_length);
 
-	      if ( haslogged )
-	         {
-		 unotice("recvfrom has succeeded");
-                 haslogged = 0;
-		 }
+        /* Check given address is multicast */
+        if (!IN_MULTICAST(ntohl(mcastAddr.s_addr))) {
+            printf("%s : given address '%s' is not multicast\n", argv[0],
+                    inet_ntoa(mcastAddr));
+            exit(1);
+        }
 
-	      assert ( n <= MAX_MSG);
+        /* Get IP socket port for multicast address as s_port[pid_channel-1]
+        sscanf(argv[optind], "%*d.%*d.%*d.%d", &pid_channel);
+        if ((pid_channel < 1) || (pid_channel > MAX_DVBS_PID))
+          {
+            printf
+              ("multicast address %s outside range of expected server ports\n",
+               argv[optind]);
+            exit(1);
+          }*/
 
-	      sbnnum =
-		((((((unsigned char) msg[8] << 8) +
-		    (unsigned char) msg[9]) << 8) +
-		  (unsigned char) msg[10]) << 8) + (unsigned char) msg[11];
+        /* Create socket */
+        sd = socket(AF_INET, SOCK_DGRAM, 0);
 
-              if (ulogIsDebug ())
-                udebug ("received %d bytes", n);
+        if (sd < 0) {
+            printf("%s : cannot create socket\n", argv[0]);
+            exit(1);
+        }
 
-              if (sbnnum <= lastnum) {
-                unotice("Retrograde packet number: previous=%lu, latest=%lu, "
-                    "difference=%lu", lastnum, sbnnum, lastnum - sbnnum);
-              }
-              else {
-                unsigned long   gap = sbnnum - lastnum - 1;
+        /* Bind port */
+        servAddr.sin_family = AF_INET;
+        servAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+        servAddr.sin_port = htons(s_port[pid_channel - 1]);
+        
+        if (bind(sd, (struct sockaddr *) &servAddr, sizeof(servAddr)) < 0) {
+            printf("%s : cannot bind port %d \n", argv[0],
+                    s_port[pid_channel - 1]);
+            exit(1);
+        }
 
-                if ((lastnum != 0) && (0 < gap)) {
-                  uerror ("Gap in SBN last %lu, this %lu, gap %lu", lastnum,
-                          sbnnum, gap);
+        /* Join multicast group */
+        mreq.imr_multiaddr.s_addr = mcastAddr.s_addr;
+        mreq.imr_interface.s_addr = (imr_interface == NULL )
+            ? htonl(INADDR_ANY)
+            : inet_addr(imr_interface);
+        /*mreq.imr_interface.s_addr = inet_addr("192.168.0.83");*/
+
+        rc = setsockopt(sd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (void *) &mreq,
+                      sizeof(mreq));
+
+        if (rc < 0) {
+            printf("%s : cannot join multicast group '%s'", argv[0],
+                    inet_ntoa(mcastAddr));
+            exit(1);
+        }
+        else {
+            /* Infinite server loop */
+            for (;;) {
+                static int        haslogged=0;
+
+                /*
+                 * Check to see if we need to log any information from signal
+                 * handler.
+                 */
+                if (logmypriv) {
+                    mypriv_stats();
+                    logmypriv = 0;
                 }
-                else if (ulogIsVerbose ()) {
-                  uinfo ("SBN number %u", sbnnum);
+
+                cliLen = sizeof(cliAddr);
+                n = recvfrom(sd, msg, MAX_MSG, 0, (struct sockaddr *) &cliAddr,
+                            &cliLen);
+
+                if (n <= 0) {
+                    if (haslogged) {
+                        unotice("recvfrom returned %d",n);
+                    }
+                    else {
+                       if (n == 0)
+                          uerror("recvfrom returns zero");
+                       else
+                          serror("recvfrom failure");
+                    }
+
+                    haslogged = 1;
+
+                    sleep(1);
+
+                    continue;
                 }
-              }
 
-	      lastnum = sbnnum;
+                if (haslogged) {
+                    unotice("recvfrom has succeeded");
 
-	      if ((status = shmfifo_put (shm, msg, n)) != 0 &&
-                      (status != E2BIG)) {
-                  exit (1);
-              }
-	    }
-	}
+                    haslogged = 0;
+                }
 
+                assert(n <= MAX_MSG);
 
+                sbnnum = ((((((unsigned char) msg[8] << 8) +
+                      (unsigned char) msg[9]) << 8) +
+                      (unsigned char) msg[10]) << 8) + (unsigned char) msg[11];
+
+                if (ulogIsDebug())
+                    udebug("received %d bytes", n);
+
+                if (sbnnum <= lastnum) {
+                    unotice("Retrograde packet number: previous=%lu, "
+                        "latest=%lu, difference=%lu", lastnum, sbnnum,
+                        lastnum - sbnnum);
+                }
+                else {
+                    unsigned long       gap = sbnnum - lastnum - 1;
+
+                    if ((lastnum != 0) && (0 < gap)) {
+                        uerror("Gap in SBN last %lu, this %lu, gap %lu",
+                            lastnum, sbnnum, gap);
+                    }
+                    else if (ulogIsVerbose()) {
+                        uinfo("SBN number %u", sbnnum);
+                    }
+                }
+
+                lastnum = sbnnum;
+
+                if ((status = shmfifo_put(shm, msg, n)) != 0 &&
+                        (status != E2BIG)) {
+                    exit(1);
+                }
+            }
+        }
     }				/* parent end */
+    else {
+        /* Child */
+        char            msg[MAX_MSG];
+        unsigned long   sbnnum, lastnum = 0;
 
-  else
-    {				/* child */
-      char msg[MAX_MSG];
-      unsigned long sbnnum, lastnum = 0;
+        udebug("I am the child");
 
-      udebug ("I am the child");
+        if (shmfifo_attach(shm) == -1) {
+            uerror("child cannot attach");
+            exit(1);
+        }
 
-      if (shmfifo_attach (shm) == -1)
-	{
-	  uerror ("child cannot attach");
-	  exit (1);
-	}
-
-
-      while (1)
-	{
-
-          /* check for data without locking */
-          while ( shmfifo_empty ( shm ) )
-            {
-	      if ( ulogIsVerbose () )
-		uinfo ("nothing in shmem, waiting...");
-
-	      usleep (500);
+        for (;;) {
+            /* Check for data without locking */
+            while (shmfifo_empty(shm)) {
+                if (ulogIsVerbose())
+                    uinfo("nothing in shmem, waiting...");
+                    usleep(500);
             }
 
-	  if (shmfifo_get(shm, msg, MAX_MSG, &n) != 0)
-	    {
-	      uerror ( "circbuf read failed to return data...");
-              exit(1);
-	    }
+            if (shmfifo_get(shm, msg, MAX_MSG, &n) != 0) {
+                uerror( "circbuf read failed to return data...");
+                exit(1);
+            }
 
-	  sbnnum =
-	    ((((((unsigned char) msg[8] << 8) +
-		(unsigned char) msg[9]) << 8) +
-	      (unsigned char) msg[10]) << 8) + (unsigned char) msg[11];
+            sbnnum = ((((((unsigned char) msg[8] << 8) +
+                  (unsigned char) msg[9]) << 8) +
+                  (unsigned char) msg[10]) << 8) + (unsigned char) msg[11];
 
-	  if (ulogIsDebug ())
-	    udebug ("child received %d bytes", n);
-	  if ((lastnum != 0) && (lastnum + 1 != sbnnum))
-	    uerror ("Gap in SBN last %lu, this %lu, gap %lu", lastnum, sbnnum,
-                    sbnnum - lastnum);
-	  else if (ulogIsVerbose ())
-	    uinfo ("SBN number %u", sbnnum);
+            if (ulogIsDebug())
+                udebug("child received %d bytes", n);
+            if ((lastnum != 0) && (lastnum + 1 != sbnnum))
+                uerror("Gap in SBN last %lu, this %lu, gap %lu", lastnum,
+                    sbnnum, sbnnum - lastnum);
+            else if (ulogIsVerbose())
+                uinfo("SBN number %u", sbnnum);
 
-	  lastnum = sbnnum;
-	  if (!dumpflag)
-	    fwrite (msg, 1, n, f);
-	  else
-	    {
-	      prod.info.seqno = sbnnum;
-	      prod.data = msg;
-	      prod.info.sz = n;
-	      /* Use the first 16 bytes of msg as the signature.
-	         The SBN identifier is the first 16 bytes of msg,
-	         where the unique SBN sequence number is bytes 8-11.
-	       */
-	      /* memcpy ( prod.info.signature, msg, 16 ); */
-	      memcpy (prod.info.signature, msg + 8, 4);
-	      status = set_timestamp (&prod.info.arrival);
-	      status = pq_insert (pq, &prod);
-	      if (status != 0)
-		{
-		  if (status == PQUEUE_DUP)
-		    unotice ("SBN %u already in queue", prod.info.seqno);
-		  else
-		    uerror ("pqinsert failed [%d] SBN %u", status,
-			    prod.info.seqno);
-		}
-	    }
-	}
+            lastnum = sbnnum;
+
+            if (!dumpflag) {
+                fwrite(msg, 1, n, f);
+            }
+            else {
+                prod.info.seqno = sbnnum;
+                prod.data = msg;
+                prod.info.sz = n;
+
+                /*
+                 * Use the first 16 bytes of msg as the signature.  The SBN
+                 * identifier is the first 16 bytes of msg, where the unique
+                 * SBN sequence number is bytes 8-11.
+                 */
+                /* memcpy( prod.info.signature, msg, 16 ); */
+                memcpy(prod.info.signature, msg + 8, 4);
+
+                status = set_timestamp(&prod.info.arrival);
+                status = pq_insert(pq, &prod);
+
+                if (status != 0) {
+                    if (status == PQUEUE_DUP) {
+                        unotice("SBN %u already in queue", prod.info.seqno);
+                    }
+                    else {
+                        uerror("pqinsert failed [%d] SBN %u", status,
+                              prod.info.seqno);
+                    }
+                }
+            }
+        }
     }				/* child end */
 
-  cleanup ();
-  return 0;
+    cleanup();
+
+    return 0;
 }
