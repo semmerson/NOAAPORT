@@ -1,3 +1,6 @@
+1.6.0.8	2011-04-28 10:04:56-06:00
+    Corrected "make web-update" rule: corrected symbolic link.
+
 1.6.0.7	2011-04-28 09:56:11-06:00
     Improved "make ftp web-update": added "ensureRelase" as a prerequisite to
     both.

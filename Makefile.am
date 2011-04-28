@@ -181,10 +181,10 @@ uninstall-hook:
 	rm -rf $(DESTDIR)$(htmldir)
 
 FTPDIR	= /web/ftp/pub/$(PACKAGE)
-WEBDIR	= /web/content/software/$(PACKAGE)/$(VERSION)
+WEBROOT	= /web/content/software/$(PACKAGE)
 
 $(FTPDIR) \
-$(WEBDIR):
+$(WEBROOT):
 	mkdir -p $@
 
 releaseCheck:
@@ -224,10 +224,11 @@ ftp:			ensureRelease dist $(FTPDIR)
 	rm -f $(FTPDIR)/$(PACKAGE).tar.gz
 	$(LN_S) $(distArchive) $(FTPDIR)/$(PACKAGE).tar.gz
 
-web-update:		ensureRelease $(srcdir)/html $(WEBDIR)
-	cp -R html/* $(WEBDIR)
-	rm -f $(WEBDIR)/current
-	$(LN_S) $(VERSION) $(WEBDIR)/current
+web-update:		ensureRelease $(srcdir)/html $(WEBROOT)
+	-mkdir $(WEBROOT)/$(VERSION)
+	cp -R html/* $(WEBROOT)/$(VERSION)
+	rm -f $(WEBROOT)/current
+	$(LN_S) $(VERSION) $(WEBROOT)/current
 
 # Apparently, there's no rule to create $(distArchive); consequently, it can
 # be used as a prerequisite.
