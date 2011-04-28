@@ -1,3 +1,13 @@
+1.6.0.10	2011-04-28 10:39:39-06:00
+    Improved "make web-update": added creation of .htaccess file that prevents
+    UPC decoration.
+
+    Improved "make available": move dependencies to rule body to ensure correct
+    version is obtained.
+
+    Improved "make releaseCheck": made regular-expression check of version ID
+    more general.
+
 1.6.0.9	2011-04-28 10:13:55-06:00
     Corrected "make ftp web-update": added "-actual" targets that do the work
     after ensuring that the correct version is used.

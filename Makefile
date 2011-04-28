@@ -224,9 +224,9 @@ OBJEXT = o
 PACKAGE = noaaport
 PACKAGE_BUGREPORT = support-noaaport@unidata.ucar.edu
 PACKAGE_NAME = NOAAPORT
-PACKAGE_STRING = NOAAPORT 1.6.0.9
+PACKAGE_STRING = NOAAPORT 1.6.0.10
 PACKAGE_TARNAME = noaaport
-PACKAGE_VERSION = 1.6.0.9
+PACKAGE_VERSION = 1.6.0.10
 PATH_SEPARATOR = :
 RANLIB = ranlib
 SED = /bin/sed
@@ -235,7 +235,7 @@ SHELL = /bin/sh
 STRIP = strip
 SU = /bin/su
 SUDO = 
-VERSION = 1.6.0.9
+VERSION = 1.6.0.10
 abs_builddir = /home/steve/ldm/package/noaaport
 abs_srcdir = /home/steve/ldm/package/noaaport
 abs_top_builddir = /home/steve/ldm/package/noaaport
@@ -1300,7 +1300,7 @@ $(WEBROOT):
 
 releaseCheck:
 	@newVersion=`awk '{print $$1; exit}' CHANGE_LOG`; \
-	echo $$newVersion | egrep -q '^[0-9](\.[0-9])*$$' || exit 1; \
+	echo $$newVersion | egrep -q '^[0-9]+(\.[0-9]+)*$$' || exit 1; \
 	if test "$$newVersion" = "$(VERSION)"; then \
 	    echo 1>&2 "Version $(VERSION) already released!"; \
 	    exit 1; \
@@ -1341,15 +1341,17 @@ ftp:			ensureRelease
 web-update-actual:	$(srcdir)/html $(WEBROOT)
 	-mkdir $(WEBROOT)/$(VERSION)
 	cp -R html/* $(WEBROOT)/$(VERSION)
+	echo 'RemoveOutputFilter LAYOUT html htm' \
+	    >$(WEBROOT)/$(VERSION)/.htaccess
 	rm -f $(WEBROOT)/current
 	$(LN_S) $(VERSION) $(WEBROOT)/current
 
 web-update:		ensureRelease
 	$(MAKE) web-update-actual
 
-# Apparently, there's no rule to create $(distArchive); consequently, it can
-# be used as a prerequisite.
-available:		ensureRelease $(distArchive) ftp web-update
+# Apparently, there's no rule to create $(distArchive).
+available:		ensureRelease
+	$(MAKE) $(distArchive) ftp web-update
 
 .PHONY:	\
 	available \
