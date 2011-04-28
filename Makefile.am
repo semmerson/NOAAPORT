@@ -218,13 +218,13 @@ release:	releaseCheck versionUpdate Makefile
 ensureRelease:
 	-@$(MAKE) release
 
-ftp:			dist $(FTPDIR)
+ftp:			ensureRelease dist $(FTPDIR)
 	cp $(distArchive) $(FTPDIR)
 	chmod u+rw,g+rw,o=r $(FTPDIR)/$(distArchive)
 	rm -f $(FTPDIR)/$(PACKAGE).tar.gz
 	$(LN_S) $(distArchive) $(FTPDIR)/$(PACKAGE).tar.gz
 
-web-update:		$(srcdir)/html $(WEBDIR)
+web-update:		ensureRelease $(srcdir)/html $(WEBDIR)
 	cp -R html/* $(WEBDIR)
 	rm -f $(WEBDIR)/current
 	$(LN_S) $(VERSION) $(WEBDIR)/current

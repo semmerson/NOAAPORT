@@ -224,9 +224,9 @@ OBJEXT = o
 PACKAGE = noaaport
 PACKAGE_BUGREPORT = support-noaaport@unidata.ucar.edu
 PACKAGE_NAME = NOAAPORT
-PACKAGE_STRING = NOAAPORT 1.6.0.6
+PACKAGE_STRING = NOAAPORT 1.6.0.7
 PACKAGE_TARNAME = noaaport
-PACKAGE_VERSION = 1.6.0.6
+PACKAGE_VERSION = 1.6.0.7
 PATH_SEPARATOR = :
 RANLIB = ranlib
 SED = /bin/sed
@@ -235,7 +235,7 @@ SHELL = /bin/sh
 STRIP = strip
 SU = /bin/su
 SUDO = 
-VERSION = 1.6.0.6
+VERSION = 1.6.0.7
 abs_builddir = /home/steve/ldm/package/noaaport
 abs_srcdir = /home/steve/ldm/package/noaaport
 abs_top_builddir = /home/steve/ldm/package/noaaport
@@ -1329,13 +1329,13 @@ release:	releaseCheck versionUpdate Makefile
 ensureRelease:
 	-@$(MAKE) release
 
-ftp:			dist $(FTPDIR)
+ftp:			ensureRelease dist $(FTPDIR)
 	cp $(distArchive) $(FTPDIR)
 	chmod u+rw,g+rw,o=r $(FTPDIR)/$(distArchive)
 	rm -f $(FTPDIR)/$(PACKAGE).tar.gz
 	$(LN_S) $(distArchive) $(FTPDIR)/$(PACKAGE).tar.gz
 
-web-update:		$(srcdir)/html $(WEBDIR)
+web-update:		ensureRelease $(srcdir)/html $(WEBDIR)
 	cp -R html/* $(WEBDIR)
 	rm -f $(WEBDIR)/current
 	$(LN_S) $(VERSION) $(WEBDIR)/current
