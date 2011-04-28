@@ -218,17 +218,23 @@ release:	releaseCheck versionUpdate Makefile
 ensureRelease:
 	-@$(MAKE) release
 
-ftp:			ensureRelease dist $(FTPDIR)
+ftp-actual:		dist $(FTPDIR)
 	cp $(distArchive) $(FTPDIR)
 	chmod u+rw,g+rw,o=r $(FTPDIR)/$(distArchive)
 	rm -f $(FTPDIR)/$(PACKAGE).tar.gz
 	$(LN_S) $(distArchive) $(FTPDIR)/$(PACKAGE).tar.gz
 
-web-update:		ensureRelease $(srcdir)/html $(WEBROOT)
+ftp:			ensureRelease
+	$(MAKE) ftp-actual
+
+web-update-actual:	$(srcdir)/html $(WEBROOT)
 	-mkdir $(WEBROOT)/$(VERSION)
 	cp -R html/* $(WEBROOT)/$(VERSION)
 	rm -f $(WEBROOT)/current
 	$(LN_S) $(VERSION) $(WEBROOT)/current
+
+web-update:		ensureRelease
+	$(MAKE) web-update-actual
 
 # Apparently, there's no rule to create $(distArchive); consequently, it can
 # be used as a prerequisite.
@@ -239,10 +245,12 @@ available:		ensureRelease $(distArchive) ftp web-update
 	commit \
 	ensureRelease \
 	ftp \
+	ftp-actual \
 	install-html \
 	release \
 	releaseCheck \
 	tag \
 	timestamp \
 	versionUpdate \
-	web-update
+	web-update \
+	web-update-actual

@@ -224,9 +224,9 @@ OBJEXT = o
 PACKAGE = noaaport
 PACKAGE_BUGREPORT = support-noaaport@unidata.ucar.edu
 PACKAGE_NAME = NOAAPORT
-PACKAGE_STRING = NOAAPORT 1.6.0.8
+PACKAGE_STRING = NOAAPORT 1.6.0.9
 PACKAGE_TARNAME = noaaport
-PACKAGE_VERSION = 1.6.0.8
+PACKAGE_VERSION = 1.6.0.9
 PATH_SEPARATOR = :
 RANLIB = ranlib
 SED = /bin/sed
@@ -235,7 +235,7 @@ SHELL = /bin/sh
 STRIP = strip
 SU = /bin/su
 SUDO = 
-VERSION = 1.6.0.8
+VERSION = 1.6.0.9
 abs_builddir = /home/steve/ldm/package/noaaport
 abs_srcdir = /home/steve/ldm/package/noaaport
 abs_top_builddir = /home/steve/ldm/package/noaaport
@@ -1329,17 +1329,23 @@ release:	releaseCheck versionUpdate Makefile
 ensureRelease:
 	-@$(MAKE) release
 
-ftp:			ensureRelease dist $(FTPDIR)
+ftp-actual:		dist $(FTPDIR)
 	cp $(distArchive) $(FTPDIR)
 	chmod u+rw,g+rw,o=r $(FTPDIR)/$(distArchive)
 	rm -f $(FTPDIR)/$(PACKAGE).tar.gz
 	$(LN_S) $(distArchive) $(FTPDIR)/$(PACKAGE).tar.gz
 
-web-update:		ensureRelease $(srcdir)/html $(WEBROOT)
+ftp:			ensureRelease
+	$(MAKE) ftp-actual
+
+web-update-actual:	$(srcdir)/html $(WEBROOT)
 	-mkdir $(WEBROOT)/$(VERSION)
 	cp -R html/* $(WEBROOT)/$(VERSION)
 	rm -f $(WEBROOT)/current
 	$(LN_S) $(VERSION) $(WEBROOT)/current
+
+web-update:		ensureRelease
+	$(MAKE) web-update-actual
 
 # Apparently, there's no rule to create $(distArchive); consequently, it can
 # be used as a prerequisite.
@@ -1350,13 +1356,15 @@ available:		ensureRelease $(distArchive) ftp web-update
 	commit \
 	ensureRelease \
 	ftp \
+	ftp-actual \
 	install-html \
 	release \
 	releaseCheck \
 	tag \
 	timestamp \
 	versionUpdate \
-	web-update
+	web-update \
+	web-update-actual
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
