@@ -1,3 +1,7 @@
+1.6.0.5	2011-04-28 09:10:32-06:00
+    Improved "make available": added target "ensureRelease", which skips the
+    "make release" actions if a release has already been made.
+
 1.6.0.4	2011-04-27 18:57:07-06:00
     Improved portability of "readnoaaport.c":
         Added "#define __EXTENSIONS__" so that SunOS 5.10's

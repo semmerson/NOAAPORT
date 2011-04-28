@@ -224,9 +224,9 @@ OBJEXT = o
 PACKAGE = noaaport
 PACKAGE_BUGREPORT = support-noaaport@unidata.ucar.edu
 PACKAGE_NAME = NOAAPORT
-PACKAGE_STRING = NOAAPORT 1.6.0.4
+PACKAGE_STRING = NOAAPORT 1.6.0.5
 PACKAGE_TARNAME = noaaport
-PACKAGE_VERSION = 1.6.0.4
+PACKAGE_VERSION = 1.6.0.5
 PATH_SEPARATOR = :
 RANLIB = ranlib
 SED = /bin/sed
@@ -235,7 +235,7 @@ SHELL = /bin/sh
 STRIP = strip
 SU = /bin/su
 SUDO = 
-VERSION = 1.6.0.4
+VERSION = 1.6.0.5
 abs_builddir = /home/steve/ldm/package/noaaport
 abs_srcdir = /home/steve/ldm/package/noaaport
 abs_top_builddir = /home/steve/ldm/package/noaaport
@@ -1299,7 +1299,7 @@ $(WEBDIR):
 	mkdir -p $@
 
 releaseCheck:
-	@newVersion=`head -1 CHANGE_LOG`; \
+	@newVersion=`awk '{print $$1; exit}' CHANGE_LOG`; \
 	echo $$newVersion | egrep -q '^[0-9](\.[0-9])*$$' || exit 1; \
 	if test "$$newVersion" = "$(VERSION)"; then \
 	    echo 1>&2 "Version $(VERSION) already released!"; \
@@ -1326,6 +1326,9 @@ tag:
 release:	releaseCheck versionUpdate Makefile
 	$(MAKE) timestamp dist commit tag
 
+ensureRelease:
+	-@$(MAKE) release
+
 ftp:			dist $(FTPDIR)
 	cp $(distArchive) $(FTPDIR)
 	chmod u+rw,g+rw,o=r $(FTPDIR)/$(distArchive)
@@ -1337,11 +1340,12 @@ web-update:		$(srcdir)/html $(WEBDIR)
 
 # Apparently, there's no rule to create $(distArchive); consequently, it can
 # be used as a prerequisite.
-available:		$(distArchive) ftp web-update
+available:		ensureRelease $(distArchive) ftp web-update
 
 .PHONY:	\
 	available \
 	commit \
+	ensureRelease \
 	ftp \
 	install-html \
 	release \
