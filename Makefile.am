@@ -226,6 +226,8 @@ ftp:			dist $(FTPDIR)
 
 web-update:		$(srcdir)/html $(WEBDIR)
 	cp -R html/* $(WEBDIR)
+	rm -f $(WEBDIR)/current
+	$(LN_S) $(VERSION) $(WEBDIR)/current
 
 # Apparently, there's no rule to create $(distArchive); consequently, it can
 # be used as a prerequisite.

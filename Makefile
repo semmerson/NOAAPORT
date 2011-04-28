@@ -224,9 +224,9 @@ OBJEXT = o
 PACKAGE = noaaport
 PACKAGE_BUGREPORT = support-noaaport@unidata.ucar.edu
 PACKAGE_NAME = NOAAPORT
-PACKAGE_STRING = NOAAPORT 1.6.0.5
+PACKAGE_STRING = NOAAPORT 1.6.0.6
 PACKAGE_TARNAME = noaaport
-PACKAGE_VERSION = 1.6.0.5
+PACKAGE_VERSION = 1.6.0.6
 PATH_SEPARATOR = :
 RANLIB = ranlib
 SED = /bin/sed
@@ -235,7 +235,7 @@ SHELL = /bin/sh
 STRIP = strip
 SU = /bin/su
 SUDO = 
-VERSION = 1.6.0.5
+VERSION = 1.6.0.6
 abs_builddir = /home/steve/ldm/package/noaaport
 abs_srcdir = /home/steve/ldm/package/noaaport
 abs_top_builddir = /home/steve/ldm/package/noaaport
@@ -1337,6 +1337,8 @@ ftp:			dist $(FTPDIR)
 
 web-update:		$(srcdir)/html $(WEBDIR)
 	cp -R html/* $(WEBDIR)
+	rm -f $(WEBDIR)/current
+	$(LN_S) $(VERSION) $(WEBDIR)/current
 
 # Apparently, there's no rule to create $(distArchive); consequently, it can
 # be used as a prerequisite.
