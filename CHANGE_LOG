@@ -1,4 +1,4 @@
-1.6.0.4
+1.6.0.4	2011-04-27 18:57:07-06:00
     Improved portability of "readnoaaport.c":
         Added "#define __EXTENSIONS__" so that SunOS 5.10's
         /opt/SUNWspro/bin/cc(1) will compile it.
