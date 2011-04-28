@@ -1,9 +1,16 @@
-1.6.0.3	2011-04-27 14:29:48-06:00
-        Improved portability:
-            Removed _XOPEN_SOURCE from "gempak/cfltinq.c";
+1.6.0.4
+    Improved portability of "readnoaaport.c":
+        Added "#define __EXTENSIONS__" so that SunOS 5.10's
+        /opt/SUNWspro/bin/cc(1) will compile it.
 
-            Defined HAVE_GET_QUEUE_PATH in "config.h" and modified
-            "dvbs_multicast.c" and "readnoaaport.c" to use it.
+        Added function prototype for "close_pq()".
+
+1.6.0.3	2011-04-27 14:29:48-06:00
+    Improved portability:
+        Removed _XOPEN_SOURCE from "gempak/cfltinq.c";
+
+        Defined HAVE_GET_QUEUE_PATH in "config.h" and modified
+        "dvbs_multicast.c" and "readnoaaport.c" to use it.
 
 1.6.0.2	2011-04-27 12:08:58-06:00
         Improved "make release".

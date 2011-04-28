@@ -11,6 +11,7 @@
  *   LDM data-products, and writes the data-products into an LDM product-queue.
  */
 #define _XOPEN_SOURCE 500
+#define __EXTENSIONS__
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,8 +65,8 @@ void png_set_memheap (char *memheap, MD5_CTX * md5ctxp);
 void png_header (char *memheap, int length);
 void pngout_init (int width, int height);
 int png_get_prodlen ();
-
 int prod_isascii (char *pname, char *prod, size_t psize);
+void close_pq(void);
 
 static unsigned long            idle = 0;
 static fd_set                   readfds;
