@@ -1,3 +1,19 @@
+1.6.0.12	2011-04-29 13:42:41-06:00
+    "readnoaaport.c":
+        Improved logging. It will now log correctly while processing
+        command-line arguments.
+
+        Corrected initialization of "struct shmhandle*".
+
+    "shmfifo.c":
+        Added shmfifo_new() and shmfifo_free().
+
+        Reformatted shmfifo_create().
+
+    "dvbs_multicast.c":
+        Improved logging. It will now log correctly while processing
+        command-line arguments.
+
 1.6.0.11	2011-04-28 16:48:29-06:00
     Reformatted "dvbs_multicast.c" and "readnoaaport.c" (I couldn't take it
     anymore).

@@ -224,9 +224,9 @@ OBJEXT = o
 PACKAGE = noaaport
 PACKAGE_BUGREPORT = support-noaaport@unidata.ucar.edu
 PACKAGE_NAME = NOAAPORT
-PACKAGE_STRING = NOAAPORT 1.6.0.11
+PACKAGE_STRING = NOAAPORT 1.6.0.12
 PACKAGE_TARNAME = noaaport
-PACKAGE_VERSION = 1.6.0.11
+PACKAGE_VERSION = 1.6.0.12
 PATH_SEPARATOR = :
 RANLIB = ranlib
 SED = /bin/sed
@@ -235,7 +235,7 @@ SHELL = /bin/sh
 STRIP = strip
 SU = /bin/su
 SUDO = 
-VERSION = 1.6.0.11
+VERSION = 1.6.0.12
 abs_builddir = /home/steve/ldm/package/noaaport
 abs_srcdir = /home/steve/ldm/package/noaaport
 abs_top_builddir = /home/steve/ldm/package/noaaport
@@ -301,7 +301,8 @@ EXTRA_DIST = \
     	extractDecls \
 	shmfifo.hin \
 	$(srcdir)/html \
-	mainpage.h.in
+	mainpage.h.in \
+	nwstgdump.data
 
 DISTCLEANFILES = mainpage.h *.log $(distArchive)
 lib_LTLIBRARIES = libnoaaport.la

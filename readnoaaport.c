@@ -96,6 +96,9 @@ static void cleanup(void)
 
     if (shm != NULL) {
        shmfifo_detach(shm);
+       shmfifo_free(shm);
+
+       shm = NULL;
     }
 }
 
@@ -461,9 +464,12 @@ int main(
     extern int          optind;
     extern int          opterr;
     extern char*        optarg;
-    int                 ch, ulog_facility;
+    int                 ch;
     int                 logmask = LOG_MASK(LOG_ERR);
-    int                 logfd;
+    const char*         logfname = NULL;        /* use system logging daemon */
+    unsigned            logOptions = LOG_CONS | LOG_PID;
+    unsigned            logFacility = LOG_LDM;  /* use default LDM facility */
+    const char* const   progName = ubasename(argv[0]);
     MD5_CTX*            md5ctxp = NULL;
     /*unsigned char *compr;
     long                comprLen = 10000 * sizeof (int);*/
@@ -471,85 +477,89 @@ int main(
 
     /*compr = (unsigned char *) calloc (comprLen, 1);*/
 
+    /* Initialize the logger. */
+    (void)setulogmask(logmask);
+    (void)openulog(progName, logOptions, logFacility, logfname);
+
     opterr = 1;
     while ((ch = getopt(argc, argv, "nvxl:q:u:m:")) != EOF) {
         switch (ch) {
         case 'v':
             logmask |= LOG_MASK(LOG_INFO);
+            (void)setulogmask(logmask);
             break;
         case 'x':
             logmask |= LOG_MASK(LOG_DEBUG);
+            (void)setulogmask(logmask);
             break;
         case 'n':
             logmask |= LOG_MASK(LOG_NOTICE);
+            (void)setulogmask(logmask);
             break;
         case 'l':
             if (optarg[0] == '-' && optarg[1] != 0) {
-                fprintf(stderr, "logfile \"%s\" ??\n", optarg);
+                uerror("logfile \"%s\" ??\n", optarg);
                 usage(argv[0]);
             }
             /* else */
             logfname = optarg;
+            (void)openulog(progName, logOptions, logFacility, logfname);
             break;
         case 'q':
             pqfname = optarg;
             break;
-        case 'u':
-            ulog_facility = atoi(optarg);
-            if (( ulog_facility >= 0) && (ulog_facility <= 7))
-                status = setenv("ULOG_FACILITY_OVERRIDE", optarg, 1);
+        case 'u': {
+            int         i = atoi(optarg);
+
+            if (0 <= i && 7 >= i) {
+                static int  logFacilities[] = {LOG_LOCAL0, LOG_LOCAL1,
+                    LOG_LOCAL2, LOG_LOCAL3, LOG_LOCAL4, LOG_LOCAL5, LOG_LOCAL6,
+                    LOG_LOCAL7};
+
+                logFacility = logFacilities[i];
+
+                (void)openulog(progName, logOptions, logFacility, logfname);
+            }
+
             break;
+        }
         case 'm':
-          sscanf(optarg, "%*d.%*d.%*d.%d", &pid_channel);	
-          if ((pid_channel < 1) || (pid_channel > MAX_DVBS_PID)) {
-              pid_channel = -1;
-          }
-          else {  
-              shm = (struct shmhandle*)malloc(sizeof(struct shmhandle));
-              cnt = 0;
+            sscanf(optarg, "%*d.%*d.%*d.%d", &pid_channel);	
+            if ((pid_channel < 1) || (pid_channel > MAX_DVBS_PID)) {
+                pid_channel = -1;
+            }
+            else {  
+                shm = shmfifo_new();
+                cnt = 0;
 
-              while (((status = shmfifo_shm_from_key(shm, 
-                        s_port[pid_channel - 1])) == -1) && (cnt < 30)) {
-                  printf("trying to get shared memory id\n");
-                  cnt++;
-                  sleep(1);
-              }
+                while (((status = shmfifo_shm_from_key(shm, 
+                          s_port[pid_channel - 1])) == -3) && (cnt < 30)) {
+                    uinfo("Trying to get shared-memory FIFO");
+                    cnt++;
+                    sleep(1);
+                }
 
-              if (cnt > 30) {
-                  free(shm);
-                  printf("failed to connect to shared memory area, "
-                      "check dvbs_multicast\n");
-                  shm = NULL;
-              }
-              else {
-                printf("got shared memory id\n");
-              }
-          }
-          break;
+                if (0 != status) {
+                    uerror("Couldn't get shared-memory FIFO. "
+                            "Check associated dvbs_multicast(1) process.");
+                    shmfifo_free(shm);
+                    shm = NULL;
+                }
+                else {
+                    uinfo("Got shared-memory FIFO");
+                }
+            }
+            break;
         case '?':
             usage(argv[0]);
             break;
         }
     }
 
-    (void)setulogmask(logmask);
-
     if (argc - optind < 0)
         usage(argv[0]);
 
-    /*
-     * Initialize logger
-     */
-    if (logfname == NULL || !(*logfname == '-' && logfname[1] == 0))
-        (void)fclose(stderr);
-    logfd =
-        openulog(ubasename(argv[0]), (LOG_CONS | LOG_PID), LOG_LDM, logfname);
-
     unotice("Starting Up %s", PACKAGE_VERSION);
-
-    if (logfname == NULL || !(*logfname == '-' && logfname[1] == 0)) {
-        setbuf(fdopen (logfd, "a"), NULL);
-    }
 
     fd = ((argc - optind) == 0)
         ? fileno(stdin)

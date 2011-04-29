@@ -26,7 +26,8 @@ EXTRA_DIST 		= \
     	extractDecls \
 	shmfifo.hin \
 	$(srcdir)/html \
-	mainpage.h.in
+	mainpage.h.in \
+	nwstgdump.data
 DISTCLEANFILES		= mainpage.h *.log $(distArchive)
 
 lib_LTLIBRARIES		= libnoaaport.la

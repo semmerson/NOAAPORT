@@ -166,9 +166,9 @@ shmfifo_lock(
         op[0].sem_op = -1;
         op[0].sem_flg = 0;
 
-        /* dvbs_multicast(1) hangs here */
+        /* dvbs_multicast(1) used to hang here */
         if (semop (shm->semid, op, 1) == -1) {
-            serror("shmfifo(): semop(2) failure");
+            serror("shmfifo_lock(): semop(2) failure");
             status = ECANCELED;
         }
         else {
@@ -645,6 +645,44 @@ shmfifo_print (const struct shmhandle* const shm)
  * Public API:
  ******************************************************************************/
 
+/**
+ * Returns an allocated, shared-memory structure. The returned structure is
+ * unset: it doesn't reference a shared-memory FIFO. The client should call
+ * \link shmfifo_free() \endlink when the structure is no longer needed.
+ *
+ * @retval !NULL        Pointer to an allocated shared-memory structure.
+ * @retval NULL         Failure. An error message is logged.
+ */
+struct shmhandle* shmfifo_new(void)
+{
+    struct shmhandle*   shm =
+        (struct shmhandle*)malloc(sizeof(struct shmhandle));
+
+    if (NULL == shm) {
+        serror("shmfifo_new(): Couldn't allocate %lu bytes",
+            sizeof(struct shmhandle));
+    }
+    else {
+        (void)memset(shm, 0, sizeof(*shm));
+
+        shm->mem = NULL;        /* necessary because shmfifo_attach() checks */
+    }
+
+    return shm;
+}
+
+/**
+ * Frees a shared-memory structure allocated by \link shmfifo_new() \endlink.
+ *
+ * @param shm   Pointer to the shared-memory structure to be freed. May be
+ *              NULL.
+ */
+void shmfifo_free(
+    struct shmhandle* const    shm)
+{
+    free(shm);
+}
+
 void
 shmfifo_setpriv (struct shmhandle *shm, void *priv)
 {
@@ -661,145 +699,203 @@ shmfifo_getpriv (struct shmhandle *shm, void *priv)
   (void)shmfifo_unlock (shm);
 }
 
-int
-shmfifo_shm_from_key (struct shmhandle *shm, int nkey)
+/**
+ * Sets a data-structure so that it references the shared-memory FIFO
+ * associated with a (partial) key.
+ *
+ * @retval  0   Success. The data-structure is initialized and references the
+ *              shared-memory FIFO.
+ * @retval -1   \e shm is \c NULL. An error message is logged.
+ * @retval -2   \e nkey is \c -1.
+ * @retval -3   The shared-memory FIFO doesn't exist.
+ * @retval -4   The shared-memory FIFO couldn't be accessed. An error message
+ *              is logged.
+ */
+int shmfifo_shm_from_key(
+    struct shmhandle* const     shm,    /**< Pointer to the data-structure to
+                                         * be set. */
+    const int                   nkey)   /**< The (partial) key associated with
+                                         * the shared-memory FIFO. */
 {
-  int sid, semid;
-  key_t key;
-  struct shmprefix *p;
+    int   status;
 
-  if (shm == NULL)
-    {
-      uerror ("shm_from_key: shm is NULL");
-      exit (-1);
+    if (shm == NULL) {
+        uerror ("shm_from_key(): shm is NULL");
+        status = -1;
     }
-
-  if (nkey != -1)
-    {
-      key = (key_t) (DVBS_ID + nkey);
-      semid = semget (key, SI_SEM_COUNT, 0660);
-      sid = shmget (key, 0, 0);
-
-      if ((semid == -1) || (sid == -1))
-	return (-1);
-      else
-	{
-	  shm->semid = semid;
-	  shm->sid = sid;
-	  shmfifo_attach (shm);
-	  p = (struct shmprefix *) (shm->mem);
-	  shm->privsz = p->privsz;
-	  shm->sz = p->sz;
-	  udebug ("look sizes %d %d\n", shm->privsz, shm->sz);
-	  return (0);
-	}
+    else if (-1 == nkey) {
+        status = -2;
     }
-  return (-1);
+    else {
+        key_t     key = (key_t)(DVBS_ID + nkey);
+        int       semid = semget(key, SI_SEM_COUNT, 0660);
+
+        if (-1 == semid) {
+            status = -3;
+        }
+        else {
+            int   sid = shmget(key, 0, 0);
+
+            if (-1 == sid) {
+                status = -3;
+            }
+            else {
+                shm->semid = semid;
+                shm->sid = sid;
+
+                if (shmfifo_attach(shm) == -1) {
+                    status = -4;
+                }
+                else {
+                    struct shmprefix*     p = (struct shmprefix*)(shm->mem);
+
+                    shm->privsz = p->privsz;
+                    shm->sz = p->sz;
+
+                    udebug ("look sizes %d %d\n", shm->privsz, shm->sz);
+
+                    status = 0;           /* success */
+                }                         /* got shared-memory FIFO */
+            }                             /* got shared-memory ID */
+        }                                 /* got semaphore */
+    }                                     /* valid "shm" and "nkey" */
+
+    return status;
 }
 
-struct shmhandle *
-shmfifo_create (int npages, int privsz, int nkey)
+/**
+ * Returns a data-structure for accessing a shared-memory FIFO. Creates the
+ * FIFO is it doesn't already exist.
+ *
+ * @retval !NULL        Pointer the data-structure for accessing the
+ *                      shared-memory FIFO.
+ * @retval NULL         Failure. An error message is logged.
+ */
+struct shmhandle* shmfifo_create(
+    const int   npages,         /**< size of the FIFO in pages */
+    const int   privsz,         /**< <size of the private portion of the FIFO
+                                 in bytes */
+    const int   nkey)           /**< Partial key associated with the FIFO  or
+                                 \c -1 to obtain a private, shared-memory
+                                 FIFO. */
 {
+    int                 shmid;
+    struct shmhandle*   shm = NULL;     /* default failure */
+    key_t               key;
 
-  int segment_id;
-  struct shmhandle *shm;
-  struct shmprefix *p;
-  union semun arg;
-  unsigned short values[SI_SEM_COUNT];
-  key_t key;
-
-  if (nkey == -1)
-    segment_id = shmget (IPC_PRIVATE, npages * getpagesize (),
-			 IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
-  else
-    {
-      key = (key_t) (DVBS_ID + nkey);
-      /* EXCL creates an error condition if the memory already exists...
-         we can use the existing memory if the program has not changed the
-         size of the segment or the private structure size
-      segment_id = shmget (key, npages * getpagesize (),
-			   IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);*/
-      segment_id = shmget (key, npages * getpagesize (),
-			   IPC_CREAT | S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+    if (nkey == -1) {
+        shmid = shmget(IPC_PRIVATE, npages*getpagesize(),
+            IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+    }
+    else {
+        key = (key_t) (DVBS_ID + nkey);
+        /*
+         * IPC_EXCL creates an error condition if the memory already exists...
+         * we can use the existing memory if the program has not changed the
+         * size of the segment or the private structure size
+         */
+        shmid = shmget(key, npages * getpagesize (),
+            IPC_CREAT | S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
     }
 
-
-  if (segment_id == -1)
-    {
-      serror ("shmfifo cannot shmget");
-      return NULL;
+    if (shmid == -1) {
+        serror ("shmfifo_create(): shmget() failure: npages=%d, nkey=%d",
+            npages, nkey);
     }
+    else {
+        /* Temporarily attach to initialize the control structure. */
+        struct shmprefix*       p = (struct shmprefix*)shmat(shmid, 0, 0);
 
-  shm = (struct shmhandle *) malloc (sizeof (struct shmhandle));
-  shm->sid = segment_id;
-  shm->mem = NULL;
-  shm->privsz = privsz;
-  shm->sz = npages * getpagesize ();
+        if (p == (void *)-1) {
+            serror("shmfifo_create(): shmat() failure: id=%d", shmid);
+        }
+        else {
+            int     semid;
 
-  /* tmp attach to init control structure */
-  p = (struct shmprefix *) shmat (segment_id, 0, 0);
-  if ( p == (void *)-1 )
-     {
-     serror("shmat");
-     return NULL;
-     }
+            p->read = p->write = sizeof(struct shmprefix) + privsz;
+            p->sz = npages*getpagesize();
+            p->privsz = privsz;
 
-  p->read = p->write = sizeof (struct shmprefix) + privsz;
-  /*bzero ((char *) p + sizeof (struct shmprefix), privsz);*/
-  memset ((char *) p + sizeof (struct shmprefix), 0, privsz);
-  p->sz = shm->sz;
-  p->privsz = privsz;
+            (void)memset((char*)p + sizeof(struct shmprefix), 0, privsz);
+            (void)shmdt(p);
 
-  shmdt ((const void *)p);
+            /* Get semaphore */
+            if (nkey == -1) {
+                semid = semget(IPC_PRIVATE, SI_SEM_COUNT,
+                    IPC_CREAT | IPC_EXCL + 0600);
+            }
+            else {
+                /*
+                 * IPC_EXCL not used in order to get existing semaphore if
+                 * possible.
+                 */
+                semid = semget(key, SI_SEM_COUNT, IPC_CREAT + 0660);
+            }
 
+            if (semid == -1) {
+                serror("shmfifo_create(): semget() failure");
+            }
+            else {
+                unsigned short      values[SI_SEM_COUNT];
+                union semun         arg;
 
-  /* get semaphore */
-  if (nkey == -1)
-    shm->semid = semget (IPC_PRIVATE, SI_SEM_COUNT,
-            IPC_CREAT | IPC_EXCL + 0600);
-  else
-    shm->semid = semget (key, SI_SEM_COUNT, IPC_CREAT + 0660);
-    /* Removed EXCL to use existing semaphore if possible
-    shm->semid = semget (key, SI_SEM_COUNT, IPC_CREAT | IPC_EXCL + 0600);*/
-  if (shm->semid == -1)
-    {
-      serror ("failed to create semaphore");
-      exit (1);
-    }
-  else
-    {
-      udebug ("%d : got semid %d", getpid (), shm->semid);
-    }
+                udebug("shmfifo_create(): Got semaphore: pid=%d, semid=%d",
+                    getpid(), semid);
 
-  values[SI_LOCK] = 1;
-  values[SI_WRITER] = 0;
-  values[SI_READER] = 0;
-  arg.array = values;
+                values[SI_LOCK] = 1;
+                values[SI_WRITER] = 0;
+                values[SI_READER] = 0;
+                arg.array = values;
 
-  while (semctl (shm->semid, 0, SETALL, arg) == -1)
-    {
-      int icnt = 0;
-      serror ("failed to init semaphore");
-      sleep (2);
-      if (icnt > 20)
-	abort ();
-      icnt++;
-    };
+                if (semctl(semid, 0, SETALL, arg) == -1) {
+                    serror("shmfifo_create(): semctl() failure: semid=%d",
+                        semid);
+                }
+                else {
+                    shm = shmfifo_new();
 
-  return shm;
+                    if (NULL != shm) {
+                        shm->sid = shmid;
+                        shm->privsz = privsz;
+                        shm->sz = p->sz;
+                        shm->semid = semid;
+                    }
+                }                       /* semaphore values set */
+            }                           /* got semaphore set */
+        }                               /* shared-memory was attached to "p" */
+    }                                   /* got shared-memory segment ID */
+
+    return shm;
 }
 
 
-int
-shmfifo_attach (struct shmhandle *shm)
+/**
+ * Attaches a data-structure to its shared-memory FIFO.
+ *
+ * @retval  1   Success.
+ * @retval -1   The data-structure is already attached to a shared-
+ *              memory FIFO. An error message is logged.
+ * @retval -1   The shared-memory FIFO reference by \e shm couldn't be
+ *              attached. An error message is logged.
+ */
+int shmfifo_attach(
+    struct shmhandle* const     shm)    /**< Pointer to the data-structure. */
 {
+  void* mem;
+
   if (shm->mem)
     {
       uerror ("attempt to attach already attached mem?\n");
       return -1;
     }
 
-  shm->mem = shmat (shm->sid, 0, 0);
+  if ((mem = shmat(shm->sid, 0, 0)) == (void*)-1) {
+      serror("Couldn't attach to shared-memory: sid=%d", shm->sid);
+      return -1;
+  }
+
+  shm->mem = mem;
+
   return 1;
 }
 

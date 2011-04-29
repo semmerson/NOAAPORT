@@ -262,6 +262,7 @@ int main(
     const int           argc,
     char* const         argv[])
 {
+    const char* const   progName = ubasename(argv[0]);
 #ifdef HAVE_GET_QUEUE_PATH
     const char*         pqfname = getQueuePath();
 #else
@@ -281,11 +282,17 @@ int main(
     extern char*        optarg;
     int                 ch;
     int                 logmask = LOG_MASK(LOG_ERR);
-    int                 logfd;
+    const char*         logfname = NULL;        /* use system logging daemon */
+    unsigned            logOptions = LOG_CONS | LOG_PID;
+    unsigned            logFacility = LOG_LDM;  /* use default LDM facility */
     int                 status, ipri=0, rtflag = 0;
     int                 bufpag = CBUFPAG;
     product             prod;
     static char*        prodident = "dvbs";
+
+    /* Initialize the logger. */
+    (void)setulogmask(logmask);
+    (void)openulog(progName, logOptions, logFacility, logfname);
 
     opterr = 1;
 
@@ -293,20 +300,24 @@ int main(
         switch (ch) {
         case 'v':
             logmask |= LOG_MASK(LOG_INFO);
+            (void)setulogmask(logmask);
             break;
         case 'x':
             logmask |= LOG_MASK(LOG_DEBUG);
+            (void)setulogmask(logmask);
             break;
         case 'n':
             logmask |= LOG_MASK(LOG_NOTICE);
+            (void)setulogmask(logmask);
             break;
         case 'l':
             if (optarg[0] == '-' && optarg[1] != 0) {
-                fprintf(stderr, "logfile \"%s\" ??\n", optarg);
+                uerror("logfile \"%s\" ??", optarg);
                 usage(argv[0]);
             }
             /* else */
             logfname = optarg;
+            (void)openulog(progName, logOptions, logFacility, logfname);
             break;
         case 'q':
             pqfname = optarg;
@@ -352,15 +363,6 @@ int main(
     if (argc - optind < 1)
         usage(argv[0]);
 
-    /*
-     * Initialize logger
-     */
-    if (logfname == NULL || !(*logfname == '-' && logfname[1] == 0))
-        (void)fclose(stderr);
-
-    logfd = openulog(ubasename(argv[0]), (LOG_CONS | LOG_PID), LOG_LDM,
-            logfname);
-
     unotice("Starting Up %s", PACKAGE_VERSION);
 
     /*
@@ -391,10 +393,6 @@ int main(
     else if (ipri != 0) {
        if (setpriority(PRIO_PROCESS, 0, ipri) != 0)
            serror("setpriority");
-    }
-
-    if (logfname == NULL || !(*logfname == '-' && logfname[1] == 0)) {
-        setbuf(fdopen(logfd, "a"), NULL);
     }
 
     if ((pq == NULL) && (dumpflag)) {
@@ -432,23 +430,21 @@ int main(
         exit(1);
     }
 
-    /* Test shmfifo */
-    while (shm == NULL) {
-       shm = (memsegflg)
+    /* Ensure that the shared-memory FIFO exists. */
+    shm = memsegflg
            ? shmfifo_create(bufpag, sizeof(struct shmfifo_priv),
                    s_port[pid_channel - 1])
            : shmfifo_create(bufpag, sizeof(struct shmfifo_priv), -1);
 
-       if (shm == NULL) {
-          uerror("shmfifo_create failed....waiting");
-          sleep(2);
-       }
+    if (shm == NULL) {
+        uerror("%s: Couldn't ensure existence of shared-memory FIFO", progName);
+        exit(1);
     }
 
     if (!memsegflg)
         child = fork();
 
-    if ((memsegflg) || (child != 0)) {
+    if (memsegflg || (child != 0)) {
         /* Parent */
         unsigned long   sbnnum, lastnum = 0;
         char            msg[MAX_MSG];
@@ -465,7 +461,7 @@ int main(
         h = gethostbyname(argv[optind]);
 
         if (h == NULL) {
-            printf("%s : unknown group '%s'\n", argv[0], argv[optind]);
+            uerror("%s : unknown group '%s'", argv[0], argv[optind]);
             exit(1);
         }
 
@@ -473,7 +469,7 @@ int main(
 
         /* Check given address is multicast */
         if (!IN_MULTICAST(ntohl(mcastAddr.s_addr))) {
-            printf("%s : given address '%s' is not multicast\n", argv[0],
+            uerror("%s : given address '%s' is not multicast", argv[0],
                     inet_ntoa(mcastAddr));
             exit(1);
         }
@@ -492,7 +488,7 @@ int main(
         sd = socket(AF_INET, SOCK_DGRAM, 0);
 
         if (sd < 0) {
-            printf("%s : cannot create socket\n", argv[0]);
+            uerror("%s : cannot create socket", argv[0]);
             exit(1);
         }
 
@@ -502,7 +498,7 @@ int main(
         servAddr.sin_port = htons(s_port[pid_channel - 1]);
         
         if (bind(sd, (struct sockaddr *) &servAddr, sizeof(servAddr)) < 0) {
-            printf("%s : cannot bind port %d \n", argv[0],
+            uerror("%s : cannot bind port %d", argv[0],
                     s_port[pid_channel - 1]);
             exit(1);
         }
@@ -518,7 +514,7 @@ int main(
                       sizeof(mreq));
 
         if (rc < 0) {
-            printf("%s : cannot join multicast group '%s'", argv[0],
+            uerror("%s : cannot join multicast group '%s'", argv[0],
                     inet_ntoa(mcastAddr));
             exit(1);
         }
