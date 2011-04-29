@@ -224,9 +224,9 @@ OBJEXT = o
 PACKAGE = noaaport
 PACKAGE_BUGREPORT = support-noaaport@unidata.ucar.edu
 PACKAGE_NAME = NOAAPORT
-PACKAGE_STRING = NOAAPORT 1.6.0.12
+PACKAGE_STRING = NOAAPORT 1.6.0.13
 PACKAGE_TARNAME = noaaport
-PACKAGE_VERSION = 1.6.0.12
+PACKAGE_VERSION = 1.6.0.13
 PATH_SEPARATOR = :
 RANLIB = ranlib
 SED = /bin/sed
@@ -235,7 +235,7 @@ SHELL = /bin/sh
 STRIP = strip
 SU = /bin/su
 SUDO = 
-VERSION = 1.6.0.12
+VERSION = 1.6.0.13
 abs_builddir = /home/steve/ldm/package/noaaport
 abs_srcdir = /home/steve/ldm/package/noaaport
 abs_top_builddir = /home/steve/ldm/package/noaaport
@@ -304,7 +304,7 @@ EXTRA_DIST = \
 	mainpage.h.in \
 	nwstgdump.data
 
-DISTCLEANFILES = mainpage.h *.log $(distArchive)
+DISTCLEANFILES = mainpage.h $(distArchive)
 lib_LTLIBRARIES = libnoaaport.la
 libnoaaport_la_SOURCES = shmfifo.c shmfifo.h
 libnoaaport_la_LIBADD = g2/lib.la gempak/lib.la libpng/libpng.la zlib/lib.la
@@ -1206,7 +1206,8 @@ uninstall-am: uninstall-binPROGRAMS uninstall-dist_binSCRIPTS \
 shmfifo.h:	$(srcdir)/shmfifo.hin \
 		$(srcdir)/shmfifo.c \
 		$(srcdir)/extractDecls
-	./extractDecls $(srcdir)/shmfifo.hin $(srcdir)/shmfifo.c >$@
+	./extractDecls $(srcdir)/shmfifo.hin $(srcdir)/shmfifo.c >$@.tmp
+	mv $@.tmp $@
 
 libpng/libpng.la:
 	cd libpng && $(MAKE) $(AM_MAKEFLAGS) all
@@ -1278,12 +1279,12 @@ debug:			readnoaaport
 	$(LIBTOOL) --mode=execute gdb -x /tmp/readnoaaport.gdb readnoaaport
 	rm /tmp/readnoaaport-test.pq /tmp/readnoaaport.gdb
 
-$(srcdir)/html:		$(srcdir)/mainpage.h.in
+$(srcdir)/html/index.html:	$(srcdir)/mainpage.h.in
 	./config.status
 	rm -rf $(srcdir)/html
 	cd $(srcdir) && doxygen Doxyfile
 
-install-html:		$(srcdir)/html $(DESTDIR)$(htmldir)
+install-html:		$(srcdir)/html/index.html $(DESTDIR)$(htmldir)
 	cp -R $(srcdir)/html/* $(DESTDIR)$(htmldir)
 
 $(DESTDIR)$(htmldir):
@@ -1339,7 +1340,7 @@ ftp-actual:		dist $(FTPDIR)
 ftp:			ensureRelease
 	$(MAKE) ftp-actual
 
-web-update-actual:	$(srcdir)/html $(WEBROOT)
+web-update-actual:	$(srcdir)/html/index.html $(WEBROOT)
 	-mkdir $(WEBROOT)/$(VERSION)
 	cp -R html/* $(WEBROOT)/$(VERSION)
 	echo 'RemoveOutputFilter LAYOUT html htm' \

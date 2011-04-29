@@ -28,7 +28,7 @@ EXTRA_DIST 		= \
 	$(srcdir)/html \
 	mainpage.h.in \
 	nwstgdump.data
-DISTCLEANFILES		= mainpage.h *.log $(distArchive)
+DISTCLEANFILES		= mainpage.h $(distArchive)
 
 lib_LTLIBRARIES		= libnoaaport.la
 libnoaaport_la_SOURCES	= shmfifo.c shmfifo.h
@@ -84,7 +84,8 @@ DISTCHECK_CONFIGURE_FLAGS	= --disable-root-actions --disable-shared
 shmfifo.h:	$(srcdir)/shmfifo.hin \
 		$(srcdir)/shmfifo.c \
 		$(srcdir)/extractDecls
-	./extractDecls $(srcdir)/shmfifo.hin $(srcdir)/shmfifo.c >$@
+	./extractDecls $(srcdir)/shmfifo.hin $(srcdir)/shmfifo.c >$@.tmp
+	mv $@.tmp $@
 
 libpng/libpng.la:
 	cd libpng && $(MAKE) $(AM_MAKEFLAGS) all
@@ -164,12 +165,12 @@ debug:			readnoaaport
 	$(LIBTOOL) --mode=execute gdb -x /tmp/readnoaaport.gdb readnoaaport
 	rm /tmp/readnoaaport-test.pq /tmp/readnoaaport.gdb
 
-$(srcdir)/html:		$(srcdir)/mainpage.h.in
+$(srcdir)/html/index.html:	$(srcdir)/mainpage.h.in
 	./config.status
 	rm -rf $(srcdir)/html
 	cd $(srcdir) && doxygen Doxyfile
 
-install-html:		$(srcdir)/html $(DESTDIR)$(htmldir)
+install-html:		$(srcdir)/html/index.html $(DESTDIR)$(htmldir)
 	cp -R $(srcdir)/html/* $(DESTDIR)$(htmldir)
 
 $(DESTDIR)$(htmldir):
@@ -228,7 +229,7 @@ ftp-actual:		dist $(FTPDIR)
 ftp:			ensureRelease
 	$(MAKE) ftp-actual
 
-web-update-actual:	$(srcdir)/html $(WEBROOT)
+web-update-actual:	$(srcdir)/html/index.html $(WEBROOT)
 	-mkdir $(WEBROOT)/$(VERSION)
 	cp -R html/* $(WEBROOT)/$(VERSION)
 	echo 'RemoveOutputFilter LAYOUT html htm' \

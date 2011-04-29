@@ -779,45 +779,48 @@ struct shmhandle* shmfifo_create(
                                  \c -1 to obtain a private, shared-memory
                                  FIFO. */
 {
+    int                 shmSize = npages*getpagesize();
     int                 shmid;
     struct shmhandle*   shm = NULL;     /* default failure */
     key_t               key;
 
     if (nkey == -1) {
-        shmid = shmget(IPC_PRIVATE, npages*getpagesize(),
-            IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+        shmid = shmget(IPC_PRIVATE, shmSize,
+                IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
     }
     else {
-        key = (key_t) (DVBS_ID + nkey);
+        key = (key_t)(DVBS_ID + nkey);
         /*
          * IPC_EXCL creates an error condition if the memory already exists...
          * we can use the existing memory if the program has not changed the
          * size of the segment or the private structure size
          */
-        shmid = shmget(key, npages * getpagesize (),
+        shmid = shmget(key, shmSize,
             IPC_CREAT | S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
     }
 
     if (shmid == -1) {
-        serror ("shmfifo_create(): shmget() failure: npages=%d, nkey=%d",
+        serror("shmfifo_create(): shmget() failure: npages=%d, nkey=%d",
             npages, nkey);
     }
     else {
         /* Temporarily attach to initialize the control structure. */
         struct shmprefix*       p = (struct shmprefix*)shmat(shmid, 0, 0);
 
-        if (p == (void *)-1) {
+        if (p == (void*)-1) {
             serror("shmfifo_create(): shmat() failure: id=%d", shmid);
         }
         else {
             int     semid;
 
             p->read = p->write = sizeof(struct shmprefix) + privsz;
-            p->sz = npages*getpagesize();
+            p->sz = shmSize;
             p->privsz = privsz;
 
             (void)memset((char*)p + sizeof(struct shmprefix), 0, privsz);
             (void)shmdt(p);
+
+            p = NULL;
 
             /* Get semaphore */
             if (nkey == -1) {
@@ -857,7 +860,7 @@ struct shmhandle* shmfifo_create(
                     if (NULL != shm) {
                         shm->sid = shmid;
                         shm->privsz = privsz;
-                        shm->sz = p->sz;
+                        shm->sz = shmSize;
                         shm->semid = semid;
                     }
                 }                       /* semaphore values set */

@@ -1,3 +1,21 @@
+1.6.0.13	2011-04-29 15:46:49-06:00
+    "configure.ac":
+        Changed "awk -F ." to "awk -F." so that SunOS 5.10's awk(1) would
+        work.
+
+        Added printing of LDM version ID.
+
+    "shmfifo.c":
+        Corrected mistaken dereference of detached pointer.
+
+    "makefile.am"
+        Removed removal of *.log files by "distclean" target.
+
+        Improved html/ handling. It shouldn't be recreated on a remote install.
+
+    "extractDecls"
+        Made more portable.
+
 1.6.0.12	2011-04-29 13:42:41-06:00
     "readnoaaport.c":
         Improved logging. It will now log correctly while processing

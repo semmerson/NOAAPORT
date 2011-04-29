@@ -8,7 +8,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(NOAAPORT, 1.6.0.12, support-noaaport@unidata.ucar.edu)
+AC_INIT(NOAAPORT, 1.6.0.13, support-noaaport@unidata.ucar.edu)
 AC_CONFIG_SRCDIR([shmfifo.c])
 AC_CONFIG_AUX_DIR([.])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
@@ -202,9 +202,11 @@ AC_SUBST([LDMHOME])
 AC_MSG_RESULT([$LDMHOME])
 
 # Checks LDM version.
+AC_MSG_CHECKING([LDM version]);
 version=`ldmadmin config | grep version | awk '{print $3}'`
-major=`echo $version | awk -F . '{print $1}'`
-minor=`echo $version | awk -F . '{print $2}'`
+major=`echo $version | awk -F. '{print $1}'`
+minor=`echo $version | awk -F. '{print $2}'`
+AC_MSG_RESULT([$major.$minor])
 if test \( $major -gt 6 \) -o \( $major -eq 6 -a $minor -ge 9 \); then
     AC_DEFINE([HAVE_GET_QUEUE_PATH], [1], 
         [Define to 1 if the LDM function getQueuePath() exists])
