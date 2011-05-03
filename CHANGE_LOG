@@ -1,234 +1,91 @@
-1.6.0.13	2011-04-29 15:46:49-06:00
-    "configure.ac":
-        Changed "awk -F ." to "awk -F." so that SunOS 5.10's awk(1) would
-        work.
+1.6.0	2011-05-03 10:35:12-06:00
+    Installation:
+        Migrated to automake(1)-based installation.
 
-        Added printing of LDM version ID.
+    dvbs_multicast(1):
+        Modified to use blocking shmfifo_put().
 
-    "shmfifo.c":
-        Corrected mistaken dereference of detached pointer.
+        Improved information hiding.
 
-    "makefile.am"
-        Removed removal of *.log files by "distclean" target.
+        Improved logging:
+            Added size of gap to gap log messages.
 
-        Improved html/ handling. It shouldn't be recreated on a remote install.
+            Added logging of retrograde packet numbers.
+        
+            Modified to log correctly while processing command-line arguments.
 
-    "extractDecls"
-        Made more portable.
+        Improved portability:
+            Added use of HAVE_GET_QUEUE_PATH so that it can build against
+            LDM packages prior to 6.9.
 
-1.6.0.12	2011-04-29 13:42:41-06:00
-    "readnoaaport.c":
-        Improved logging. It will now log correctly while processing
-        command-line arguments.
+        Reformatted to improve clarity.
+
+    readnoaaport(1):
+        Modified to use blocking shmfifo_get().
+
+        Rewrote _shm_bufread() to improve clarity.
 
         Corrected initialization of "struct shmhandle*".
 
-    "shmfifo.c":
-        Added shmfifo_new() and shmfifo_free().
+        Improved information hiding.
 
-        Reformatted shmfifo_create().
+        Modified to log correctly while processing command-line arguments.
 
-    "dvbs_multicast.c":
-        Improved logging. It will now log correctly while processing
-        command-line arguments.
+        Improved portability:
+            Added "#define __EXTENSIONS__" so that SunOS 5.10's
+            /opt/SUNWspro/bin/cc(1) will compile it.
 
-1.6.0.11	2011-04-28 16:48:29-06:00
-    Reformatted "dvbs_multicast.c" and "readnoaaport.c" (I couldn't take it
-    anymore).
+            Added function prototype for "close_pq()".
 
-1.6.0.10	2011-04-28 10:39:39-06:00
-    Improved "make web-update": added creation of .htaccess file that prevents
-    UPC decoration.
+            Added use of HAVE_GET_QUEUE_PATH so that it can build against
+            LDM packages prior to 6.9.
 
-    Improved "make available": move dependencies to rule body to ensure correct
-    version is obtained.
+        Reformatted to improve clarity.
 
-    Improved "make releaseCheck": made regular-expression check of version ID
-    more general.
-
-1.6.0.9	2011-04-28 10:13:55-06:00
-    Corrected "make ftp web-update": added "-actual" targets that do the work
-    after ensuring that the correct version is used.
-
-1.6.0.8	2011-04-28 10:04:56-06:00
-    Corrected "make web-update" rule: corrected symbolic link.
-
-1.6.0.7	2011-04-28 09:56:11-06:00
-    Improved "make ftp web-update": added "ensureRelase" as a prerequisite to
-    both.
-
-1.6.0.6	2011-04-28 09:47:04-06:00
-    Improved "make web-update": added symbolic linking to updated version.
-
-1.6.0.5	2011-04-28 09:10:32-06:00
-    Improved "make available": added target "ensureRelease", which skips the
-    "make release" actions if a release has already been made.
-
-1.6.0.4	2011-04-27 18:57:07-06:00
-    Improved portability of "readnoaaport.c":
-        Added "#define __EXTENSIONS__" so that SunOS 5.10's
-        /opt/SUNWspro/bin/cc(1) will compile it.
-
-        Added function prototype for "close_pq()".
-
-1.6.0.3	2011-04-27 14:29:48-06:00
-    Improved portability:
-        Removed _XOPEN_SOURCE from "gempak/cfltinq.c";
-
-        Defined HAVE_GET_QUEUE_PATH in "config.h" and modified
-        "dvbs_multicast.c" and "readnoaaport.c" to use it.
-
-1.6.0.2	2011-04-27 12:08:58-06:00
-        Improved "make release".
-
-1.6.0.1
-    Distribution:
-        Incremented minor version number due to change in build and install
-        mechanism.
-
-        Made "make release" and "make available" different.
-
-        Ignore failure of "make commit" because there might be nothing to
-        commit.
-
-1.5.3.10 2011-04-26
-    Distribution:
-        Renamed "shmfifo.h.in" to "shmfifo.hin".
-
-    configure(1):
-        Added check for function "sched_setscheduler()".
-
-        Added setting of environment variable CC before invocation of
-        "libpng/configure" so that configure(1) scripts would use the same
-        compiler.
-
-1.5.3.9 2011-04-24 15:03
-    Distribution:
-        Added missing "shmfifo.h.in" to EXTRA_DIST.
-
-        Added AC_USE_SYSTEM_EXTENSIONS to "configure.ac".
-
-1.5.3.8 2011-04-25 13:41
-    Building:
-        Migrated to automake(1).
-
-    dvbs_multicast(1):
-        Corrected off-by-one packet-number gap values.
-
-        Added logging of retrograde packet numbers.
-
-        Hid unnecessarily visible information.
-
-    readnoaaport(1):
-        Hid unnecessarily visible information.
+        Added some internal documentation.
 
     shmfifo(3) module:
-        Demoted message about finally writing to the shared-memory buffer from
-        ERROR to INFO.
-
-    Installation:
-        HTML documentation correctly generated and installed.
-
-    Misc:
-        Added README file.
-
-1.5.3.7 2011-04-14 14:49
-    INSTALL file:
-        Removed extraneous comment about commenting-out ULOG_FACILITY_OVERRIDE.
-		
-        Corrected spelling mistake.
-
-    shmfifo module:
         Corrected assignment bug.
 
-        Improved shmfifo_wait(): made use shmfifo_lock() and 
-        shmfifo_unlock().
-
-1.5.3.6 2011-04-12 14:37 
-    shmfifo module:
-        Split semaphore operation for waiting on a condition-variable
-        from 1 to 3 semop(2) calls.
-
-        Added checkLocked() and checkUnlocked().
-
-1.5.3.5 2011-04-12 13:30 
-    shmfifo module:
         Reworked semaphore signaling. Before, only 1 semaphore was used.
         Now, 3 semaphores are used: one for locking, one as a writer
         condition-variable, and one as a reader condition-variable.
 
-1.5.3.4 2011-04-08
-    Added "const" to many places in the "shmfifo" module.
+        Improved shmfifo_put():
+            Made blocking.
 
-    Ensured NOTICE and ERROR level messages before calling shmfifo_wait()
-    in shmfifo_get() and shmfifo_put(), respectively.
+            Made writing to the FIFO event-driven rather than poll-driven.
 
-1.5.3.3 2011-04-08
-    Improved shmfifo_get(): made blocking and restructured.
+            Added test for invalid size argument and for messages that are
+            too big to put into the FIFO.
 
-    Improved shmfifo_wait(): split the semaphore operations into 2 calls to
-    semop(2).
+            Ensured unconditional unlocking of FIFO.
 
-    Improved shmfifo_put(): added missing "break" to shmfifo_wait() loop
-    and rewrote loop to improve clarity.
+            Added once-per-call logging of insufficient FIFO space.
+            
+            Reformatted to structured programing.
 
-    Modified dvbs_multicast(1) to use blocking shmfifo_get().
+            Added internal documentation.
 
-    Modified readnoaaport(1): rewrote _shm_bufread() to improve clarity
-    and to use blocking shmfifo_get().
-        
-1.5.3.2 2011-04-07
-    Reverted file "readnoaaport.c" to tag "v1.5.2" to see if changes to
-    that file are responsible for causing no data-products to be inserted
-    into the product-queue. They are, apparently.
+        Improved shmfifo_get():
+            Made blocking.
 
-1.5.3.1 2011-04-07
-    Improved readnoaaport(1):
-        Ensured that the FIFO is locked before seeing if it's empty.
-        
-        Made the reading from the FIFO event-driven rather than poll-driven.
+            Made reading from the FIFO event-driven rather than poll-driven.
 
-        Added some internal documentation.
+            Ensured unconditional unlocking of FIFO.
+            
+            Reformatted to structured programing.
 
-    Improved shmfifo_put():
-        Added test for invalid size argument.
+            Added internal documentation.
 
-        Reformatted to increase clarity and ensure unconditional unlocking of
-        FIFO.
+        Added shmfifo_wait(), shmfifo_new(), shmfifo_free(), checkLocked() and
+        checkUnlocked().
 
-        Added once-per-call logging of insufficient FIFO space.
+        Reformatted shmfifo_create() to improve clarity.
 
-    Improved shmfifo_wait():
-        Added check on whether the current process holds the FIFO lock.
+        Replaced "shmfifo.h" with "shmfifo.hin" and extractDecls(1).
 
-        Added internal documentation regarding the use of the semaphore as a
-        condition variable.
+        Added "const" to many places.
 
-    Added internal documentation to shmfifo_get(3).
-
-    Added size of gap to dvbs_multicst(1)'s "gap" message.
-
-1.5.2   2011-04-05
-    Modified dvbs_multicast(1) so that it 1) only logs a failure to write to
-    the shared-memory FIFO once per UDP packet; and 2) logs a success message
-    when a failure finally succeeds.
-
-    Improved dvbs_multicast(1):
-        Created static function shmfifo_wait() and modified shmfifo_put(3) to
-        use it in a loop until sufficient space is available in the FIFO. This
-        will cause each write by dvbs_multicast(1) to block, if necessary,
-        until it succeeds -- a much better tactic than polling the
-        shared-memory FIFO every 100 microseconds.
-
-        Added test for messages that are too big to put in the FIFO to
-        shmfifo_put().
-
-    Corrected spelling in internal documentation.
-
-1.5.1   2010-12-29
-    Add commentary in Makefile on user-configurable macros.
-
-    Add editing of Makefile to installation instructions.
-
-1.5.0   2010-12-27
-    Adapt to work with LDM 6.9.
+    Misc:
+        Added README file.
