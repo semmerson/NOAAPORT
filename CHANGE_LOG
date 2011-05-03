@@ -1,3 +1,14 @@
+1.6.1.2	2011-05-03 15:37:55-06:00
+    Removed use of "-q" option from egrep(1) from makefile rules because SunOS
+    5.10 egrep(1) doesn't support it.
+
+    Replaced dependency of "html/index.html" on "mainpage.h" with dependency on
+    "mainpage.h.in" in order to prevent documentation regeneration during
+    remote installation.
+
+    Removed "releaseCheck" make(1) target because its purpose is covered by
+    the dependency of "configure.ac" on CHANGE_LOG.
+
 1.6.1.1	2011-05-03 14:56:05-06:00
     Corrected use of package and version strings in top-level webpage.
 

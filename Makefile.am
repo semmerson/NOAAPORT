@@ -166,7 +166,7 @@ debug:			readnoaaport
 	$(LIBTOOL) --mode=execute gdb -x /tmp/readnoaaport.gdb readnoaaport
 	rm /tmp/readnoaaport-test.pq /tmp/readnoaaport.gdb
 
-$(srcdir)/html/index.html:	$(srcdir)/mainpage.h $(srcdir)/Doxyfile
+$(srcdir)/html/index.html:	$(srcdir)/mainpage.h.in $(srcdir)/Doxyfile
 	cd $(srcdir) && doxygen Doxyfile
 
 install-html:		$(srcdir)/html/index.html $(DESTDIR)$(htmldir)
@@ -190,19 +190,11 @@ $(WEBROOT):
 
 configure.ac:	CHANGE_LOG
 	@newVersion=`awk '{print $$1; exit}' CHANGE_LOG`; \
-	echo $$newVersion | egrep -q '^[0-9]+(\.[0-9]+)*$$' || exit 1; \
+	echo $$newVersion | egrep '^[0-9]+(\.[0-9]+)*$$' >/dev/null || exit 1; \
 	if test "$$newVersion" != "$(VERSION)"; then \
 	    sed '/^AC_INIT(/s/[0-9][0-9.]*,/'"$$newVersion"',/' configure.ac \
 		>configure.ac.tmp; \
 	    mv configure.ac.tmp configure.ac; \
-	fi
-
-releaseCheck:
-	@newVersion=`awk '{print $$1; exit}' CHANGE_LOG`; \
-	echo $$newVersion | egrep -q '^[0-9]+(\.[0-9]+)*$$' || exit 1; \
-	if test "$$newVersion" = "$(VERSION)"; then \
-	    echo 1>&2 "Version $(VERSION) already released!"; \
-	    exit 1; \
 	fi
 
 timestamp:
@@ -218,7 +210,7 @@ tag:
 
 dist:		configure $(srcdir)/html/index.html
 
-release:	releaseCheck Makefile
+release:	Makefile
 	$(MAKE) timestamp dist commit tag
 
 ensureRelease:
@@ -256,7 +248,6 @@ available:		ensureRelease
 	ftp-actual \
 	install-html \
 	release \
-	releaseCheck \
 	tag \
 	timestamp \
 	web-update \
