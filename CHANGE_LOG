@@ -1,3 +1,9 @@
+1.6.1.1	2011-05-03 14:56:05-06:00
+    Corrected use of package and version strings in top-level webpage.
+
+    Improved release procedure: added dependency of "configure.ac" on
+    CHANGE_LOG and improved documentation dependencies (hopefully).
+
 1.6.0	2011-05-03 10:35:12-06:00
     Installation:
         Migrated to automake(1)-based installation.

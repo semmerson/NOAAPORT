@@ -32,14 +32,14 @@
  * As the LDM user in that user's home directory, get and unpack the
  * distribution:
  * \verbatim
- wget ftp://ftp.unidata.ucar.edu/pub/noaaport/@PACKAGE_STRING@.tar.gz
- gunzip -c @PACKAGE_STRING@.tar.gz | tar -xf -
+ wget ftp://ftp.unidata.ucar.edu/pub/noaaport/@PACKAGE@-@VERSION@.tar.gz
+ gunzip -c @PACKAGE@-@VERSION@.tar.gz | tar -xf -
 \endverbatim
  * Drop into the package directory and build the package using the same options
  * that were used to build the LDM package (which are displayed near the top
  * of the file \c config.log in the top-level LDM source-directory):
  * \verbatim
- cd @PACKAGE_STRING@
+ cd @PACKAGE@-@VERSION@
  ./configure [--disable-max-size] [--disable-root-actions] [CC=...] >configure.log 2>&1
  make install >make.log 2>&1
 \endverbatim

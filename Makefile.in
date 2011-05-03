@@ -301,6 +301,7 @@ EXTRA_DIST = \
     	extractDecls \
 	shmfifo.hin \
 	$(srcdir)/html \
+	mainpage.h \
 	mainpage.h.in \
 	nwstgdump.data
 
@@ -1279,9 +1280,7 @@ debug:			readnoaaport
 	$(LIBTOOL) --mode=execute gdb -x /tmp/readnoaaport.gdb readnoaaport
 	rm /tmp/readnoaaport-test.pq /tmp/readnoaaport.gdb
 
-$(srcdir)/html/index.html:	$(srcdir)/mainpage.h.in
-	./config.status
-	rm -rf $(srcdir)/html
+$(srcdir)/html/index.html:	$(srcdir)/mainpage.h $(srcdir)/Doxyfile
 	cd $(srcdir) && doxygen Doxyfile
 
 install-html:		$(srcdir)/html/index.html $(DESTDIR)$(htmldir)
@@ -1300,6 +1299,15 @@ $(FTPDIR) \
 $(WEBROOT):
 	mkdir -p $@
 
+configure.ac:	CHANGE_LOG
+	@newVersion=`awk '{print $$1; exit}' CHANGE_LOG`; \
+	echo $$newVersion | egrep -q '^[0-9]+(\.[0-9]+)*$$' || exit 1; \
+	if test "$$newVersion" != "$(VERSION)"; then \
+	    sed '/^AC_INIT(/s/[0-9][0-9.]*,/'"$$newVersion"',/' configure.ac \
+		>configure.ac.tmp; \
+	    mv configure.ac.tmp configure.ac; \
+	fi
+
 releaseCheck:
 	@newVersion=`awk '{print $$1; exit}' CHANGE_LOG`; \
 	echo $$newVersion | egrep -q '^[0-9]+(\.[0-9]+)*$$' || exit 1; \
@@ -1307,12 +1315,6 @@ releaseCheck:
 	    echo 1>&2 "Version $(VERSION) already released!"; \
 	    exit 1; \
 	fi
-
-versionUpdate:
-	newVersion=`head -1 CHANGE_LOG`; \
-	sed '/^AC_INIT(/s/[0-9][0-9.]*,/'"$$newVersion"',/' configure.ac \
-	    >configure.ac.tmp
-	mv configure.ac.tmp configure.ac
 
 timestamp:
 	sed '1s/$$/	'"`date --rfc-3339=seconds`"'/' CHANGE_LOG \
@@ -1325,7 +1327,9 @@ commit:
 tag:
 	git tag -f v$(VERSION)
 
-release:	releaseCheck versionUpdate Makefile
+dist:		configure $(srcdir)/html/index.html
+
+release:	releaseCheck Makefile
 	$(MAKE) timestamp dist commit tag
 
 ensureRelease:
@@ -1366,7 +1370,6 @@ available:		ensureRelease
 	releaseCheck \
 	tag \
 	timestamp \
-	versionUpdate \
 	web-update \
 	web-update-actual
 
