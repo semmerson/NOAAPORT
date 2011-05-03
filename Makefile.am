@@ -188,18 +188,22 @@ $(FTPDIR) \
 $(WEBROOT):
 	mkdir -p $@
 
+releaseCheck:
+	git status -a 
+
 configure.ac:	CHANGE_LOG
 	@newVersion=`awk '{print $$1; exit}' CHANGE_LOG`; \
 	echo $$newVersion | egrep '^[0-9]+(\.[0-9]+)*$$' >/dev/null || exit 1; \
-	if test "$$newVersion" != "$(VERSION)"; then \
-	    sed '/^AC_INIT(/s/[0-9][0-9.]*,/'"$$newVersion"',/' configure.ac \
-		>configure.ac.tmp; \
-	    mv configure.ac.tmp configure.ac; \
-	fi
+	sed '/^AC_INIT(/s/[0-9][0-9.]*,/'"$$newVersion"',/' configure.ac \
+	    >configure.ac.tmp
+	mv configure.ac.tmp configure.ac
 
 timestamp:
-	sed '1s/$$/	'"`date --rfc-3339=seconds`"'/' CHANGE_LOG \
-	    >CHANGE_LOG.tmp
+	awk '$$NF == 1 {\
+		print "$$1	'"`date --rfc-3339=seconds`"'";\
+		next;\
+	    }\
+	    {print}' CHANGE_LOG >CHANGE_LOG.tmp
 	mv CHANGE_LOG.tmp CHANGE_LOG
 
 commit:
