@@ -1,3 +1,6 @@
+1.6.2.8 	2011-05-04 12:17:23-06:00
+    Improved updating of file "lastRelease" in makefile.
+
 1.6.2.7 	2011-05-04 12:13:06-06:00
     Modified release-engineering rules in makefile to use file "lastRelease".
     This should allow manual setting of the version string in the file
