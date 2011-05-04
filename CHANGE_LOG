@@ -1,43 +1,5 @@
-1.6.2.9 	2011-05-04 12:25:03-06:00
-    Replaced use of file "lastRelease" with "git tag..." in makefile.
-
-1.6.2.8 	2011-05-04 12:17:23-06:00
-    Improved updating of file "lastRelease" in makefile.
-
-1.6.2.7 	2011-05-04 12:13:06-06:00
-    Modified release-engineering rules in makefile to use file "lastRelease".
-    This should allow manual setting of the version string in the file
-    "configure.ac", which appears necessary in order to make a public release.
-
-1.6.2.6 	2011-05-04 11:50:03-06:00
-    Improved release engineering:
-        "make release" now depends on "make releaseCheck".
-
-        Cleaned-up rest of release engineering rules in makefile.
-
-1.6.2.5 	2011-05-04 11:26:46-06:00
-    Improved "make release":
-        Removed rule for making "configure.ac" from "CHANGE_LOG". This should
-        reduce the number of configure(1) invocations.
-
-        Added blank line before previous version in CHANGE_LOG.
-
-1.6.2.4 	2011-05-04 11:20:55-06:00
-    Improved "make release": attempt to reduce the number of configure(1)
-    invocations by removing the dependency of "make dist" on "configure".
-
-1.6.2.3 	2011-05-04 11:15:25-06:00
-    Improved "make release": attempt to reduce the number of configure(1)
-    invocations.
-
-1.6.2.2 	2011-05-04 11:06:32-06:00
-    Improved "make release"
-        Fixed "make timestamp".
-
-        Added "make commitAndTag"
-
-1.6.2.1 	2011-05-04 10:58:53-06:00
-    New "make release" rule.
+1.6.2 	2011-05-04 12:28:13-06:00
+    Improved release-engineering rules in makefile.
 
 1.6.1	2011-05-03 15:51:08-06:00
     Corrected use of package and version strings in top-level webpage.
