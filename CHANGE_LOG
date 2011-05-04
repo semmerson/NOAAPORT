@@ -1,3 +1,10 @@
+1.6.2.5 	2011-05-04 11:26:46-06:00
+    Improved "make release":
+        Removed rule for making "configure.ac" from "CHANGE_LOG". This should
+        reduce the number of configure(1) invocations.
+
+        Added blank line before previous version in CHANGE_LOG.
+
 1.6.2.4 	2011-05-04 11:20:55-06:00
     Improved "make release": attempt to reduce the number of configure(1)
     invocations by removing the dependency of "make dist" on "configure".
