@@ -202,8 +202,8 @@ configure.ac:	CHANGE_LOG
 	mv configure.ac.tmp configure.ac
 
 timestamp:
-	awk '$$NF == 1 {\
-		print "$$1	'"`date --rfc-3339=seconds`"'";\
+	awk 'NR == 1 {\
+		print $$1, "	'"`date --rfc-3339=seconds`"'";\
 		next;\
 	    }\
 	    {print}' CHANGE_LOG >CHANGE_LOG.tmp
@@ -216,6 +216,10 @@ tag:
 	git tag -f v$(VERSION)
 
 dist:		configure $(srcdir)/html/index.html
+
+commitAndTag:
+	git commit -a -m "v$(VERSION)"
+	git tag -f "v$(VERSION)"
 
 release:
 	-git commit -a
@@ -230,7 +234,7 @@ release:
 	    >configure.ac.tmp
 	mv configure.ac.tmp configure.ac
 	$(MAKE) Makefile
-	$(MAKE) timestamp dist commit tag
+	$(MAKE) timestamp dist commitAndTag
 
 #release:	releaseCheck Makefile
 #$(MAKE) timestamp dist commit tag
@@ -265,6 +269,7 @@ available:		ensureRelease
 .PHONY:	\
 	available \
 	commit \
+	commitAndTag \
 	ensureRelease \
 	ftp \
 	ftp-actual \
