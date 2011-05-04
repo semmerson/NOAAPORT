@@ -189,10 +189,13 @@ $(WEBROOT):
 	mkdir -p $@
 
 releaseCheck:
-	if ! git status -a >/dev/null; then \
+	git diff v$(VERSION) >diff.log
+	if ! test -s diff.log; then \
 	    echo 2>&1 "Release $(VERSION) already made"; \
+	    rm diff.log; \
 	    exit 1; \
 	fi
+	rm diff.log
 
 timestamp:
 	awk 'NR == 1 {\
@@ -202,19 +205,13 @@ timestamp:
 	    {print}' CHANGE_LOG >CHANGE_LOG.tmp
 	mv CHANGE_LOG.tmp CHANGE_LOG
 
-commit:
-	-git commit -a
-
-tag:
-	git tag -f v$(VERSION)
-
 dist:		configure $(srcdir)/html/index.html
 
 commitAndTag:
 	git commit -a -m "v$(VERSION)"
 	git tag -f "v$(VERSION)"
 
-release:
+release:	releaseCheck
 	-git commit -a
 	echo 'PUT VERSION HERE' >CHANGE_LOG.tmp
 	git log --pretty=full v$(VERSION).. >>CHANGE_LOG.tmp
@@ -228,9 +225,6 @@ release:
 	    >configure.ac.tmp
 	mv configure.ac.tmp configure.ac
 	$(MAKE) timestamp dist commitAndTag
-
-#release:	releaseCheck Makefile
-#$(MAKE) timestamp dist commit tag
 
 ensureRelease:
 	-@$(MAKE) release
@@ -261,7 +255,6 @@ available:		ensureRelease
 
 .PHONY:	\
 	available \
-	commit \
 	commitAndTag \
 	ensureRelease \
 	ftp \
@@ -269,7 +262,6 @@ available:		ensureRelease
 	install-html \
 	release \
 	releaseCheck \
-	tag \
 	timestamp \
 	web-update \
 	web-update-actual
