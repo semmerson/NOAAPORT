@@ -1299,18 +1299,25 @@ $(FTPDIR) \
 $(WEBROOT):
 	mkdir -p $@
 
+releaseCheck:
+	if ! git status -a >/dev/null; then \
+	    echo 2>&1 "Release $(VERSION) already made"; \
+	    exit 1; \
+	fi
+
 configure.ac:	CHANGE_LOG
 	@newVersion=`awk '{print $$1; exit}' CHANGE_LOG`; \
 	echo $$newVersion | egrep '^[0-9]+(\.[0-9]+)*$$' >/dev/null || exit 1; \
-	if test "$$newVersion" != "$(VERSION)"; then \
-	    sed '/^AC_INIT(/s/[0-9][0-9.]*,/'"$$newVersion"',/' configure.ac \
-		>configure.ac.tmp; \
-	    mv configure.ac.tmp configure.ac; \
-	fi
+	sed '/^AC_INIT(/s/[0-9][0-9.]*,/'"$$newVersion"',/' configure.ac \
+	    >configure.ac.tmp
+	mv configure.ac.tmp configure.ac
 
 timestamp:
-	sed '1s/$$/	'"`date --rfc-3339=seconds`"'/' CHANGE_LOG \
-	    >CHANGE_LOG.tmp
+	awk '$$NF == 1 {\
+		print "$$1	'"`date --rfc-3339=seconds`"'";\
+		next;\
+	    }\
+	    {print}' CHANGE_LOG >CHANGE_LOG.tmp
 	mv CHANGE_LOG.tmp CHANGE_LOG
 
 commit:
@@ -1321,8 +1328,23 @@ tag:
 
 dist:		configure $(srcdir)/html/index.html
 
-release:	Makefile
+release:
+	-git commit -a
+	echo 'PUT VERSION HERE' >CHANGE_LOG.tmp
+	git log --pretty=full v$(VERSION).. >>CHANGE_LOG.tmp
+	cat CHANGE_LOG >>CHANGE_LOG.tmp
+	vi CHANGE_LOG.tmp
+	mv CHANGE_LOG.tmp CHANGE_LOG
+	@newVersion=`awk '{print $$1; exit}' CHANGE_LOG`; \
+	echo $$newVersion | egrep '^[0-9]+(\.[0-9]+)*$$' >/dev/null || exit 1; \
+	sed '/^AC_INIT(/s/[0-9][0-9.]*,/'"$$newVersion"',/' configure.ac \
+	    >configure.ac.tmp
+	mv configure.ac.tmp configure.ac
+	$(MAKE) Makefile
 	$(MAKE) timestamp dist commit tag
+
+#release:	releaseCheck Makefile
+#$(MAKE) timestamp dist commit tag
 
 ensureRelease:
 	-@$(MAKE) release
@@ -1359,6 +1381,7 @@ available:		ensureRelease
 	ftp-actual \
 	install-html \
 	release \
+	releaseCheck \
 	tag \
 	timestamp \
 	web-update \
