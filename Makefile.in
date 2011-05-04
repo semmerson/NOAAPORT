@@ -1322,6 +1322,9 @@ commitAndTag:
 	git commit -a -m "v$(VERSION)"
 	git tag -f "v$(VERSION)"
 
+lastRelease:
+	echo $(VERSION) >lastRelease
+
 release:	releaseCheck
 	-git commit -a
 	echo 'PUT VERSION HERE' >CHANGE_LOG.tmp
@@ -1335,8 +1338,7 @@ release:	releaseCheck
 	sed '/^AC_INIT(/s/[0-9][0-9.]*,/'"$$newVersion"',/' configure.ac \
 	    >configure.ac.tmp
 	mv configure.ac.tmp configure.ac
-	$(MAKE) timestamp dist commitAndTag
-	echo $(VERSION) >lastRelease
+	$(MAKE) timestamp dist commitAndTag lastRelease
 
 ensureRelease:
 	-@$(MAKE) release
@@ -1372,6 +1374,7 @@ available:		ensureRelease
 	ftp \
 	ftp-actual \
 	install-html \
+	lastRelease \
 	release \
 	releaseCheck \
 	timestamp \
