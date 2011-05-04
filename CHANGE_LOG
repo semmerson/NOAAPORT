@@ -1,3 +1,6 @@
+1.6.2.1
+    New "make release" rule.
+
 1.6.1	2011-05-03 15:51:08-06:00
     Corrected use of package and version strings in top-level webpage.
 
