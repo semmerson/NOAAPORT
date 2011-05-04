@@ -224,9 +224,9 @@ OBJEXT = o
 PACKAGE = noaaport
 PACKAGE_BUGREPORT = support-noaaport@unidata.ucar.edu
 PACKAGE_NAME = NOAAPORT
-PACKAGE_STRING = NOAAPORT 1.6.2.6
+PACKAGE_STRING = NOAAPORT 1.6.2
 PACKAGE_TARNAME = noaaport
-PACKAGE_VERSION = 1.6.2.6
+PACKAGE_VERSION = 1.6.2
 PATH_SEPARATOR = :
 RANLIB = ranlib
 SED = /bin/sed
@@ -235,7 +235,7 @@ SHELL = /bin/sh
 STRIP = strip
 SU = /bin/su
 SUDO = 
-VERSION = 1.6.2.6
+VERSION = 1.6.2
 abs_builddir = /home/steve/ldm/package/noaaport
 abs_srcdir = /home/steve/ldm/package/noaaport
 abs_top_builddir = /home/steve/ldm/package/noaaport
@@ -1300,7 +1300,7 @@ $(WEBROOT):
 	mkdir -p $@
 
 releaseCheck:
-	git diff v$(VERSION) >diff.log
+	-git diff v$(VERSION) >diff.log 2>&1
 	if ! test -s diff.log; then \
 	    echo 2>&1 "Release $(VERSION) already made"; \
 	    rm diff.log; \

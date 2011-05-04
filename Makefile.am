@@ -189,7 +189,7 @@ $(WEBROOT):
 	mkdir -p $@
 
 releaseCheck:
-	git diff v$(VERSION) >diff.log
+	-git diff v$(VERSION) >diff.log 2>&1
 	if ! test -s diff.log; then \
 	    echo 2>&1 "Release $(VERSION) already made"; \
 	    rm diff.log; \
