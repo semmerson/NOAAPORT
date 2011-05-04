@@ -189,7 +189,7 @@ $(WEBROOT):
 	mkdir -p $@
 
 releaseCheck:
-	git diff v`cat lastRelease` >diff.log
+	git diff `git tag -l v\* | tail -1` >diff.log
 	if ! test -s diff.log; then \
 	    echo 2>&1 "No changes since last release"; \
 	    rm diff.log; \
@@ -211,13 +211,10 @@ commitAndTag:
 	git commit -a -m "v$(VERSION)"
 	git tag -f "v$(VERSION)"
 
-lastRelease:
-	echo $(VERSION) >lastRelease
-
 release:	releaseCheck
 	-git commit -a
 	echo 'PUT VERSION HERE' >CHANGE_LOG.tmp
-	git log --pretty=full v`cat lastRelease`.. >>CHANGE_LOG.tmp
+	git log --pretty=full `git tag -l v\* | tail -1`.. >>CHANGE_LOG.tmp
 	echo '' >>CHANGE_LOG.tmp
 	cat CHANGE_LOG >>CHANGE_LOG.tmp
 	vi CHANGE_LOG.tmp
@@ -227,7 +224,7 @@ release:	releaseCheck
 	sed '/^AC_INIT(/s/[0-9][0-9.]*,/'"$$newVersion"',/' configure.ac \
 	    >configure.ac.tmp
 	mv configure.ac.tmp configure.ac
-	$(MAKE) timestamp dist commitAndTag lastRelease
+	$(MAKE) timestamp dist commitAndTag
 
 ensureRelease:
 	-@$(MAKE) release
@@ -263,7 +260,6 @@ available:		ensureRelease
 	ftp \
 	ftp-actual \
 	install-html \
-	lastRelease \
 	release \
 	releaseCheck \
 	timestamp \
