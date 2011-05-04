@@ -1,3 +1,6 @@
+1.6.2.9 	2011-05-04 12:25:03-06:00
+    Replaced use of file "lastRelease" with "git tag..." in makefile.
+
 1.6.2.8 	2011-05-04 12:17:23-06:00
     Improved updating of file "lastRelease" in makefile.
 
