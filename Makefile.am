@@ -194,13 +194,6 @@ releaseCheck:
 	    exit 1; \
 	fi
 
-configure.ac:	CHANGE_LOG
-	@newVersion=`awk '{print $$1; exit}' CHANGE_LOG`; \
-	echo $$newVersion | egrep '^[0-9]+(\.[0-9]+)*$$' >/dev/null || exit 1; \
-	sed '/^AC_INIT(/s/[0-9][0-9.]*,/'"$$newVersion"',/' configure.ac \
-	    >configure.ac.tmp
-	mv configure.ac.tmp configure.ac
-
 timestamp:
 	awk 'NR == 1 {\
 		print $$1, "	'"`date --rfc-3339=seconds`"'";\
@@ -215,7 +208,7 @@ commit:
 tag:
 	git tag -f v$(VERSION)
 
-dist:		$(srcdir)/html/index.html
+dist:		configure $(srcdir)/html/index.html
 
 commitAndTag:
 	git commit -a -m "v$(VERSION)"
@@ -225,6 +218,7 @@ release:
 	-git commit -a
 	echo 'PUT VERSION HERE' >CHANGE_LOG.tmp
 	git log --pretty=full v$(VERSION).. >>CHANGE_LOG.tmp
+	echo '' >>CHANGE_LOG.tmp
 	cat CHANGE_LOG >>CHANGE_LOG.tmp
 	vi CHANGE_LOG.tmp
 	mv CHANGE_LOG.tmp CHANGE_LOG
