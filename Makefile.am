@@ -189,9 +189,9 @@ $(WEBROOT):
 	mkdir -p $@
 
 releaseCheck:
-	-git diff v$(VERSION) >diff.log 2>&1
+	git diff v`cat lastRelease` >diff.log
 	if ! test -s diff.log; then \
-	    echo 2>&1 "Release $(VERSION) already made"; \
+	    echo 2>&1 "No changes since last release"; \
 	    rm diff.log; \
 	    exit 1; \
 	fi
@@ -214,7 +214,7 @@ commitAndTag:
 release:	releaseCheck
 	-git commit -a
 	echo 'PUT VERSION HERE' >CHANGE_LOG.tmp
-	git log --pretty=full v$(VERSION).. >>CHANGE_LOG.tmp
+	git log --pretty=full v`cat lastRelease`.. >>CHANGE_LOG.tmp
 	echo '' >>CHANGE_LOG.tmp
 	cat CHANGE_LOG >>CHANGE_LOG.tmp
 	vi CHANGE_LOG.tmp
@@ -225,6 +225,7 @@ release:	releaseCheck
 	    >configure.ac.tmp
 	mv configure.ac.tmp configure.ac
 	$(MAKE) timestamp dist commitAndTag
+	echo $(VERSION) >lastRelease
 
 ensureRelease:
 	-@$(MAKE) release
