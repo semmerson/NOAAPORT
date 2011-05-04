@@ -233,7 +233,7 @@ release:
 	sed '/^AC_INIT(/s/[0-9][0-9.]*,/'"$$newVersion"',/' configure.ac \
 	    >configure.ac.tmp
 	mv configure.ac.tmp configure.ac
-	$(MAKE) Makefile
+	ls -t configure* Makefile*
 	$(MAKE) timestamp dist commitAndTag
 
 #release:	releaseCheck Makefile
