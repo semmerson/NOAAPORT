@@ -1326,7 +1326,7 @@ commit:
 tag:
 	git tag -f v$(VERSION)
 
-dist:		configure $(srcdir)/html/index.html
+dist:		$(srcdir)/html/index.html
 
 commitAndTag:
 	git commit -a -m "v$(VERSION)"
@@ -1344,7 +1344,6 @@ release:
 	sed '/^AC_INIT(/s/[0-9][0-9.]*,/'"$$newVersion"',/' configure.ac \
 	    >configure.ac.tmp
 	mv configure.ac.tmp configure.ac
-	ls -t configure* Makefile*
 	$(MAKE) timestamp dist commitAndTag
 
 #release:	releaseCheck Makefile
