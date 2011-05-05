@@ -1302,11 +1302,16 @@ $(WEBROOT):
 releaseCheck:
 	git diff `git tag -l v\* | tail -1` >diff.log
 	if ! test -s diff.log; then \
-	    echo 2>&1 "No changes since last release"; \
+	    echo 2>&1 "No changes since last release!"; \
 	    rm diff.log; \
 	    exit 1; \
 	fi
 	rm diff.log
+	regex=`echo $(VERSION) | sed 's/\./\\./g'`; \
+	if git tag -l v\* | grep "^v$$regex$$"; then \
+	    echo 2>&1 'Tag "v$(VERSION)" already exists!'; \
+	    exit 1; \
+	fi
 
 timestamp:
 	awk 'NR == 1 {\
