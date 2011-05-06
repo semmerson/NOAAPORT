@@ -246,7 +246,7 @@ ftp-actual:		dist $(FTPDIR)
 ftp:			ensureRelease
 	$(MAKE) ftp-actual
 
-web-update-actual:	$(srcdir)/html/index.html $(WEBROOT)
+software-update:	$(srcdir)/html/index.html $(WEBROOT)
 	-mkdir $(WEBROOT)/$(VERSION)
 	cp -R html/* $(WEBROOT)/$(VERSION)
 	echo 'RemoveOutputFilter LAYOUT html htm' \
@@ -254,8 +254,20 @@ web-update-actual:	$(srcdir)/html/index.html $(WEBROOT)
 	rm -f $(WEBROOT)/current
 	$(LN_S) $(VERSION) $(WEBROOT)/current
 
+download_update:
+	previous=`sed -n 's/.*"%current%" value="\(.*\)".*/\1/p' \
+		 /web/content/downloads/$(PACKAGE)/toc.xml`; \
+	if test "$$previous" != "$(VERSION)"; then \
+	    sed -e 's/"%current%" value=".*"/"%current%" value="$(VERSION)"/' \
+	    -e 's/"%previous%" value=".*"/"%previous%" value="'$$previous'"/' \
+		/web/content/downloads/$(PACKAGE)/toc.xml >toc.xml.new; \
+	    cp /web/content/downloads/$(PACKAGE)/toc.xml \
+		/web/content/downloads/$(PACKAGE)/toc.xml.old; \
+	    mv -f toc.xml.new /web/content/downloads/$(PACKAGE)/toc.xml; \
+	fi
+
 web-update:		ensureRelease
-	$(MAKE) web-update-actual
+	$(MAKE) software-update download_update
 
 # Apparently, there's no rule to create $(distArchive).
 available:		ensureRelease
@@ -264,12 +276,13 @@ available:		ensureRelease
 .PHONY:	\
 	available \
 	commitAndTag \
+	download_update \
 	ensureRelease \
 	ftp \
 	ftp-actual \
 	install-html \
 	release \
 	releaseCheck \
+	software-update \
 	timestamp \
-	web-update \
-	web-update-actual
+	web-update
