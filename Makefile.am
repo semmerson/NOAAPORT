@@ -82,6 +82,8 @@ TAGS_FILES		= \
 
 DISTCHECK_CONFIGURE_FLAGS	= --disable-root-actions --disable-shared
 
+all:		$(srcdir)/html/index.html
+
 shmfifo.h:	$(srcdir)/shmfifo.hin \
 		$(srcdir)/shmfifo.c \
 		$(srcdir)/extractDecls
@@ -166,7 +168,8 @@ debug:			readnoaaport
 	$(LIBTOOL) --mode=execute gdb -x /tmp/readnoaaport.gdb readnoaaport
 	rm /tmp/readnoaaport-test.pq /tmp/readnoaaport.gdb
 
-$(srcdir)/html/index.html:	$(srcdir)/mainpage.h.in $(srcdir)/Doxyfile
+$(srcdir)/html/index.html:	$(srcdir)/configure.ac $(srcdir)/mainpage.h.in \
+		$(srcdir)/Doxyfile
 	cd $(srcdir) && doxygen Doxyfile
 
 install-html:		$(srcdir)/html/index.html $(DESTDIR)$(htmldir)
