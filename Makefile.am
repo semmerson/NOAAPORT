@@ -13,8 +13,6 @@ LDMSRC			= $(LDMHOME)/src
 SUDO			= @SUDO@
 SU			= @SU@
 
-BUILT_SOURCES		= shmfifo.h
-
 SUBDIRS			= zlib g2 gempak libpng tables
 
 distName 		= $(PACKAGE)-$(VERSION)
@@ -23,9 +21,7 @@ EXTRA_DIST 		= \
     	CHANGE_LOG \
     	COPYRIGHT \
 	Doxyfile \
-    	extractDecls \
-	shmfifo.hin \
-	$(srcdir)/html \
+	html \
 	mainpage.h \
 	mainpage.h.in \
 	nwstgdump.data
@@ -33,9 +29,13 @@ DISTCLEANFILES		= mainpage.h $(distArchive)
 
 lib_LTLIBRARIES		= libnoaaport.la
 libnoaaport_la_SOURCES	= shmfifo.c shmfifo.h
+libnoaaport_la_CPPFLAGS	= \
+	-I$(top_srcdir)/g2 \
+	-I$(top_srcdir)/gempak \
+	-I$(top_srcdir)/zlib
 libnoaaport_la_LIBADD	= g2/lib.la gempak/lib.la libpng/libpng.la zlib/lib.la
 
-bin_PROGRAMS		= dvbs_multicast readnoaaport
+bin_PROGRAMS		= dvbs_multicast readnoaaport noaaportIngester
 dist_bin_SCRIPTS	= \
 	dvbs_goes \
 	dvbs_nwstg \
@@ -47,20 +47,19 @@ dist_bin_SCRIPTS	= \
 	nplog_rotate \
 	nwstg_mps0
 
-CPPFLAGS		= -I$(LDMHOME)/include
+CPPFLAGS		= -I$(LDMHOME)/include -I$(LDMHOME)/src/ulog
 LDADD 			= libnoaaport.la -L$(LDMHOME)/lib -lldm -lxml2
 
 dvbs_multicast_SOURCES	= dvbs_multicast.c
 
-readnoaaport_SOURCES	= \
-	config.h \
+COMMON_SOURCES		= \
 	dvbs.h \
 	grib2name.c \
 	gribid.c \
+	ldmProductQueue.c ldmProductQueue.h \
 	nport.h \
 	png_io.c \
 	process_prod.c \
-	readnoaaport.c \
 	readpdb.c \
 	readpdh.c \
 	readpsh.c\
@@ -69,10 +68,22 @@ readnoaaport_SOURCES	= \
 	wgrib.c \
 	wmo_header.c \
 	wmo_header.h
-readnoaaport_CPPFLAGS 	= \
+COMMON_CPPFLAGS		= \
 	-I$(top_srcdir)/g2 -I$(top_srcdir)/gempak -I$(top_srcdir)/zlib
+readnoaaport_SOURCES	= readnoaaport.c $(COMMON_SOURCES)
+readnoaaport_CPPFLAGS 	= $(COMMON_CPPFLAGS)
+
+noaaportIngester_SOURCES	= noaaportIngester.c $(COMMON_SOURCES) \
+	fifo.c fifo.h \
+	fileReader.c fileReader.h \
+	getFacilityName.c getFacilityName.h \
+	multicastReader.c multicastReader.h \
+	productMaker.c productMaker.h \
+	reader.c reader.h
+noaaportIngester_CPPFLAGS 	= $(COMMON_CPPFLAGS)
 
 TAGS_FILES		= \
+	*.c *.h \
 	$(LDMSRC)/pq/*.c $(LDMSRC)/pq/*.h \
 	$(LDMSRC)/protocol/*.c $(LDMSRC)/protocol/*.h \
 	$(LDMSRC)/ulog/*.c $(LDMSRC)/ulog/*.h \
@@ -82,13 +93,28 @@ TAGS_FILES		= \
 
 DISTCHECK_CONFIGURE_FLAGS	= --disable-root-actions --disable-shared
 
+if MAINTAINER
 all:		$(srcdir)/html/index.html
 
-shmfifo.h:	$(srcdir)/shmfifo.hin \
-		$(srcdir)/shmfifo.c \
-		$(srcdir)/extractDecls
-	./extractDecls $(srcdir)/shmfifo.hin $(srcdir)/shmfifo.c >$@.tmp
-	mv $@.tmp $@
+$(srcdir)/html/index.html:	$(srcdir)/configure.ac $(srcdir)/mainpage.h.in \
+		$(srcdir)/Doxyfile
+	cd $(srcdir) && doxygen Doxyfile
+
+.hin.h:
+	./extractDecls $*.hin $*.c >$@.tmp
+	mv -f $@.tmp $@
+shmfifo.h:		shmfifo.c shmfifo.hin extractDecls
+ldmProductQueue.h:	ldmProductQueue.c ldmProductQueue.hin extractDecls
+fifo.h:			fifo.c fifo.hin extractDecls
+reader.h:		reader.c reader.hin extractDecls
+fileReader.h:		fileReader.c fileReader.hin extractDecls
+multicastReader.h:	multicastReader.c multicastReader.hin extractDecls
+productMaker.h:		productMaker.c productMaker.hin extractDecls
+getFacilityName.h:	getFacilityName.c getFacilityName.hin extractDecls
+
+.c.i:
+	$(CC) $(CPPFLAGS) -E $< >$@
+endif
 
 libpng/libpng.la:
 	cd libpng && $(MAKE) $(AM_MAKEFLAGS) all
@@ -148,29 +174,51 @@ installcheck-local:
 	    $(srcdir)/nwstgdump.data
 	rm /tmp/readnoaaport-test.pq
 
-check-local:		readnoaaport
+check-local:		check-readnoaaport check-noaaportIngester
+check-readnoaaport:	readnoaaport
 	pqcreate -c -s 2m /tmp/readnoaaport-test.pq
-	./readnoaaport -l- -q /tmp/readnoaaport-test.pq \
+	./readnoaaport -nl- -q /tmp/readnoaaport-test.pq \
 	    $(srcdir)/nwstgdump.data
 	rm /tmp/readnoaaport-test.pq
+check-noaaportIngester:	noaaportIngester
+	pqcreate -c -s 2m /tmp/noaaportIngester-test.pq
+	./noaaportIngester -n -q /tmp/noaaportIngester-test.pq \
+	    <$(srcdir)/nwstgdump.data
+	rm /tmp/noaaportIngester-test.pq
 
-valgrind:		readnoaaport
+valgrind:		valgrind-readnoaaport valgrind-noaaportIngester
+
+valgrind-readnoaaport:		readnoaaport
 	pqcreate -c -s 2m /tmp/readnoaaport-test.pq
 	$(LIBTOOL) --mode=execute valgrind --leak-check=yes \
 	    readnoaaport -l- -q /tmp/readnoaaport-test.pq nwstgdump.data
 	rm /tmp/readnoaaport-test.pq
 
-debug:			readnoaaport
+valgrind-noaaportIngester:		noaaportIngester
+	pqcreate -c -s 2m /tmp/noaaportIngester-test.pq
+	$(LIBTOOL) --mode=execute valgrind --leak-check=yes \
+	    noaaportIngester -n -q /tmp/noaaportIngester-test.pq \
+		<$(srcdir)/nwstgdump.data
+	rm /tmp/noaaportIngester-test.pq
+
+debug-readnoaaport:	readnoaaport
 	pqcreate -c -s 2m /tmp/readnoaaport-test.pq
 	echo 'handle SIGCONT pass noprint nostop' >/tmp/readnoaaport.gdb
+	echo 'b 617' >>/tmp/readnoaaport.gdb
 	echo 'run -l- -q /tmp/readnoaaport-test.pq nwstgdump.data' \
 	    >>/tmp/readnoaaport.gdb
 	$(LIBTOOL) --mode=execute gdb -x /tmp/readnoaaport.gdb readnoaaport
 	rm /tmp/readnoaaport-test.pq /tmp/readnoaaport.gdb
 
-$(srcdir)/html/index.html:	$(srcdir)/configure.ac $(srcdir)/mainpage.h.in \
-		$(srcdir)/Doxyfile
-	cd $(srcdir) && doxygen Doxyfile
+debug-noaaportIngester:	noaaportIngester
+	pqcreate -c -s 2m /tmp/noaaportIngester-test.pq
+	echo 'handle SIGCONT pass noprint nostop' >/tmp/noaaportIngester.gdb
+	echo 'handle SIGTERM pass nostop' >/tmp/noaaportIngester.gdb
+	echo 'run -q /tmp/noaaportIngester-test.pq -n -m 224.0.1.1' \
+	    >>/tmp/noaaportIngester.gdb
+	$(LIBTOOL) --mode=execute gdb -x /tmp/noaaportIngester.gdb \
+	      noaaportIngester
+	rm /tmp/noaaportIngester-test.pq /tmp/noaaportIngester.gdb
 
 install-html:		$(srcdir)/html/index.html $(DESTDIR)$(htmldir)
 	cp -R $(srcdir)/html/* $(DESTDIR)$(htmldir)

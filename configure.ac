@@ -8,7 +8,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(NOAAPORT, 1.6.3.1, support-noaaport@unidata.ucar.edu)
+AC_INIT(NOAAPORT, 1.7.0.1, support-noaaport@unidata.ucar.edu)
 AC_CONFIG_SRCDIR([shmfifo.c])
 AC_CONFIG_AUX_DIR([.])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
@@ -16,7 +16,7 @@ AC_CONFIG_HEADERS([config.h])
 
 AM_CONDITIONAL([MAINTAINER],
     [test "$USER" = steve && test `uname -n` = gilda.unidata.ucar.edu &&
-    test $PWD = $HOME/ldm/package/noaaport])
+    test $PWD = /machine/steve/ldm/noaaport])
 
 AC_ARG_ENABLE([debug],
 [AS_HELP_STRING([--enable-debug],[Turn on debugging support])],
@@ -218,6 +218,8 @@ AC_SEARCH_LIBS([socket], [socket], ,
     AC_MSG_ERROR([cannot find function socket()]))
 AC_SEARCH_LIBS([gethostbyname], [nsl], , 
     AC_MSG_ERROR([cannot find function gethostbyname()]))
+AC_SEARCH_LIBS([pthread_create], [pthread], , 
+    AC_MSG_ERROR([cannot find function pthread_create()]))
 
 # Checks for header files.
 AC_HEADER_STDC

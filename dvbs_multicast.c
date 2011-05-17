@@ -11,21 +11,21 @@
  *   product-queue.
  */
 #define _XOPEN_SOURCE 500
-#define __EXTENSIONS__
+#define __EXTENSIONS__          /* To get "struct ip_mreq" */
 
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
-#include <unistd.h>		/* close() */
+#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #define __USE_MISC              /* To get "struct ip_mreq". Don't move! */
 #include <netdb.h>
 #include <netinet/in.h>         /* defines "struct ip_mreq" */
 #include <arpa/inet.h>
-#include <sched.h>		/* Use Realtime Scheduler */
+#include <sched.h>		        /* Use Realtime Scheduler */
 
 /* If we are setuid root, we can lock memory so it won't be swapped out */
 #include <sys/mman.h>
@@ -192,8 +192,8 @@ static void cleanup(void)
 }
 
 /**
- * Captures NOAAPORT broadcast UDP packets from a DVB-S receiver and writes
- * the data into a shared-memory FIFO or an LDM product-queue.
+ * Captures NOAAPORT broadcast UDP packets from a DVB-S or DVB-S2 receiver and
+ * writes the data into a shared-memory FIFO or an LDM product-queue.
  *
  * Usage:
  *

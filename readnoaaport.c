@@ -38,11 +38,13 @@
 #include "globals.h"
 #include "md5.h"
 #include "ulog.h"
+#include "log.h"
 #include "setenv.h"
 #include "libpng/png.h"
 
 #include "dvbs.h"
 #include "config.h"
+#include "ldmProductQueue.h"
 
 #ifndef HAVE_GET_QUEUE_PATH
 #include "paths.h"      /* pre LDM 6.9 style */
@@ -58,15 +60,15 @@ datastore *ds_alloc();
 void pngout_end();
 void process_prod(prodstore prod, char *PROD_NAME,
 		   char *memheap, size_t heapsize, MD5_CTX * md5try,
-		   char *pqfname, psh_struct * psh, sbn_struct * sbn);
+		   LdmProductQueue* lpq, psh_struct * psh, sbn_struct * sbn);
 void pngwrite(char *memheap);
 void png_set_memheap(char *memheap, MD5_CTX * md5ctxp);
 void png_header(char *memheap, int length);
 void pngout_init(int width, int height);
 int png_get_prodlen();
 int prod_isascii(char *pname, char *prod, size_t psize);
-void close_pq(void);
 
+static LdmProductQueue*         ldmProdQueue = NULL;
 static unsigned long            idle = 0;
 static fd_set                   readfds;
 static fd_set                   exceptfds;
@@ -92,7 +94,7 @@ static void cleanup(void)
 {
     unotice("Exiting...\0");
     dump_stats();
-    close_pq();
+    (void)lpqClose(ldmProdQueue);
 
     if (shm != NULL) {
        shmfifo_detach(shm);
@@ -598,6 +600,11 @@ int main(
     md5ctxp = new_MD5_CTX();
     prod.head = NULL;
     prod.tail = NULL;
+
+    if (lpqGet(pqfname, &ldmProdQueue) != 0) {
+        LOG_ADD1("Couldn't open LDM product-queue \"%s\"", pqfname);
+        exit(1);
+    }
 
     while (DONE == 0) {
         /* See if any stats need to be logged */
@@ -1206,7 +1213,7 @@ int main(
             }
 
             process_prod(prod, PROD_NAME, memheap, heapcount,
-                md5ctxp, (char*)pqfname, psh, sbn);
+                md5ctxp, ldmProdQueue, psh, sbn);
             ds_free();
 
             prod.head = NULL;

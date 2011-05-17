@@ -26,3 +26,10 @@ core.*
 *.swp
 mainpage.h
 html
+fifo.h
+fileReader.h
+ldmProductQueue.h
+multicastReader.h
+noaaportIngester
+productMaker.h
+reader.h

@@ -45,7 +45,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = x86_64-unknown-linux-gnu
 host_triplet = x86_64-unknown-linux-gnu
-bin_PROGRAMS = dvbs_multicast$(EXEEXT) readnoaaport$(EXEEXT)
+bin_PROGRAMS = dvbs_multicast$(EXEEXT) readnoaaport$(EXEEXT) \
+	noaaportIngester$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(dist_bin_SCRIPTS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
@@ -88,21 +89,47 @@ am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)" \
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libnoaaport_la_DEPENDENCIES = g2/lib.la gempak/lib.la libpng/libpng.la \
 	zlib/lib.la
-am_libnoaaport_la_OBJECTS = shmfifo.lo
+am_libnoaaport_la_OBJECTS = libnoaaport_la-shmfifo.lo
 libnoaaport_la_OBJECTS = $(am_libnoaaport_la_OBJECTS)
 PROGRAMS = $(bin_PROGRAMS)
 am_dvbs_multicast_OBJECTS = dvbs_multicast.$(OBJEXT)
 dvbs_multicast_OBJECTS = $(am_dvbs_multicast_OBJECTS)
 dvbs_multicast_LDADD = $(LDADD)
 dvbs_multicast_DEPENDENCIES = libnoaaport.la
-am_readnoaaport_OBJECTS = readnoaaport-grib2name.$(OBJEXT) \
-	readnoaaport-gribid.$(OBJEXT) readnoaaport-png_io.$(OBJEXT) \
+am__objects_1 = noaaportIngester-grib2name.$(OBJEXT) \
+	noaaportIngester-gribid.$(OBJEXT) \
+	noaaportIngester-ldmProductQueue.$(OBJEXT) \
+	noaaportIngester-png_io.$(OBJEXT) \
+	noaaportIngester-process_prod.$(OBJEXT) \
+	noaaportIngester-readpdb.$(OBJEXT) \
+	noaaportIngester-readpdh.$(OBJEXT) \
+	noaaportIngester-readpsh.$(OBJEXT) \
+	noaaportIngester-readsbn.$(OBJEXT) \
+	noaaportIngester-redbook_header.$(OBJEXT) \
+	noaaportIngester-wgrib.$(OBJEXT) \
+	noaaportIngester-wmo_header.$(OBJEXT)
+am_noaaportIngester_OBJECTS =  \
+	noaaportIngester-noaaportIngester.$(OBJEXT) $(am__objects_1) \
+	noaaportIngester-fifo.$(OBJEXT) \
+	noaaportIngester-fileReader.$(OBJEXT) \
+	noaaportIngester-getFacilityName.$(OBJEXT) \
+	noaaportIngester-multicastReader.$(OBJEXT) \
+	noaaportIngester-productMaker.$(OBJEXT) \
+	noaaportIngester-reader.$(OBJEXT)
+noaaportIngester_OBJECTS = $(am_noaaportIngester_OBJECTS)
+noaaportIngester_LDADD = $(LDADD)
+noaaportIngester_DEPENDENCIES = libnoaaport.la
+am__objects_2 = readnoaaport-grib2name.$(OBJEXT) \
+	readnoaaport-gribid.$(OBJEXT) \
+	readnoaaport-ldmProductQueue.$(OBJEXT) \
+	readnoaaport-png_io.$(OBJEXT) \
 	readnoaaport-process_prod.$(OBJEXT) \
-	readnoaaport-readnoaaport.$(OBJEXT) \
 	readnoaaport-readpdb.$(OBJEXT) readnoaaport-readpdh.$(OBJEXT) \
 	readnoaaport-readpsh.$(OBJEXT) readnoaaport-readsbn.$(OBJEXT) \
 	readnoaaport-redbook_header.$(OBJEXT) \
 	readnoaaport-wgrib.$(OBJEXT) readnoaaport-wmo_header.$(OBJEXT)
+am_readnoaaport_OBJECTS = readnoaaport-readnoaaport.$(OBJEXT) \
+	$(am__objects_2)
 readnoaaport_OBJECTS = $(am_readnoaaport_OBJECTS)
 readnoaaport_LDADD = $(LDADD)
 readnoaaport_DEPENDENCIES = libnoaaport.la
@@ -121,9 +148,9 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(libnoaaport_la_SOURCES) $(dvbs_multicast_SOURCES) \
-	$(readnoaaport_SOURCES)
+	$(noaaportIngester_SOURCES) $(readnoaaport_SOURCES)
 DIST_SOURCES = $(libnoaaport_la_SOURCES) $(dvbs_multicast_SOURCES) \
-	$(readnoaaport_SOURCES)
+	$(noaaportIngester_SOURCES) $(readnoaaport_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -175,19 +202,19 @@ DIST_ARCHIVES = $(distdir).tar.gz
 GZIP_ENV = --best
 distuninstallcheck_listfiles = find . -type f -print
 distcleancheck_listfiles = find . -type f -print
-ACLOCAL = ${SHELL} /home/steve/ldm/package/noaaport/missing --run aclocal-1.11
-AMTAR = ${SHELL} /home/steve/ldm/package/noaaport/missing --run tar
+ACLOCAL = ${SHELL} /machine/steve/ldm/noaaport/missing --run aclocal-1.11
+AMTAR = ${SHELL} /machine/steve/ldm/noaaport/missing --run tar
 AR = ar
 ARFLAGS = -cru
-AUTOCONF = ${SHELL} /home/steve/ldm/package/noaaport/missing --run autoconf
-AUTOHEADER = ${SHELL} /home/steve/ldm/package/noaaport/missing --run autoheader
-AUTOMAKE = ${SHELL} /home/steve/ldm/package/noaaport/missing --run automake-1.11
+AUTOCONF = ${SHELL} /machine/steve/ldm/noaaport/missing --run autoconf
+AUTOHEADER = ${SHELL} /machine/steve/ldm/noaaport/missing --run autoheader
+AUTOMAKE = ${SHELL} /machine/steve/ldm/noaaport/missing --run automake-1.11
 AWK = gawk
 CC = c89
 CCDEPMODE = depmode=gcc3
-CFLAGS = -O -m64
+CFLAGS = -g -m64
 CPP = c89 -E
-CPPFLAGS = -I$(LDMHOME)/include
+CPPFLAGS = -I$(LDMHOME)/include -I$(LDMHOME)/src/ulog
 CXX = g++
 CXXCPP = g++ -E
 CXXDEPMODE = depmode=gcc3
@@ -211,22 +238,22 @@ INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 LDFLAGS =  -m64
-LDMHOME = /home/steve/ldm/package
+LDMHOME = /machine/steve/ldm
 LIBOBJS = 
-LIBS = 
+LIBS = -lpthread 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LN_S = ln -s
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /home/steve/ldm/package/noaaport/missing --run makeinfo
+MAKEINFO = ${SHELL} /machine/steve/ldm/noaaport/missing --run makeinfo
 MKDIR_P = /bin/mkdir -p
 NMEDIT = 
 OBJEXT = o
 PACKAGE = noaaport
 PACKAGE_BUGREPORT = support-noaaport@unidata.ucar.edu
 PACKAGE_NAME = NOAAPORT
-PACKAGE_STRING = NOAAPORT 1.6.3.1
+PACKAGE_STRING = NOAAPORT 1.7.0.1
 PACKAGE_TARNAME = noaaport
-PACKAGE_VERSION = 1.6.3.1
+PACKAGE_VERSION = 1.7.0.1
 PATH_SEPARATOR = :
 RANLIB = ranlib
 SED = /bin/sed
@@ -235,11 +262,11 @@ SHELL = /bin/sh
 STRIP = strip
 SU = /bin/su
 SUDO = 
-VERSION = 1.6.3.1
-abs_builddir = /home/steve/ldm/package/noaaport
-abs_srcdir = /home/steve/ldm/package/noaaport
-abs_top_builddir = /home/steve/ldm/package/noaaport
-abs_top_srcdir = /home/steve/ldm/package/noaaport
+VERSION = 1.7.0.1
+abs_builddir = /machine/steve/ldm/noaaport
+abs_srcdir = /machine/steve/ldm/noaaport
+abs_top_builddir = /machine/steve/ldm/noaaport
+abs_top_srcdir = /machine/steve/ldm/noaaport
 ac_ct_CC = c89
 ac_ct_CXX = g++
 ac_ct_F77 = gfortran
@@ -268,7 +295,7 @@ host_vendor = unknown
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /home/steve/ldm/package/noaaport/install-sh
+install_sh = ${SHELL} /machine/steve/ldm/noaaport/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -277,7 +304,7 @@ mandir = ${datarootdir}/man
 mkdir_p = /bin/mkdir -p
 oldincludedir = /usr/include
 pdfdir = ${docdir}
-prefix = /home/steve/ldm/package
+prefix = /machine/steve/ldm
 program_transform_name = s,x,x,
 psdir = ${docdir}
 sbindir = ${exec_prefix}/sbin
@@ -290,7 +317,6 @@ top_build_prefix =
 top_builddir = .
 top_srcdir = .
 LDMSRC = $(LDMHOME)/src
-BUILT_SOURCES = shmfifo.h
 SUBDIRS = zlib g2 gempak libpng tables
 distName = $(PACKAGE)-$(VERSION)
 distArchive = $(distName).tar.gz
@@ -298,9 +324,7 @@ EXTRA_DIST = \
     	CHANGE_LOG \
     	COPYRIGHT \
 	Doxyfile \
-    	extractDecls \
-	shmfifo.hin \
-	$(srcdir)/html \
+	html \
 	mainpage.h \
 	mainpage.h.in \
 	nwstgdump.data
@@ -308,6 +332,11 @@ EXTRA_DIST = \
 DISTCLEANFILES = mainpage.h $(distArchive)
 lib_LTLIBRARIES = libnoaaport.la
 libnoaaport_la_SOURCES = shmfifo.c shmfifo.h
+libnoaaport_la_CPPFLAGS = \
+	-I$(top_srcdir)/g2 \
+	-I$(top_srcdir)/gempak \
+	-I$(top_srcdir)/zlib
+
 libnoaaport_la_LIBADD = g2/lib.la gempak/lib.la libpng/libpng.la zlib/lib.la
 dist_bin_SCRIPTS = \
 	dvbs_goes \
@@ -322,15 +351,14 @@ dist_bin_SCRIPTS = \
 
 LDADD = libnoaaport.la -L$(LDMHOME)/lib -lldm -lxml2
 dvbs_multicast_SOURCES = dvbs_multicast.c
-readnoaaport_SOURCES = \
-	config.h \
+COMMON_SOURCES = \
 	dvbs.h \
 	grib2name.c \
 	gribid.c \
+	ldmProductQueue.c ldmProductQueue.h \
 	nport.h \
 	png_io.c \
 	process_prod.c \
-	readnoaaport.c \
 	readpdb.c \
 	readpdh.c \
 	readpsh.c\
@@ -340,10 +368,22 @@ readnoaaport_SOURCES = \
 	wmo_header.c \
 	wmo_header.h
 
-readnoaaport_CPPFLAGS = \
+COMMON_CPPFLAGS = \
 	-I$(top_srcdir)/g2 -I$(top_srcdir)/gempak -I$(top_srcdir)/zlib
 
+readnoaaport_SOURCES = readnoaaport.c $(COMMON_SOURCES)
+readnoaaport_CPPFLAGS = $(COMMON_CPPFLAGS)
+noaaportIngester_SOURCES = noaaportIngester.c $(COMMON_SOURCES) \
+	fifo.c fifo.h \
+	fileReader.c fileReader.h \
+	getFacilityName.c getFacilityName.h \
+	multicastReader.c multicastReader.h \
+	productMaker.c productMaker.h \
+	reader.c reader.h
+
+noaaportIngester_CPPFLAGS = $(COMMON_CPPFLAGS)
 TAGS_FILES = \
+	*.c *.h \
 	$(LDMSRC)/pq/*.c $(LDMSRC)/pq/*.h \
 	$(LDMSRC)/protocol/*.c $(LDMSRC)/protocol/*.h \
 	$(LDMSRC)/ulog/*.c $(LDMSRC)/ulog/*.h \
@@ -354,11 +394,11 @@ TAGS_FILES = \
 DISTCHECK_CONFIGURE_FLAGS = --disable-root-actions --disable-shared
 FTPDIR = /web/ftp/pub/$(PACKAGE)
 WEBROOT = /web/content/software/$(PACKAGE)
-all: $(BUILT_SOURCES) config.h
+all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
 .SUFFIXES:
-.SUFFIXES: .c .lo .o .obj
+.SUFFIXES: .c .h .hin .i .lo .o .obj
 am--refresh:
 	@:
 $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
@@ -491,6 +531,9 @@ clean-binPROGRAMS:
 dvbs_multicast$(EXEEXT): $(dvbs_multicast_OBJECTS) $(dvbs_multicast_DEPENDENCIES) 
 	@rm -f dvbs_multicast$(EXEEXT)
 	$(LINK) $(dvbs_multicast_OBJECTS) $(dvbs_multicast_LDADD) $(LIBS)
+noaaportIngester$(EXEEXT): $(noaaportIngester_OBJECTS) $(noaaportIngester_DEPENDENCIES) 
+	@rm -f noaaportIngester$(EXEEXT)
+	$(LINK) $(noaaportIngester_OBJECTS) $(noaaportIngester_LDADD) $(LIBS)
 readnoaaport$(EXEEXT): $(readnoaaport_OBJECTS) $(readnoaaport_DEPENDENCIES) 
 	@rm -f readnoaaport$(EXEEXT)
 	$(LINK) $(readnoaaport_OBJECTS) $(readnoaaport_LDADD) $(LIBS)
@@ -536,8 +579,29 @@ distclean-compile:
 	-rm -f *.tab.c
 
 include ./$(DEPDIR)/dvbs_multicast.Po
+include ./$(DEPDIR)/libnoaaport_la-shmfifo.Plo
+include ./$(DEPDIR)/noaaportIngester-fifo.Po
+include ./$(DEPDIR)/noaaportIngester-fileReader.Po
+include ./$(DEPDIR)/noaaportIngester-getFacilityName.Po
+include ./$(DEPDIR)/noaaportIngester-grib2name.Po
+include ./$(DEPDIR)/noaaportIngester-gribid.Po
+include ./$(DEPDIR)/noaaportIngester-ldmProductQueue.Po
+include ./$(DEPDIR)/noaaportIngester-multicastReader.Po
+include ./$(DEPDIR)/noaaportIngester-noaaportIngester.Po
+include ./$(DEPDIR)/noaaportIngester-png_io.Po
+include ./$(DEPDIR)/noaaportIngester-process_prod.Po
+include ./$(DEPDIR)/noaaportIngester-productMaker.Po
+include ./$(DEPDIR)/noaaportIngester-reader.Po
+include ./$(DEPDIR)/noaaportIngester-readpdb.Po
+include ./$(DEPDIR)/noaaportIngester-readpdh.Po
+include ./$(DEPDIR)/noaaportIngester-readpsh.Po
+include ./$(DEPDIR)/noaaportIngester-readsbn.Po
+include ./$(DEPDIR)/noaaportIngester-redbook_header.Po
+include ./$(DEPDIR)/noaaportIngester-wgrib.Po
+include ./$(DEPDIR)/noaaportIngester-wmo_header.Po
 include ./$(DEPDIR)/readnoaaport-grib2name.Po
 include ./$(DEPDIR)/readnoaaport-gribid.Po
+include ./$(DEPDIR)/readnoaaport-ldmProductQueue.Po
 include ./$(DEPDIR)/readnoaaport-png_io.Po
 include ./$(DEPDIR)/readnoaaport-process_prod.Po
 include ./$(DEPDIR)/readnoaaport-readnoaaport.Po
@@ -548,7 +612,6 @@ include ./$(DEPDIR)/readnoaaport-readsbn.Po
 include ./$(DEPDIR)/readnoaaport-redbook_header.Po
 include ./$(DEPDIR)/readnoaaport-wgrib.Po
 include ./$(DEPDIR)/readnoaaport-wmo_header.Po
-include ./$(DEPDIR)/shmfifo.Plo
 
 .c.o:
 	depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -573,6 +636,293 @@ include ./$(DEPDIR)/shmfifo.Plo
 #	source='$<' object='$@' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(LTCOMPILE) -c -o $@ $<
+
+libnoaaport_la-shmfifo.lo: shmfifo.c
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libnoaaport_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libnoaaport_la-shmfifo.lo -MD -MP -MF $(DEPDIR)/libnoaaport_la-shmfifo.Tpo -c -o libnoaaport_la-shmfifo.lo `test -f 'shmfifo.c' || echo '$(srcdir)/'`shmfifo.c
+	$(am__mv) $(DEPDIR)/libnoaaport_la-shmfifo.Tpo $(DEPDIR)/libnoaaport_la-shmfifo.Plo
+#	source='shmfifo.c' object='libnoaaport_la-shmfifo.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libnoaaport_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libnoaaport_la-shmfifo.lo `test -f 'shmfifo.c' || echo '$(srcdir)/'`shmfifo.c
+
+noaaportIngester-noaaportIngester.o: noaaportIngester.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-noaaportIngester.o -MD -MP -MF $(DEPDIR)/noaaportIngester-noaaportIngester.Tpo -c -o noaaportIngester-noaaportIngester.o `test -f 'noaaportIngester.c' || echo '$(srcdir)/'`noaaportIngester.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-noaaportIngester.Tpo $(DEPDIR)/noaaportIngester-noaaportIngester.Po
+#	source='noaaportIngester.c' object='noaaportIngester-noaaportIngester.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-noaaportIngester.o `test -f 'noaaportIngester.c' || echo '$(srcdir)/'`noaaportIngester.c
+
+noaaportIngester-noaaportIngester.obj: noaaportIngester.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-noaaportIngester.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-noaaportIngester.Tpo -c -o noaaportIngester-noaaportIngester.obj `if test -f 'noaaportIngester.c'; then $(CYGPATH_W) 'noaaportIngester.c'; else $(CYGPATH_W) '$(srcdir)/noaaportIngester.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-noaaportIngester.Tpo $(DEPDIR)/noaaportIngester-noaaportIngester.Po
+#	source='noaaportIngester.c' object='noaaportIngester-noaaportIngester.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-noaaportIngester.obj `if test -f 'noaaportIngester.c'; then $(CYGPATH_W) 'noaaportIngester.c'; else $(CYGPATH_W) '$(srcdir)/noaaportIngester.c'; fi`
+
+noaaportIngester-grib2name.o: grib2name.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-grib2name.o -MD -MP -MF $(DEPDIR)/noaaportIngester-grib2name.Tpo -c -o noaaportIngester-grib2name.o `test -f 'grib2name.c' || echo '$(srcdir)/'`grib2name.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-grib2name.Tpo $(DEPDIR)/noaaportIngester-grib2name.Po
+#	source='grib2name.c' object='noaaportIngester-grib2name.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-grib2name.o `test -f 'grib2name.c' || echo '$(srcdir)/'`grib2name.c
+
+noaaportIngester-grib2name.obj: grib2name.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-grib2name.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-grib2name.Tpo -c -o noaaportIngester-grib2name.obj `if test -f 'grib2name.c'; then $(CYGPATH_W) 'grib2name.c'; else $(CYGPATH_W) '$(srcdir)/grib2name.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-grib2name.Tpo $(DEPDIR)/noaaportIngester-grib2name.Po
+#	source='grib2name.c' object='noaaportIngester-grib2name.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-grib2name.obj `if test -f 'grib2name.c'; then $(CYGPATH_W) 'grib2name.c'; else $(CYGPATH_W) '$(srcdir)/grib2name.c'; fi`
+
+noaaportIngester-gribid.o: gribid.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-gribid.o -MD -MP -MF $(DEPDIR)/noaaportIngester-gribid.Tpo -c -o noaaportIngester-gribid.o `test -f 'gribid.c' || echo '$(srcdir)/'`gribid.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-gribid.Tpo $(DEPDIR)/noaaportIngester-gribid.Po
+#	source='gribid.c' object='noaaportIngester-gribid.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-gribid.o `test -f 'gribid.c' || echo '$(srcdir)/'`gribid.c
+
+noaaportIngester-gribid.obj: gribid.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-gribid.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-gribid.Tpo -c -o noaaportIngester-gribid.obj `if test -f 'gribid.c'; then $(CYGPATH_W) 'gribid.c'; else $(CYGPATH_W) '$(srcdir)/gribid.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-gribid.Tpo $(DEPDIR)/noaaportIngester-gribid.Po
+#	source='gribid.c' object='noaaportIngester-gribid.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-gribid.obj `if test -f 'gribid.c'; then $(CYGPATH_W) 'gribid.c'; else $(CYGPATH_W) '$(srcdir)/gribid.c'; fi`
+
+noaaportIngester-ldmProductQueue.o: ldmProductQueue.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-ldmProductQueue.o -MD -MP -MF $(DEPDIR)/noaaportIngester-ldmProductQueue.Tpo -c -o noaaportIngester-ldmProductQueue.o `test -f 'ldmProductQueue.c' || echo '$(srcdir)/'`ldmProductQueue.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-ldmProductQueue.Tpo $(DEPDIR)/noaaportIngester-ldmProductQueue.Po
+#	source='ldmProductQueue.c' object='noaaportIngester-ldmProductQueue.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-ldmProductQueue.o `test -f 'ldmProductQueue.c' || echo '$(srcdir)/'`ldmProductQueue.c
+
+noaaportIngester-ldmProductQueue.obj: ldmProductQueue.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-ldmProductQueue.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-ldmProductQueue.Tpo -c -o noaaportIngester-ldmProductQueue.obj `if test -f 'ldmProductQueue.c'; then $(CYGPATH_W) 'ldmProductQueue.c'; else $(CYGPATH_W) '$(srcdir)/ldmProductQueue.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-ldmProductQueue.Tpo $(DEPDIR)/noaaportIngester-ldmProductQueue.Po
+#	source='ldmProductQueue.c' object='noaaportIngester-ldmProductQueue.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-ldmProductQueue.obj `if test -f 'ldmProductQueue.c'; then $(CYGPATH_W) 'ldmProductQueue.c'; else $(CYGPATH_W) '$(srcdir)/ldmProductQueue.c'; fi`
+
+noaaportIngester-png_io.o: png_io.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-png_io.o -MD -MP -MF $(DEPDIR)/noaaportIngester-png_io.Tpo -c -o noaaportIngester-png_io.o `test -f 'png_io.c' || echo '$(srcdir)/'`png_io.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-png_io.Tpo $(DEPDIR)/noaaportIngester-png_io.Po
+#	source='png_io.c' object='noaaportIngester-png_io.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-png_io.o `test -f 'png_io.c' || echo '$(srcdir)/'`png_io.c
+
+noaaportIngester-png_io.obj: png_io.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-png_io.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-png_io.Tpo -c -o noaaportIngester-png_io.obj `if test -f 'png_io.c'; then $(CYGPATH_W) 'png_io.c'; else $(CYGPATH_W) '$(srcdir)/png_io.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-png_io.Tpo $(DEPDIR)/noaaportIngester-png_io.Po
+#	source='png_io.c' object='noaaportIngester-png_io.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-png_io.obj `if test -f 'png_io.c'; then $(CYGPATH_W) 'png_io.c'; else $(CYGPATH_W) '$(srcdir)/png_io.c'; fi`
+
+noaaportIngester-process_prod.o: process_prod.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-process_prod.o -MD -MP -MF $(DEPDIR)/noaaportIngester-process_prod.Tpo -c -o noaaportIngester-process_prod.o `test -f 'process_prod.c' || echo '$(srcdir)/'`process_prod.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-process_prod.Tpo $(DEPDIR)/noaaportIngester-process_prod.Po
+#	source='process_prod.c' object='noaaportIngester-process_prod.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-process_prod.o `test -f 'process_prod.c' || echo '$(srcdir)/'`process_prod.c
+
+noaaportIngester-process_prod.obj: process_prod.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-process_prod.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-process_prod.Tpo -c -o noaaportIngester-process_prod.obj `if test -f 'process_prod.c'; then $(CYGPATH_W) 'process_prod.c'; else $(CYGPATH_W) '$(srcdir)/process_prod.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-process_prod.Tpo $(DEPDIR)/noaaportIngester-process_prod.Po
+#	source='process_prod.c' object='noaaportIngester-process_prod.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-process_prod.obj `if test -f 'process_prod.c'; then $(CYGPATH_W) 'process_prod.c'; else $(CYGPATH_W) '$(srcdir)/process_prod.c'; fi`
+
+noaaportIngester-readpdb.o: readpdb.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-readpdb.o -MD -MP -MF $(DEPDIR)/noaaportIngester-readpdb.Tpo -c -o noaaportIngester-readpdb.o `test -f 'readpdb.c' || echo '$(srcdir)/'`readpdb.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-readpdb.Tpo $(DEPDIR)/noaaportIngester-readpdb.Po
+#	source='readpdb.c' object='noaaportIngester-readpdb.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-readpdb.o `test -f 'readpdb.c' || echo '$(srcdir)/'`readpdb.c
+
+noaaportIngester-readpdb.obj: readpdb.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-readpdb.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-readpdb.Tpo -c -o noaaportIngester-readpdb.obj `if test -f 'readpdb.c'; then $(CYGPATH_W) 'readpdb.c'; else $(CYGPATH_W) '$(srcdir)/readpdb.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-readpdb.Tpo $(DEPDIR)/noaaportIngester-readpdb.Po
+#	source='readpdb.c' object='noaaportIngester-readpdb.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-readpdb.obj `if test -f 'readpdb.c'; then $(CYGPATH_W) 'readpdb.c'; else $(CYGPATH_W) '$(srcdir)/readpdb.c'; fi`
+
+noaaportIngester-readpdh.o: readpdh.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-readpdh.o -MD -MP -MF $(DEPDIR)/noaaportIngester-readpdh.Tpo -c -o noaaportIngester-readpdh.o `test -f 'readpdh.c' || echo '$(srcdir)/'`readpdh.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-readpdh.Tpo $(DEPDIR)/noaaportIngester-readpdh.Po
+#	source='readpdh.c' object='noaaportIngester-readpdh.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-readpdh.o `test -f 'readpdh.c' || echo '$(srcdir)/'`readpdh.c
+
+noaaportIngester-readpdh.obj: readpdh.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-readpdh.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-readpdh.Tpo -c -o noaaportIngester-readpdh.obj `if test -f 'readpdh.c'; then $(CYGPATH_W) 'readpdh.c'; else $(CYGPATH_W) '$(srcdir)/readpdh.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-readpdh.Tpo $(DEPDIR)/noaaportIngester-readpdh.Po
+#	source='readpdh.c' object='noaaportIngester-readpdh.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-readpdh.obj `if test -f 'readpdh.c'; then $(CYGPATH_W) 'readpdh.c'; else $(CYGPATH_W) '$(srcdir)/readpdh.c'; fi`
+
+noaaportIngester-readpsh.o: readpsh.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-readpsh.o -MD -MP -MF $(DEPDIR)/noaaportIngester-readpsh.Tpo -c -o noaaportIngester-readpsh.o `test -f 'readpsh.c' || echo '$(srcdir)/'`readpsh.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-readpsh.Tpo $(DEPDIR)/noaaportIngester-readpsh.Po
+#	source='readpsh.c' object='noaaportIngester-readpsh.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-readpsh.o `test -f 'readpsh.c' || echo '$(srcdir)/'`readpsh.c
+
+noaaportIngester-readpsh.obj: readpsh.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-readpsh.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-readpsh.Tpo -c -o noaaportIngester-readpsh.obj `if test -f 'readpsh.c'; then $(CYGPATH_W) 'readpsh.c'; else $(CYGPATH_W) '$(srcdir)/readpsh.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-readpsh.Tpo $(DEPDIR)/noaaportIngester-readpsh.Po
+#	source='readpsh.c' object='noaaportIngester-readpsh.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-readpsh.obj `if test -f 'readpsh.c'; then $(CYGPATH_W) 'readpsh.c'; else $(CYGPATH_W) '$(srcdir)/readpsh.c'; fi`
+
+noaaportIngester-readsbn.o: readsbn.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-readsbn.o -MD -MP -MF $(DEPDIR)/noaaportIngester-readsbn.Tpo -c -o noaaportIngester-readsbn.o `test -f 'readsbn.c' || echo '$(srcdir)/'`readsbn.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-readsbn.Tpo $(DEPDIR)/noaaportIngester-readsbn.Po
+#	source='readsbn.c' object='noaaportIngester-readsbn.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-readsbn.o `test -f 'readsbn.c' || echo '$(srcdir)/'`readsbn.c
+
+noaaportIngester-readsbn.obj: readsbn.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-readsbn.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-readsbn.Tpo -c -o noaaportIngester-readsbn.obj `if test -f 'readsbn.c'; then $(CYGPATH_W) 'readsbn.c'; else $(CYGPATH_W) '$(srcdir)/readsbn.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-readsbn.Tpo $(DEPDIR)/noaaportIngester-readsbn.Po
+#	source='readsbn.c' object='noaaportIngester-readsbn.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-readsbn.obj `if test -f 'readsbn.c'; then $(CYGPATH_W) 'readsbn.c'; else $(CYGPATH_W) '$(srcdir)/readsbn.c'; fi`
+
+noaaportIngester-redbook_header.o: redbook_header.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-redbook_header.o -MD -MP -MF $(DEPDIR)/noaaportIngester-redbook_header.Tpo -c -o noaaportIngester-redbook_header.o `test -f 'redbook_header.c' || echo '$(srcdir)/'`redbook_header.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-redbook_header.Tpo $(DEPDIR)/noaaportIngester-redbook_header.Po
+#	source='redbook_header.c' object='noaaportIngester-redbook_header.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-redbook_header.o `test -f 'redbook_header.c' || echo '$(srcdir)/'`redbook_header.c
+
+noaaportIngester-redbook_header.obj: redbook_header.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-redbook_header.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-redbook_header.Tpo -c -o noaaportIngester-redbook_header.obj `if test -f 'redbook_header.c'; then $(CYGPATH_W) 'redbook_header.c'; else $(CYGPATH_W) '$(srcdir)/redbook_header.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-redbook_header.Tpo $(DEPDIR)/noaaportIngester-redbook_header.Po
+#	source='redbook_header.c' object='noaaportIngester-redbook_header.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-redbook_header.obj `if test -f 'redbook_header.c'; then $(CYGPATH_W) 'redbook_header.c'; else $(CYGPATH_W) '$(srcdir)/redbook_header.c'; fi`
+
+noaaportIngester-wgrib.o: wgrib.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-wgrib.o -MD -MP -MF $(DEPDIR)/noaaportIngester-wgrib.Tpo -c -o noaaportIngester-wgrib.o `test -f 'wgrib.c' || echo '$(srcdir)/'`wgrib.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-wgrib.Tpo $(DEPDIR)/noaaportIngester-wgrib.Po
+#	source='wgrib.c' object='noaaportIngester-wgrib.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-wgrib.o `test -f 'wgrib.c' || echo '$(srcdir)/'`wgrib.c
+
+noaaportIngester-wgrib.obj: wgrib.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-wgrib.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-wgrib.Tpo -c -o noaaportIngester-wgrib.obj `if test -f 'wgrib.c'; then $(CYGPATH_W) 'wgrib.c'; else $(CYGPATH_W) '$(srcdir)/wgrib.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-wgrib.Tpo $(DEPDIR)/noaaportIngester-wgrib.Po
+#	source='wgrib.c' object='noaaportIngester-wgrib.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-wgrib.obj `if test -f 'wgrib.c'; then $(CYGPATH_W) 'wgrib.c'; else $(CYGPATH_W) '$(srcdir)/wgrib.c'; fi`
+
+noaaportIngester-wmo_header.o: wmo_header.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-wmo_header.o -MD -MP -MF $(DEPDIR)/noaaportIngester-wmo_header.Tpo -c -o noaaportIngester-wmo_header.o `test -f 'wmo_header.c' || echo '$(srcdir)/'`wmo_header.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-wmo_header.Tpo $(DEPDIR)/noaaportIngester-wmo_header.Po
+#	source='wmo_header.c' object='noaaportIngester-wmo_header.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-wmo_header.o `test -f 'wmo_header.c' || echo '$(srcdir)/'`wmo_header.c
+
+noaaportIngester-wmo_header.obj: wmo_header.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-wmo_header.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-wmo_header.Tpo -c -o noaaportIngester-wmo_header.obj `if test -f 'wmo_header.c'; then $(CYGPATH_W) 'wmo_header.c'; else $(CYGPATH_W) '$(srcdir)/wmo_header.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-wmo_header.Tpo $(DEPDIR)/noaaportIngester-wmo_header.Po
+#	source='wmo_header.c' object='noaaportIngester-wmo_header.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-wmo_header.obj `if test -f 'wmo_header.c'; then $(CYGPATH_W) 'wmo_header.c'; else $(CYGPATH_W) '$(srcdir)/wmo_header.c'; fi`
+
+noaaportIngester-fifo.o: fifo.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-fifo.o -MD -MP -MF $(DEPDIR)/noaaportIngester-fifo.Tpo -c -o noaaportIngester-fifo.o `test -f 'fifo.c' || echo '$(srcdir)/'`fifo.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-fifo.Tpo $(DEPDIR)/noaaportIngester-fifo.Po
+#	source='fifo.c' object='noaaportIngester-fifo.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-fifo.o `test -f 'fifo.c' || echo '$(srcdir)/'`fifo.c
+
+noaaportIngester-fifo.obj: fifo.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-fifo.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-fifo.Tpo -c -o noaaportIngester-fifo.obj `if test -f 'fifo.c'; then $(CYGPATH_W) 'fifo.c'; else $(CYGPATH_W) '$(srcdir)/fifo.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-fifo.Tpo $(DEPDIR)/noaaportIngester-fifo.Po
+#	source='fifo.c' object='noaaportIngester-fifo.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-fifo.obj `if test -f 'fifo.c'; then $(CYGPATH_W) 'fifo.c'; else $(CYGPATH_W) '$(srcdir)/fifo.c'; fi`
+
+noaaportIngester-fileReader.o: fileReader.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-fileReader.o -MD -MP -MF $(DEPDIR)/noaaportIngester-fileReader.Tpo -c -o noaaportIngester-fileReader.o `test -f 'fileReader.c' || echo '$(srcdir)/'`fileReader.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-fileReader.Tpo $(DEPDIR)/noaaportIngester-fileReader.Po
+#	source='fileReader.c' object='noaaportIngester-fileReader.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-fileReader.o `test -f 'fileReader.c' || echo '$(srcdir)/'`fileReader.c
+
+noaaportIngester-fileReader.obj: fileReader.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-fileReader.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-fileReader.Tpo -c -o noaaportIngester-fileReader.obj `if test -f 'fileReader.c'; then $(CYGPATH_W) 'fileReader.c'; else $(CYGPATH_W) '$(srcdir)/fileReader.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-fileReader.Tpo $(DEPDIR)/noaaportIngester-fileReader.Po
+#	source='fileReader.c' object='noaaportIngester-fileReader.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-fileReader.obj `if test -f 'fileReader.c'; then $(CYGPATH_W) 'fileReader.c'; else $(CYGPATH_W) '$(srcdir)/fileReader.c'; fi`
+
+noaaportIngester-getFacilityName.o: getFacilityName.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-getFacilityName.o -MD -MP -MF $(DEPDIR)/noaaportIngester-getFacilityName.Tpo -c -o noaaportIngester-getFacilityName.o `test -f 'getFacilityName.c' || echo '$(srcdir)/'`getFacilityName.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-getFacilityName.Tpo $(DEPDIR)/noaaportIngester-getFacilityName.Po
+#	source='getFacilityName.c' object='noaaportIngester-getFacilityName.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-getFacilityName.o `test -f 'getFacilityName.c' || echo '$(srcdir)/'`getFacilityName.c
+
+noaaportIngester-getFacilityName.obj: getFacilityName.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-getFacilityName.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-getFacilityName.Tpo -c -o noaaportIngester-getFacilityName.obj `if test -f 'getFacilityName.c'; then $(CYGPATH_W) 'getFacilityName.c'; else $(CYGPATH_W) '$(srcdir)/getFacilityName.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-getFacilityName.Tpo $(DEPDIR)/noaaportIngester-getFacilityName.Po
+#	source='getFacilityName.c' object='noaaportIngester-getFacilityName.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-getFacilityName.obj `if test -f 'getFacilityName.c'; then $(CYGPATH_W) 'getFacilityName.c'; else $(CYGPATH_W) '$(srcdir)/getFacilityName.c'; fi`
+
+noaaportIngester-multicastReader.o: multicastReader.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-multicastReader.o -MD -MP -MF $(DEPDIR)/noaaportIngester-multicastReader.Tpo -c -o noaaportIngester-multicastReader.o `test -f 'multicastReader.c' || echo '$(srcdir)/'`multicastReader.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-multicastReader.Tpo $(DEPDIR)/noaaportIngester-multicastReader.Po
+#	source='multicastReader.c' object='noaaportIngester-multicastReader.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-multicastReader.o `test -f 'multicastReader.c' || echo '$(srcdir)/'`multicastReader.c
+
+noaaportIngester-multicastReader.obj: multicastReader.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-multicastReader.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-multicastReader.Tpo -c -o noaaportIngester-multicastReader.obj `if test -f 'multicastReader.c'; then $(CYGPATH_W) 'multicastReader.c'; else $(CYGPATH_W) '$(srcdir)/multicastReader.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-multicastReader.Tpo $(DEPDIR)/noaaportIngester-multicastReader.Po
+#	source='multicastReader.c' object='noaaportIngester-multicastReader.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-multicastReader.obj `if test -f 'multicastReader.c'; then $(CYGPATH_W) 'multicastReader.c'; else $(CYGPATH_W) '$(srcdir)/multicastReader.c'; fi`
+
+noaaportIngester-productMaker.o: productMaker.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-productMaker.o -MD -MP -MF $(DEPDIR)/noaaportIngester-productMaker.Tpo -c -o noaaportIngester-productMaker.o `test -f 'productMaker.c' || echo '$(srcdir)/'`productMaker.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-productMaker.Tpo $(DEPDIR)/noaaportIngester-productMaker.Po
+#	source='productMaker.c' object='noaaportIngester-productMaker.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-productMaker.o `test -f 'productMaker.c' || echo '$(srcdir)/'`productMaker.c
+
+noaaportIngester-productMaker.obj: productMaker.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-productMaker.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-productMaker.Tpo -c -o noaaportIngester-productMaker.obj `if test -f 'productMaker.c'; then $(CYGPATH_W) 'productMaker.c'; else $(CYGPATH_W) '$(srcdir)/productMaker.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-productMaker.Tpo $(DEPDIR)/noaaportIngester-productMaker.Po
+#	source='productMaker.c' object='noaaportIngester-productMaker.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-productMaker.obj `if test -f 'productMaker.c'; then $(CYGPATH_W) 'productMaker.c'; else $(CYGPATH_W) '$(srcdir)/productMaker.c'; fi`
+
+noaaportIngester-reader.o: reader.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-reader.o -MD -MP -MF $(DEPDIR)/noaaportIngester-reader.Tpo -c -o noaaportIngester-reader.o `test -f 'reader.c' || echo '$(srcdir)/'`reader.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-reader.Tpo $(DEPDIR)/noaaportIngester-reader.Po
+#	source='reader.c' object='noaaportIngester-reader.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-reader.o `test -f 'reader.c' || echo '$(srcdir)/'`reader.c
+
+noaaportIngester-reader.obj: reader.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-reader.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-reader.Tpo -c -o noaaportIngester-reader.obj `if test -f 'reader.c'; then $(CYGPATH_W) 'reader.c'; else $(CYGPATH_W) '$(srcdir)/reader.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-reader.Tpo $(DEPDIR)/noaaportIngester-reader.Po
+#	source='reader.c' object='noaaportIngester-reader.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-reader.obj `if test -f 'reader.c'; then $(CYGPATH_W) 'reader.c'; else $(CYGPATH_W) '$(srcdir)/reader.c'; fi`
+
+readnoaaport-readnoaaport.o: readnoaaport.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(readnoaaport_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT readnoaaport-readnoaaport.o -MD -MP -MF $(DEPDIR)/readnoaaport-readnoaaport.Tpo -c -o readnoaaport-readnoaaport.o `test -f 'readnoaaport.c' || echo '$(srcdir)/'`readnoaaport.c
+	$(am__mv) $(DEPDIR)/readnoaaport-readnoaaport.Tpo $(DEPDIR)/readnoaaport-readnoaaport.Po
+#	source='readnoaaport.c' object='readnoaaport-readnoaaport.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(readnoaaport_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o readnoaaport-readnoaaport.o `test -f 'readnoaaport.c' || echo '$(srcdir)/'`readnoaaport.c
+
+readnoaaport-readnoaaport.obj: readnoaaport.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(readnoaaport_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT readnoaaport-readnoaaport.obj -MD -MP -MF $(DEPDIR)/readnoaaport-readnoaaport.Tpo -c -o readnoaaport-readnoaaport.obj `if test -f 'readnoaaport.c'; then $(CYGPATH_W) 'readnoaaport.c'; else $(CYGPATH_W) '$(srcdir)/readnoaaport.c'; fi`
+	$(am__mv) $(DEPDIR)/readnoaaport-readnoaaport.Tpo $(DEPDIR)/readnoaaport-readnoaaport.Po
+#	source='readnoaaport.c' object='readnoaaport-readnoaaport.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(readnoaaport_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o readnoaaport-readnoaaport.obj `if test -f 'readnoaaport.c'; then $(CYGPATH_W) 'readnoaaport.c'; else $(CYGPATH_W) '$(srcdir)/readnoaaport.c'; fi`
 
 readnoaaport-grib2name.o: grib2name.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(readnoaaport_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT readnoaaport-grib2name.o -MD -MP -MF $(DEPDIR)/readnoaaport-grib2name.Tpo -c -o readnoaaport-grib2name.o `test -f 'grib2name.c' || echo '$(srcdir)/'`grib2name.c
@@ -602,6 +952,20 @@ readnoaaport-gribid.obj: gribid.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(readnoaaport_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o readnoaaport-gribid.obj `if test -f 'gribid.c'; then $(CYGPATH_W) 'gribid.c'; else $(CYGPATH_W) '$(srcdir)/gribid.c'; fi`
 
+readnoaaport-ldmProductQueue.o: ldmProductQueue.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(readnoaaport_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT readnoaaport-ldmProductQueue.o -MD -MP -MF $(DEPDIR)/readnoaaport-ldmProductQueue.Tpo -c -o readnoaaport-ldmProductQueue.o `test -f 'ldmProductQueue.c' || echo '$(srcdir)/'`ldmProductQueue.c
+	$(am__mv) $(DEPDIR)/readnoaaport-ldmProductQueue.Tpo $(DEPDIR)/readnoaaport-ldmProductQueue.Po
+#	source='ldmProductQueue.c' object='readnoaaport-ldmProductQueue.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(readnoaaport_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o readnoaaport-ldmProductQueue.o `test -f 'ldmProductQueue.c' || echo '$(srcdir)/'`ldmProductQueue.c
+
+readnoaaport-ldmProductQueue.obj: ldmProductQueue.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(readnoaaport_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT readnoaaport-ldmProductQueue.obj -MD -MP -MF $(DEPDIR)/readnoaaport-ldmProductQueue.Tpo -c -o readnoaaport-ldmProductQueue.obj `if test -f 'ldmProductQueue.c'; then $(CYGPATH_W) 'ldmProductQueue.c'; else $(CYGPATH_W) '$(srcdir)/ldmProductQueue.c'; fi`
+	$(am__mv) $(DEPDIR)/readnoaaport-ldmProductQueue.Tpo $(DEPDIR)/readnoaaport-ldmProductQueue.Po
+#	source='ldmProductQueue.c' object='readnoaaport-ldmProductQueue.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(readnoaaport_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o readnoaaport-ldmProductQueue.obj `if test -f 'ldmProductQueue.c'; then $(CYGPATH_W) 'ldmProductQueue.c'; else $(CYGPATH_W) '$(srcdir)/ldmProductQueue.c'; fi`
+
 readnoaaport-png_io.o: png_io.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(readnoaaport_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT readnoaaport-png_io.o -MD -MP -MF $(DEPDIR)/readnoaaport-png_io.Tpo -c -o readnoaaport-png_io.o `test -f 'png_io.c' || echo '$(srcdir)/'`png_io.c
 	$(am__mv) $(DEPDIR)/readnoaaport-png_io.Tpo $(DEPDIR)/readnoaaport-png_io.Po
@@ -629,20 +993,6 @@ readnoaaport-process_prod.obj: process_prod.c
 #	source='process_prod.c' object='readnoaaport-process_prod.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(readnoaaport_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o readnoaaport-process_prod.obj `if test -f 'process_prod.c'; then $(CYGPATH_W) 'process_prod.c'; else $(CYGPATH_W) '$(srcdir)/process_prod.c'; fi`
-
-readnoaaport-readnoaaport.o: readnoaaport.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(readnoaaport_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT readnoaaport-readnoaaport.o -MD -MP -MF $(DEPDIR)/readnoaaport-readnoaaport.Tpo -c -o readnoaaport-readnoaaport.o `test -f 'readnoaaport.c' || echo '$(srcdir)/'`readnoaaport.c
-	$(am__mv) $(DEPDIR)/readnoaaport-readnoaaport.Tpo $(DEPDIR)/readnoaaport-readnoaaport.Po
-#	source='readnoaaport.c' object='readnoaaport-readnoaaport.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(readnoaaport_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o readnoaaport-readnoaaport.o `test -f 'readnoaaport.c' || echo '$(srcdir)/'`readnoaaport.c
-
-readnoaaport-readnoaaport.obj: readnoaaport.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(readnoaaport_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT readnoaaport-readnoaaport.obj -MD -MP -MF $(DEPDIR)/readnoaaport-readnoaaport.Tpo -c -o readnoaaport-readnoaaport.obj `if test -f 'readnoaaport.c'; then $(CYGPATH_W) 'readnoaaport.c'; else $(CYGPATH_W) '$(srcdir)/readnoaaport.c'; fi`
-	$(am__mv) $(DEPDIR)/readnoaaport-readnoaaport.Tpo $(DEPDIR)/readnoaaport-readnoaaport.Po
-#	source='readnoaaport.c' object='readnoaaport-readnoaaport.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(readnoaaport_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o readnoaaport-readnoaaport.obj `if test -f 'readnoaaport.c'; then $(CYGPATH_W) 'readnoaaport.c'; else $(CYGPATH_W) '$(srcdir)/readnoaaport.c'; fi`
 
 readnoaaport-readpdb.o: readpdb.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(readnoaaport_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT readnoaaport-readpdb.o -MD -MP -MF $(DEPDIR)/readnoaaport-readpdb.Tpo -c -o readnoaaport-readpdb.o `test -f 'readpdb.c' || echo '$(srcdir)/'`readpdb.c
@@ -1062,8 +1412,7 @@ distcleancheck: distclean
 	       exit 1; } >&2
 check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) check-local
-check: $(BUILT_SOURCES)
-	$(MAKE) $(AM_MAKEFLAGS) check-recursive
+check: check-recursive
 all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(SCRIPTS) config.h
 install-binPROGRAMS: install-libLTLIBRARIES
 
@@ -1072,8 +1421,7 @@ installdirs-am:
 	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
-install: $(BUILT_SOURCES)
-	$(MAKE) $(AM_MAKEFLAGS) install-recursive
+install: install-recursive
 install-exec: install-exec-recursive
 install-data: install-data-recursive
 uninstall: uninstall-recursive
@@ -1099,7 +1447,6 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
 clean: clean-recursive
 
 clean-am: clean-binPROGRAMS clean-generic clean-libLTLIBRARIES \
@@ -1177,9 +1524,9 @@ uninstall-am: uninstall-binPROGRAMS uninstall-dist_binSCRIPTS \
 	uninstall-libLTLIBRARIES
 	@$(NORMAL_INSTALL)
 	$(MAKE) $(AM_MAKEFLAGS) uninstall-hook
-.MAKE: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) all check \
-	check-am ctags-recursive install install-am install-data-am \
-	install-exec-am install-strip tags-recursive uninstall-am
+.MAKE: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) all check-am \
+	ctags-recursive install-am install-data-am install-exec-am \
+	install-strip tags-recursive uninstall-am
 
 .PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
 	all all-am am--refresh check check-am check-local clean \
@@ -1206,11 +1553,24 @@ uninstall-am: uninstall-binPROGRAMS uninstall-dist_binSCRIPTS \
 
 all:		$(srcdir)/html/index.html
 
-shmfifo.h:	$(srcdir)/shmfifo.hin \
-		$(srcdir)/shmfifo.c \
-		$(srcdir)/extractDecls
-	./extractDecls $(srcdir)/shmfifo.hin $(srcdir)/shmfifo.c >$@.tmp
-	mv $@.tmp $@
+$(srcdir)/html/index.html:	$(srcdir)/configure.ac $(srcdir)/mainpage.h.in \
+		$(srcdir)/Doxyfile
+	cd $(srcdir) && doxygen Doxyfile
+
+.hin.h:
+	./extractDecls $*.hin $*.c >$@.tmp
+	mv -f $@.tmp $@
+shmfifo.h:		shmfifo.c shmfifo.hin extractDecls
+ldmProductQueue.h:	ldmProductQueue.c ldmProductQueue.hin extractDecls
+fifo.h:			fifo.c fifo.hin extractDecls
+reader.h:		reader.c reader.hin extractDecls
+fileReader.h:		fileReader.c fileReader.hin extractDecls
+multicastReader.h:	multicastReader.c multicastReader.hin extractDecls
+productMaker.h:		productMaker.c productMaker.hin extractDecls
+getFacilityName.h:	getFacilityName.c getFacilityName.hin extractDecls
+
+.c.i:
+	$(CC) $(CPPFLAGS) -E $< >$@
 
 libpng/libpng.la:
 	cd libpng && $(MAKE) $(AM_MAKEFLAGS) all
@@ -1262,29 +1622,51 @@ installcheck-local:
 	    $(srcdir)/nwstgdump.data
 	rm /tmp/readnoaaport-test.pq
 
-check-local:		readnoaaport
+check-local:		check-readnoaaport check-noaaportIngester
+check-readnoaaport:	readnoaaport
 	pqcreate -c -s 2m /tmp/readnoaaport-test.pq
-	./readnoaaport -l- -q /tmp/readnoaaport-test.pq \
+	./readnoaaport -nl- -q /tmp/readnoaaport-test.pq \
 	    $(srcdir)/nwstgdump.data
 	rm /tmp/readnoaaport-test.pq
+check-noaaportIngester:	noaaportIngester
+	pqcreate -c -s 2m /tmp/noaaportIngester-test.pq
+	./noaaportIngester -n -q /tmp/noaaportIngester-test.pq \
+	    <$(srcdir)/nwstgdump.data
+	rm /tmp/noaaportIngester-test.pq
 
-valgrind:		readnoaaport
+valgrind:		valgrind-readnoaaport valgrind-noaaportIngester
+
+valgrind-readnoaaport:		readnoaaport
 	pqcreate -c -s 2m /tmp/readnoaaport-test.pq
 	$(LIBTOOL) --mode=execute valgrind --leak-check=yes \
 	    readnoaaport -l- -q /tmp/readnoaaport-test.pq nwstgdump.data
 	rm /tmp/readnoaaport-test.pq
 
-debug:			readnoaaport
+valgrind-noaaportIngester:		noaaportIngester
+	pqcreate -c -s 2m /tmp/noaaportIngester-test.pq
+	$(LIBTOOL) --mode=execute valgrind --leak-check=yes \
+	    noaaportIngester -n -q /tmp/noaaportIngester-test.pq \
+		<$(srcdir)/nwstgdump.data
+	rm /tmp/noaaportIngester-test.pq
+
+debug-readnoaaport:	readnoaaport
 	pqcreate -c -s 2m /tmp/readnoaaport-test.pq
 	echo 'handle SIGCONT pass noprint nostop' >/tmp/readnoaaport.gdb
+	echo 'b 617' >>/tmp/readnoaaport.gdb
 	echo 'run -l- -q /tmp/readnoaaport-test.pq nwstgdump.data' \
 	    >>/tmp/readnoaaport.gdb
 	$(LIBTOOL) --mode=execute gdb -x /tmp/readnoaaport.gdb readnoaaport
 	rm /tmp/readnoaaport-test.pq /tmp/readnoaaport.gdb
 
-$(srcdir)/html/index.html:	$(srcdir)/configure.ac $(srcdir)/mainpage.h.in \
-		$(srcdir)/Doxyfile
-	cd $(srcdir) && doxygen Doxyfile
+debug-noaaportIngester:	noaaportIngester
+	pqcreate -c -s 2m /tmp/noaaportIngester-test.pq
+	echo 'handle SIGCONT pass noprint nostop' >/tmp/noaaportIngester.gdb
+	echo 'handle SIGTERM pass nostop' >/tmp/noaaportIngester.gdb
+	echo 'run -q /tmp/noaaportIngester-test.pq -n -m 224.0.1.1' \
+	    >>/tmp/noaaportIngester.gdb
+	$(LIBTOOL) --mode=execute gdb -x /tmp/noaaportIngester.gdb \
+	      noaaportIngester
+	rm /tmp/noaaportIngester-test.pq /tmp/noaaportIngester.gdb
 
 install-html:		$(srcdir)/html/index.html $(DESTDIR)$(htmldir)
 	cp -R $(srcdir)/html/* $(DESTDIR)$(htmldir)

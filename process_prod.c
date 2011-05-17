@@ -12,14 +12,10 @@
 #include "nport.h"
 
 #include "ldm.h"
-#include "pq.h"
+#include "ldmProductQueue.h"
 #include "md5.h"
 #include "inetutil.h"
 #include "ulog.h"
-
-#include "globals.h" /* for "pqueue *pq" in ldm 6.4+ */
-
-/* pqueue *pq = NULL; LDM6.4 now has global pq */
 
 datastore *dataheap=NULL;
 int nextfrag = 0, MAXFRAGS=1000;
@@ -93,19 +89,17 @@ prod_isascii (char *pname, char *prod, size_t psize)
   return (1);
 }
 
-void close_pq()
-{
-if (pq != NULL)
-   {
-   udebug("Closing product_queue\0");
-   pq_close(pq);
-   }
-}
-
 void
-process_prod (prodstore nprod, char *PROD_NAME,
-	      char *memheap, size_t heapsize, MD5_CTX * md5try, char *pqfname,
-	      psh_struct * psh, sbn_struct * sbn)
+process_prod(
+    prodstore                   nprod,
+    char*                       PROD_NAME,
+    char*                       memheap,
+    size_t                      heapsize,
+    MD5_CTX*                    md5try,
+    LdmProductQueue* const      lpq,            /**< Pointer to LDM
+                                                 *   product-queue object */
+    psh_struct*                 psh,
+    sbn_struct*                 sbn)
 {
   int status;
   product prod;
@@ -154,16 +148,6 @@ static feedtypet feedpoint = NPOINT;
   sprintf (PRODID, "%s%s\0", PROD_NAME, psh->metadata);
 
   (void) strcpy (myname, ghostname ());
-
-  if (pq == NULL)
-    {
-      uinfo ("attempt to open the product queue %s\0", pqfname);
-      if (status = pq_open (pqfname, PQ_DEFAULT, &pq))
-	{
-	  uerror ("couldn't open the product queue %s\0", pqfname);
-	  return;
-	}
-    }
 
   prod.info.origin = myname;
 
@@ -251,19 +235,19 @@ static feedtypet feedpoint = NPOINT;
   status = set_timestamp (&prod.info.arrival);
   uinfo ("timestamp %ld\0", prod.info.arrival);
 
-  status = pq_insert (pq, &prod);
-  if (status == 0)
-    {
+  status = lpqInsert(lpq, &prod);
+  if (status == 0) {
       unotice ("%s inserted [cat %d type %d ccb %d/%d seq %d size %d]\0",
 	       prod.info.ident, psh->pcat, psh->ptype, psh->ccbmode,
 	       psh->ccbsubmode, prod.info.seqno, prod.info.sz);
       return;
-    }
-
-  if (status == PQUEUE_DUP)
+  }
+  else if (3 == status) {
     unotice ("%s already in queue [%d]\0", prod.info.ident, prod.info.seqno);
-  else
+  }
+  else {
     uerror ("pqinsert failed [%d] %s\0", status, prod.info.ident);
+  }
 
 
   return;
