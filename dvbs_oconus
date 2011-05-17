@@ -1,1 +1,1 @@
-dvbs_multicast 224.0.1.4 | readnoaaport -n -u 6 &
+noaaportIngester -m 224.0.1.4 -n -u 6 &

@@ -343,11 +343,7 @@ dist_bin_SCRIPTS = \
 	dvbs_nwstg \
 	dvbs_nwstg2 \
 	dvbs_oconus \
-	gms-meteo_mps2 \
-	goese_mps3 \
-	goesw_mps1 \
-	nplog_rotate \
-	nwstg_mps0
+	nplog_rotate
 
 LDADD = libnoaaport.la -L$(LDMHOME)/lib -lldm -lxml2
 dvbs_multicast_SOURCES = dvbs_multicast.c

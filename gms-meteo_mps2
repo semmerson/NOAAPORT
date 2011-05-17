@@ -1,3 +1,0 @@
-#!/bin/csh -f
-
-exec hdlcrecv -b -1 -f 5152 2 - | readnoaaport -n -u 6
