@@ -1,3 +1,54 @@
+1.7.0.2 	2011-05-18 11:22:08-06:00
+    Release Engineering:
+        Deleted hdlcrecv(1)-using scripts.
+
+        Added "downloads" updating to "make available"
+
+        Improved makefile generation of html/ documentation
+    
+        Added dependency on "configure.ac" to "html/index.html".
+    
+        Added dependency on "html/index.html" to "all".
+
+        Improved "make releaseCheck"
+
+        Added test to ensure that no tag corresponds to the current version.
+
+    Installation:
+        Added noaaportIngester(1).
+
+        Added search for pthread(3) library to "configure.ac".
+
+    noaaportIngester:
+        Corrected handling of isolated retrograde packets: no longer count
+        against "missed packets".
+
+        Ported "multicastReader.c" to Solaris.
+
+        Corrected SIGTERM termination.
+
+        Corrected concurrency in "reader.c".
+
+    readnoaaport:
+        Modified to use ldmProductQueue(3).
+
+    Misc:
+        Removed valgrind(1) lint.
+
+        Converted scripts to use noaaportIngester(1).
+
+        Added "noaaportIngester.c" to "Doxyfile".
+
+        Added noaaportIngester(1) to "mainpage.h.in".
+
+        Moved getFaciltyName() to its own file in order to port to Solaris.
+
+        Made reporting of products a NOTE level message.
+
+        Improved doxygen documentation.
+
+        Modified process_prod(3) to use ldmProductQueue(3).
+
 1.6.2 	2011-05-04 12:28:49-06:00
     Improved release-engineering rules in makefile.
 
