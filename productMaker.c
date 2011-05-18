@@ -205,18 +205,28 @@ void* pmStart(
 
         if (ulogIsDebug())
             udebug("***********************************************");
-        if (last_sbn_seqno != -1) {
-            if (sbn->seqno != last_sbn_seqno + 1) {
-                uwarn("Gap in SBN sequence number %ld to %ld [skipped %ld]",
-                         last_sbn_seqno, sbn->seqno,
-                         sbn->seqno - last_sbn_seqno - 1);
-                if ( sbn->seqno > last_sbn_seqno )
-                    productMaker->nmissed += 
-                        (unsigned long)(sbn->seqno - last_sbn_seqno - 1);
-            }
+        if (last_sbn_seqno == -1) {
+            last_sbn_seqno = sbn->seqno;
         }
+        else {
+            long   delta = sbn->seqno - last_sbn_seqno;
 
-        last_sbn_seqno = sbn->seqno;
+            if (0 >= delta) {
+                uwarn("Retrograde packet number: previous=%lu, latest=%lu, "
+                        "difference=%l", last_sbn_seqno, sbn->seqno, -delta);
+            }
+            else {
+                if (1 != delta) {
+                    long   gap = delta - 1;
+
+                    uwarn("Gap in packet sequence: %ld to %ld [skipped %ld]",
+                             last_sbn_seqno, sbn->seqno, gap);
+                    productMaker->nmissed += gap;
+                }
+
+                last_sbn_seqno = sbn->seqno;
+            }                           /* non-retrograde packet number */
+        }                               /* "last_sbn_seqno" initialized */
 
         if (ulogIsVerbose())
             uinfo("SBN seqnumber %ld", sbn->seqno);
