@@ -7,6 +7,7 @@
 
 #include <string.h>
 #include <errno.h>
+#include <ulog.h>
 #include <log.h>
 
 #if !defined(LOG_FMT)

@@ -11,6 +11,7 @@
  *   product-queue.
  */
 #define _XOPEN_SOURCE 500
+#define __EXTENSIONS__
 
 #include <pthread.h>
 #include <stdio.h>

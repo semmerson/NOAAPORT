@@ -3,6 +3,7 @@
  *   See file COPYRIGHT for copying and redistribution conditions.
  */
 #define _XOPEN_SOURCE 500
+#define __EXTENSIONS__
 
 #include <pthread.h>
 #include <signal.h>
