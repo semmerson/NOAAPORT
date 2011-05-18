@@ -435,6 +435,8 @@ int main(
 
                     (void)lpqClose(prodQueue);
                 }                       /* "prodQueue" open */
+
+                readerFree(reader);
             }                           /* "reader" created */
         }                               /* "fifo" created */
     }                                   /* command-line correctly decoded */

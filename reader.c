@@ -23,7 +23,8 @@ struct reader {
 };
 
 /**
- * Returns a new reader.
+ * Returns a new reader. The client should call \link \c readerFree() \endlink
+ * when the reader is no longer needed.
  *
  * This function is thread-safe.
  *
@@ -56,6 +57,15 @@ int readerNew(
     }
 
     return status;
+}
+
+/**
+ * Frees a reader.
+ */
+void readerFree(
+    Reader* const   reader)     /**< Pointer to the reader to be freed */
+{
+    free(reader);
 }
 
 /**

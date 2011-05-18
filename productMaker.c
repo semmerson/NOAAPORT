@@ -739,6 +739,9 @@ void* pmStart(
                 deflen);
     }
 
+    if (NULL != memheap)
+        free(memheap);
+
     productMaker->status = status;
 
     return NULL;
