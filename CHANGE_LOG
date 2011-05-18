@@ -1,3 +1,6 @@
+1.7.0.6 	2011-05-18 15:18:21-06:00
+    More LDM 6.8 porting
+
 1.7.0.5 	2011-05-18 14:46:54-06:00
     Corrected LOG_SERROR* in "noaaportLog.h"
 
