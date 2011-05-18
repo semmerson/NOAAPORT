@@ -1,3 +1,7 @@
+1.7.0.3 	2011-05-18 14:27:23-06:00
+    Ported to Solaris and LDM 6.8. In particular, created "noaaportLog.h" to
+    accomodate LDM 6.8.
+
 1.7.0.2 	2011-05-18 11:22:08-06:00
     Release Engineering:
         Deleted hdlcrecv(1)-using scripts.
