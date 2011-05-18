@@ -1,3 +1,7 @@
+1.7.0.7 	2011-05-18 17:11:44-06:00
+    Corrected retrograde packet determination: treat packet number like
+    unsigned 4-octet integer and use modulus arithmetic.
+
 1.7.0.6 	2011-05-18 15:18:21-06:00
     More LDM 6.8 porting
 
