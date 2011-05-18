@@ -1,3 +1,6 @@
+1.7.0.5 	2011-05-18 14:46:54-06:00
+    Corrected LOG_SERROR* in "noaaportLog.h"
+
 1.7.0.4 	2011-05-18 14:30:23-06:00
     Added "noaaportLog.h" to repository.
 
