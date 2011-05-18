@@ -109,7 +109,8 @@ void* pmStart(
     psh_struct*         psh = &productMaker->psh;
     pdb_struct*         pdb = &productMaker->pdb;
     ccb_struct*         ccb = &productMaker->ccb;
-    long                last_sbn_seqno = -1;
+    unsigned long       last_sbn_seqno;
+    int                 last_sbn_seqno_initialized = 0;
     int                 PNGINIT = 0;
     char*               memheap = NULL;
     MD5_CTX*            md5ctxp = productMaker->md5ctxp;
@@ -206,21 +207,24 @@ void* pmStart(
 
         if (ulogIsDebug())
             udebug("***********************************************");
-        if (last_sbn_seqno == -1) {
+        if (!last_sbn_seqno_initialized) {
             last_sbn_seqno = sbn->seqno;
+            last_sbn_seqno_initialized = 1;
         }
         else {
-            long   delta = sbn->seqno - last_sbn_seqno;
+            unsigned long   delta = sbn->seqno - last_sbn_seqno;
+#           define          MAX_SEQNO 0xFFFFFFFFu
 
-            if (0 >= delta) {
+            if (0 == delta || MAX_SEQNO/2 < delta) {
                 uwarn("Retrograde packet number: previous=%lu, latest=%lu, "
-                        "difference=%l", last_sbn_seqno, sbn->seqno, -delta);
+                        "difference=%lu", last_sbn_seqno, sbn->seqno, 
+                        0 == delta ? 0ul : MAX_SEQNO - delta + 1);
             }
             else {
                 if (1 != delta) {
-                    long   gap = delta - 1;
+                    unsigned long   gap = delta - 1;
 
-                    uwarn("Gap in packet sequence: %ld to %ld [skipped %ld]",
+                    uwarn("Gap in packet sequence: %lu to %lu [skipped %lu]",
                              last_sbn_seqno, sbn->seqno, gap);
                     productMaker->nmissed += gap;
                 }

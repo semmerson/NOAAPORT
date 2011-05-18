@@ -7,7 +7,7 @@ typedef struct sbn_struct {
    int version;
    int len;
    int datastream;
-   long int seqno;
+   unsigned long seqno;
    int runno;
    int command;
    int checksum; 
