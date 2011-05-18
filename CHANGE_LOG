@@ -1,3 +1,6 @@
+1.7.0.4 	2011-05-18 14:30:23-06:00
+    Added "noaaportLog.h" to repository.
+
 1.7.0.3 	2011-05-18 14:27:23-06:00
     Ported to Solaris and LDM 6.8. In particular, created "noaaportLog.h" to
     accomodate LDM 6.8.
