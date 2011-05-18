@@ -38,10 +38,10 @@
 #include "globals.h"
 #include "md5.h"
 #include "ulog.h"
-#include "log.h"
 #include "setenv.h"
 #include "libpng/png.h"
 
+#include "noaaportLog.h"
 #include "dvbs.h"
 #include "config.h"
 #include "ldmProductQueue.h"

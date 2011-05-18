@@ -20,7 +20,6 @@
 #include <unistd.h>
 
 #include <ldm.h>
-#include <log.h>
 #include <ulog.h>
 
 #undef PACKAGE
@@ -33,6 +32,7 @@
 
 #include "config.h"
 
+#include "noaaportLog.h"
 #include "fifo.h"
 #include "fileReader.h"
 #include "ldmProductQueue.h"

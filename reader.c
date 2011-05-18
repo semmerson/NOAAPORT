@@ -8,8 +8,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <log.h>
-
+#include "noaaportLog.h"
 #include "fifo.h"
 #include "reader.h"     /* Eat own dog food */
 

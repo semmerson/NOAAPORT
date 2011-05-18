@@ -17,8 +17,7 @@
 #include <netdb.h>
 #include <unistd.h>
 
-#include <log.h>
-
+#include "noaaportLog.h"
 #include "dvbs.h"
 #include "fifo.h"
 #include "multicastReader.h" /* Eat own dog food */

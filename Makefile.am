@@ -24,6 +24,7 @@ EXTRA_DIST 		= \
 	html \
 	mainpage.h \
 	mainpage.h.in \
+	noaaportLog.h \
 	nwstgdump.data
 DISTCLEANFILES		= mainpage.h $(distArchive)
 
@@ -43,7 +44,8 @@ dist_bin_SCRIPTS	= \
 	dvbs_oconus \
 	nplog_rotate
 
-CPPFLAGS		= -I$(LDMHOME)/include -I$(LDMHOME)/src/ulog
+CPPFLAGS		= -I$(LDMHOME)/include -I$(LDMHOME)/src/ulog \
+			  -I$(LDMHOME)/src
 LDADD 			= libnoaaport.la -L$(LDMHOME)/lib -lldm -lxml2
 
 dvbs_multicast_SOURCES	= dvbs_multicast.c

@@ -8,9 +8,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <log.h>
-
-#include "fifo.h"    /* Eat own dog food */
+#include "noaaportLog.h"
+#include "fifo.h"                   /* Eat own dog food */
 
 struct fifo {
     unsigned char*      buf;        /**< Pointer to start of buffer */
@@ -245,6 +244,7 @@ int fifoWriteUpdate(
         else {
             if (pthread_cond_signal(&fifo->readCond) != 0) {
                 LOG_SERROR0("Couldn't signal reading condition variable");
+                status = 2;             /* Usage error */
             }
             else {
                 fifo->nextWrite = (fifo->nextWrite + nbytes) % fifo->size;

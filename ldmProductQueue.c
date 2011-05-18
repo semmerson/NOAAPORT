@@ -3,13 +3,14 @@
  *   See file COPYRIGHT for copying and redistribution conditions.
  */
 #define _XOPEN_SOURCE 500
+#define __EXTENSIONS__
 
+#include <errno.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <ldm.h>
-#include <log.h>
 #include <pq.h>
 
 #undef PACKAGE
@@ -23,11 +24,12 @@
 #include "config.h"
 
 #ifdef HAVE_GET_QUEUE_PATH
-#   include "globals.h"
+#   include <globals.h>
 #else
-#   include "paths.h"      /* pre LDM 6.9 style */
+#   include <paths.h>           /* pre LDM 6.9 style */
 #endif
 
+#include "noaaportLog.h"
 #include "ldmProductQueue.h"    /* Eat own dog food */
 
 struct LdmProductQueue {

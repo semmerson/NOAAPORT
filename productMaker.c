@@ -10,10 +10,10 @@
 #include <unistd.h>
 
 #include <ldm.h>
-#include <log.h>
 #include <pq.h>
 #include <md5.h>
 
+#include "noaaportLog.h"
 #include "fifo.h"
 #include "ldmProductQueue.h"
 #include "nport.h"

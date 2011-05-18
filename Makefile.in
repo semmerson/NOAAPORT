@@ -214,7 +214,9 @@ CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CPP = @CPP@
-CPPFLAGS = -I$(LDMHOME)/include -I$(LDMHOME)/src/ulog
+CPPFLAGS = -I$(LDMHOME)/include -I$(LDMHOME)/src/ulog \
+			  -I$(LDMHOME)/src
+
 CXX = @CXX@
 CXXCPP = @CXXCPP@
 CXXDEPMODE = @CXXDEPMODE@
@@ -327,6 +329,7 @@ EXTRA_DIST = \
 	html \
 	mainpage.h \
 	mainpage.h.in \
+	noaaportLog.h \
 	nwstgdump.data
 
 DISTCLEANFILES = mainpage.h $(distArchive)

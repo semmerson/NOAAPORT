@@ -11,8 +11,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <log.h>
-
+#include "noaaportLog.h"
 #include "fifo.h"
 #include "fileReader.h" /* Eat own dog food */
 

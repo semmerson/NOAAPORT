@@ -214,7 +214,9 @@ CC = c89
 CCDEPMODE = depmode=gcc3
 CFLAGS = -O -m64
 CPP = c89 -E
-CPPFLAGS = -I$(LDMHOME)/include -I$(LDMHOME)/src/ulog
+CPPFLAGS = -I$(LDMHOME)/include -I$(LDMHOME)/src/ulog \
+			  -I$(LDMHOME)/src
+
 CXX = g++
 CXXCPP = g++ -E
 CXXDEPMODE = depmode=gcc3
@@ -251,9 +253,9 @@ OBJEXT = o
 PACKAGE = noaaport
 PACKAGE_BUGREPORT = support-noaaport@unidata.ucar.edu
 PACKAGE_NAME = NOAAPORT
-PACKAGE_STRING = NOAAPORT 1.7.0.2
+PACKAGE_STRING = NOAAPORT 1.7.0.3
 PACKAGE_TARNAME = noaaport
-PACKAGE_VERSION = 1.7.0.2
+PACKAGE_VERSION = 1.7.0.3
 PATH_SEPARATOR = :
 RANLIB = ranlib
 SED = /bin/sed
@@ -262,7 +264,7 @@ SHELL = /bin/sh
 STRIP = strip
 SU = /bin/su
 SUDO = 
-VERSION = 1.7.0.2
+VERSION = 1.7.0.3
 abs_builddir = /machine/steve/ldm/noaaport
 abs_srcdir = /machine/steve/ldm/noaaport
 abs_top_builddir = /machine/steve/ldm/noaaport
@@ -327,6 +329,7 @@ EXTRA_DIST = \
 	html \
 	mainpage.h \
 	mainpage.h.in \
+	noaaportLog.h \
 	nwstgdump.data
 
 DISTCLEANFILES = mainpage.h $(distArchive)
