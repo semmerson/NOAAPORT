@@ -75,5 +75,5 @@ lib_la_SOURCES		= \
 	tiitoj.c \
 	timdif.c
 
-lib_la_CPPFLAGS		= \
-	-DLDMHOME='"$(LDMHOME)"' -I$(top_srcdir)/g2 -I$(LDMHOME)/include
+lib_la_CPPFLAGS		= -DLDMHOME='"$(LDMHOME)"' -I$(top_srcdir) \
+			  -I$(top_srcdir)/g2 -I$(LDMHOME)/include

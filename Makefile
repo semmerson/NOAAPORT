@@ -204,13 +204,13 @@ DIST_ARCHIVES = $(distdir).tar.gz
 GZIP_ENV = --best
 distuninstallcheck_listfiles = find . -type f -print
 distcleancheck_listfiles = find . -type f -print
-ACLOCAL = ${SHELL} /machine/steve/ldm/noaaport/missing --run aclocal-1.11
-AMTAR = ${SHELL} /machine/steve/ldm/noaaport/missing --run tar
+ACLOCAL = ${SHELL} /home/steve/ldm/package/noaaport/missing --run aclocal-1.11
+AMTAR = ${SHELL} /home/steve/ldm/package/noaaport/missing --run tar
 AR = ar
 ARFLAGS = -cru
-AUTOCONF = ${SHELL} /machine/steve/ldm/noaaport/missing --run autoconf
-AUTOHEADER = ${SHELL} /machine/steve/ldm/noaaport/missing --run autoheader
-AUTOMAKE = ${SHELL} /machine/steve/ldm/noaaport/missing --run automake-1.11
+AUTOCONF = ${SHELL} /home/steve/ldm/package/noaaport/missing --run autoconf
+AUTOHEADER = ${SHELL} /home/steve/ldm/package/noaaport/missing --run autoheader
+AUTOMAKE = ${SHELL} /home/steve/ldm/package/noaaport/missing --run automake-1.11
 AWK = gawk
 CC = c89
 CCDEPMODE = depmode=gcc3
@@ -248,16 +248,16 @@ LIBS = -lpthread
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LN_S = ln -s
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /machine/steve/ldm/noaaport/missing --run makeinfo
+MAKEINFO = ${SHELL} /home/steve/ldm/package/noaaport/missing --run makeinfo
 MKDIR_P = /bin/mkdir -p
 NMEDIT = 
 OBJEXT = o
 PACKAGE = noaaport
 PACKAGE_BUGREPORT = support-noaaport@unidata.ucar.edu
 PACKAGE_NAME = NOAAPORT
-PACKAGE_STRING = NOAAPORT 1.7.0.7
+PACKAGE_STRING = NOAAPORT 1.7.0.8
 PACKAGE_TARNAME = noaaport
-PACKAGE_VERSION = 1.7.0.7
+PACKAGE_VERSION = 1.7.0.8
 PATH_SEPARATOR = :
 RANLIB = ranlib
 SED = /bin/sed
@@ -266,11 +266,11 @@ SHELL = /bin/sh
 STRIP = strip
 SU = /bin/su
 SUDO = 
-VERSION = 1.7.0.7
-abs_builddir = /machine/steve/ldm/noaaport
-abs_srcdir = /machine/steve/ldm/noaaport
-abs_top_builddir = /machine/steve/ldm/noaaport
-abs_top_srcdir = /machine/steve/ldm/noaaport
+VERSION = 1.7.0.8
+abs_builddir = /home/steve/ldm/package/noaaport
+abs_srcdir = /home/steve/ldm/package/noaaport
+abs_top_builddir = /home/steve/ldm/package/noaaport
+abs_top_srcdir = /home/steve/ldm/package/noaaport
 ac_ct_CC = c89
 ac_ct_CXX = g++
 ac_ct_F77 = gfortran
@@ -299,7 +299,7 @@ host_vendor = unknown
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /machine/steve/ldm/noaaport/install-sh
+install_sh = ${SHELL} /home/steve/ldm/package/noaaport/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -308,7 +308,7 @@ mandir = ${datarootdir}/man
 mkdir_p = /bin/mkdir -p
 oldincludedir = /usr/include
 pdfdir = ${docdir}
-prefix = /machine/steve/ldm
+prefix = /home/steve/ldm/package
 program_transform_name = s,x,x,
 psdir = ${docdir}
 sbindir = ${exec_prefix}/sbin
@@ -1578,27 +1578,27 @@ uninstall-am: uninstall-binPROGRAMS uninstall-dist_binSCRIPTS \
 	uninstall-libLTLIBRARIES
 
 
-all:		$(srcdir)/html/index.html
+#all:		$(srcdir)/html/index.html
 
-$(srcdir)/html/index.html:	$(srcdir)/configure.ac $(srcdir)/mainpage.h.in \
-		$(srcdir)/Doxyfile
-	cd $(srcdir) && doxygen Doxyfile
+#$(srcdir)/html/index.html:	$(srcdir)/configure.ac $(srcdir)/mainpage.h.in \
+#		$(srcdir)/Doxyfile
+#	cd $(srcdir) && doxygen Doxyfile
 
-.hin.h:
-	./extractDecls $*.hin $*.c >$@.tmp
-	mv -f $@.tmp $@
-shmfifo.h:		shmfifo.c shmfifo.hin extractDecls
-ldmProductQueue.h:	ldmProductQueue.c ldmProductQueue.hin extractDecls
-fifo.h:			fifo.c fifo.hin extractDecls
-reader.h:		reader.c reader.hin extractDecls
-fileReader.h:		fileReader.c fileReader.hin extractDecls
-multicastReader.h:	multicastReader.c multicastReader.hin extractDecls
-productMaker.h:		productMaker.c productMaker.hin extractDecls
-getFacilityName.h:	getFacilityName.c getFacilityName.hin extractDecls
-noaaportLog.h:		noaaportLog.c noaaportLog.hin extractDecls
+#.hin.h:
+#	./extractDecls $*.hin $*.c >$@.tmp
+#	mv -f $@.tmp $@
+#shmfifo.h:		shmfifo.c shmfifo.hin extractDecls
+#ldmProductQueue.h:	ldmProductQueue.c ldmProductQueue.hin extractDecls
+#fifo.h:			fifo.c fifo.hin extractDecls
+#reader.h:		reader.c reader.hin extractDecls
+#fileReader.h:		fileReader.c fileReader.hin extractDecls
+#multicastReader.h:	multicastReader.c multicastReader.hin extractDecls
+#productMaker.h:		productMaker.c productMaker.hin extractDecls
+#getFacilityName.h:	getFacilityName.c getFacilityName.hin extractDecls
+#noaaportLog.h:		noaaportLog.c noaaportLog.hin extractDecls
 
-.c.i:
-	$(CC) $(CPPFLAGS) -E $< >$@
+#.c.i:
+#	$(CC) $(CPPFLAGS) -E $< >$@
 
 libpng/libpng.la:
 	cd libpng && $(MAKE) $(AM_MAKEFLAGS) all
