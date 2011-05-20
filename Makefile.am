@@ -179,12 +179,12 @@ installcheck-local:
 check-local:		check-readnoaaport check-noaaportIngester
 check-readnoaaport:	readnoaaport
 	pqcreate -c -s 2m /tmp/readnoaaport-test.pq
-	./readnoaaport -l- -q /tmp/readnoaaport-test.pq \
+	./readnoaaport -nl- -q /tmp/readnoaaport-test.pq \
 	    $(srcdir)/nwstgdump.data
 	rm /tmp/readnoaaport-test.pq
 check-noaaportIngester:	noaaportIngester
 	pqcreate -c -s 2m /tmp/noaaportIngester-test.pq
-	./noaaportIngester -l- -q /tmp/noaaportIngester-test.pq \
+	./noaaportIngester -n -q /tmp/noaaportIngester-test.pq \
 	    <$(srcdir)/nwstgdump.data
 	rm /tmp/noaaportIngester-test.pq
 
