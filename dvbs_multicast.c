@@ -46,7 +46,7 @@
 #undef PACKAGE_VERSION
 #undef VERSION
 #include "pq.h"
-#include "ulog.h"
+#include "noaaportLog.h"
 #include "globals.h"
 
 /* Local headers */
@@ -92,7 +92,7 @@ static void usage(
 
 static void mypriv_stats(void)
 {
-    unotice("wait count %d",mypriv.counter);
+    nplNotice("wait count %d",mypriv.counter);
 }
 
 /*
@@ -167,7 +167,7 @@ static void cleanup(void)
 {
     int status;
 
-    unotice("cleanup %d", child);
+    nplNotice("cleanup %d", child);
 
     if (shm != NULL)
         shmfifo_detach(shm);
@@ -176,7 +176,7 @@ static void cleanup(void)
         return;
 
     if (!memsegflg) {
-        unotice("waiting for child");
+        nplNotice("waiting for child");
         wait(&status);
     }
 
@@ -184,11 +184,11 @@ static void cleanup(void)
         shmfifo_dealloc(shm);
 
     if (pq != NULL) {
-        udebug("Closing product_queue\0");
+        nplDebug("Closing product_queue\0");
         pq_close(pq);
     }
 
-    unotice("parent exiting");
+    nplNotice("parent exiting");
 }
 
 /**
@@ -312,7 +312,7 @@ int main(
             break;
         case 'l':
             if (optarg[0] == '-' && optarg[1] != 0) {
-                uerror("logfile \"%s\" ??", optarg);
+                nplError("logfile \"%s\" ??", optarg);
                 usage(argv[0]);
             }
             /* else */
@@ -363,14 +363,14 @@ int main(
     if (argc - optind < 1)
         usage(argv[0]);
 
-    unotice("Starting Up %s", PACKAGE_VERSION);
+    nplNotice("Starting Up %s", PACKAGE_VERSION);
 
     /*
      * Use mlockall command to prevent paging of our process, then exit root
      * privileges
      */
     if (mlockall( MCL_CURRENT|MCL_FUTURE ) != 0 )
-        serror("mlockall");
+        nplSerror("mlockall");
 
     if (rtflag) {
 #ifdef _POSIX_PRIORITY_SCHEDULING
@@ -381,23 +381,23 @@ int main(
               status = sched_setscheduler(0, SCHED_RR, &schedparam);
 
               if (status != -1)
-                  unotice("Realtime scheduler %d",status);
+                  nplNotice("Realtime scheduler %d",status);
               else
-                  serror("scheduler");
+                  nplSerror("scheduler");
            }
        }
 #else
-       uerror("rtmode not configured");
+       nplError("rtmode not configured");
 #endif
     }
     else if (ipri != 0) {
        if (setpriority(PRIO_PROCESS, 0, ipri) != 0)
-           serror("setpriority");
+           nplSerror("setpriority");
     }
 
     if ((pq == NULL) && (dumpflag)) {
         if (pq_open(pqfname, PQ_DEFAULT, &pq)) {
-            uerror("couldn't open the product queue %s\0", pqfname);
+            nplError("couldn't open the product queue %s\0", pqfname);
             exit(1);
         }
 
@@ -417,7 +417,7 @@ int main(
      * Register atexit routine
      */
     if (atexit(cleanup) != 0) {
-        serror("atexit");
+        nplSerror("atexit");
         exit(1);
     }
 
@@ -425,7 +425,7 @@ int main(
     sscanf(argv[optind], "%*d.%*d.%*d.%d", &pid_channel);
 
     if ((pid_channel < 1) || (pid_channel > MAX_DVBS_PID)) {
-        uerror("multicast address %s outside range of expected server ports\n",
+        nplError("multicast address %s outside range of expected server ports\n",
                 argv[optind]);
         exit(1);
     }
@@ -437,7 +437,7 @@ int main(
            : shmfifo_create(bufpag, sizeof(struct shmfifo_priv), -1);
 
     if (shm == NULL) {
-        uerror("%s: Couldn't ensure existence of shared-memory FIFO", progName);
+        nplError("%s: Couldn't ensure existence of shared-memory FIFO", progName);
         exit(1);
     }
 
@@ -450,7 +450,7 @@ int main(
         char            msg[MAX_MSG];
 
         if (shmfifo_attach(shm) == -1) {
-            uerror("parent cannot attach");
+            nplError("parent cannot attach");
             exit(1);
         };
 
@@ -461,7 +461,7 @@ int main(
         h = gethostbyname(argv[optind]);
 
         if (h == NULL) {
-            uerror("%s : unknown group '%s'", argv[0], argv[optind]);
+            nplError("%s : unknown group '%s'", argv[0], argv[optind]);
             exit(1);
         }
 
@@ -469,7 +469,7 @@ int main(
 
         /* Check given address is multicast */
         if (!IN_MULTICAST(ntohl(mcastAddr.s_addr))) {
-            uerror("%s : given address '%s' is not multicast", argv[0],
+            nplError("%s : given address '%s' is not multicast", argv[0],
                     inet_ntoa(mcastAddr));
             exit(1);
         }
@@ -488,7 +488,7 @@ int main(
         sd = socket(AF_INET, SOCK_DGRAM, 0);
 
         if (sd < 0) {
-            uerror("%s : cannot create socket", argv[0]);
+            nplError("%s : cannot create socket", argv[0]);
             exit(1);
         }
 
@@ -498,7 +498,7 @@ int main(
         servAddr.sin_port = htons(s_port[pid_channel - 1]);
         
         if (bind(sd, (struct sockaddr *) &servAddr, sizeof(servAddr)) < 0) {
-            uerror("%s : cannot bind port %d", argv[0],
+            nplError("%s : cannot bind port %d", argv[0],
                     s_port[pid_channel - 1]);
             exit(1);
         }
@@ -514,7 +514,7 @@ int main(
                       sizeof(mreq));
 
         if (rc < 0) {
-            uerror("%s : cannot join multicast group '%s'", argv[0],
+            nplError("%s : cannot join multicast group '%s'", argv[0],
                     inet_ntoa(mcastAddr));
             exit(1);
         }
@@ -538,13 +538,13 @@ int main(
 
                 if (n <= 0) {
                     if (haslogged) {
-                        unotice("recvfrom returned %d",n);
+                        nplNotice("recvfrom returned %d",n);
                     }
                     else {
                        if (n == 0)
-                          uerror("recvfrom returns zero");
+                          nplError("recvfrom returns zero");
                        else
-                          serror("recvfrom failure");
+                          nplSerror("recvfrom failure");
                     }
 
                     haslogged = 1;
@@ -555,7 +555,7 @@ int main(
                 }
 
                 if (haslogged) {
-                    unotice("recvfrom has succeeded");
+                    nplNotice("recvfrom has succeeded");
 
                     haslogged = 0;
                 }
@@ -567,10 +567,10 @@ int main(
                       (unsigned char) msg[10]) << 8) + (unsigned char) msg[11];
 
                 if (ulogIsDebug())
-                    udebug("received %d bytes", n);
+                    nplDebug("received %d bytes", n);
 
                 if (sbnnum <= lastnum) {
-                    unotice("Retrograde packet number: previous=%lu, "
+                    nplNotice("Retrograde packet number: previous=%lu, "
                         "latest=%lu, difference=%lu", lastnum, sbnnum,
                         lastnum - sbnnum);
                 }
@@ -578,11 +578,11 @@ int main(
                     unsigned long       gap = sbnnum - lastnum - 1;
 
                     if ((lastnum != 0) && (0 < gap)) {
-                        uerror("Gap in SBN last %lu, this %lu, gap %lu",
+                        nplError("Gap in SBN last %lu, this %lu, gap %lu",
                             lastnum, sbnnum, gap);
                     }
                     else if (ulogIsVerbose()) {
-                        uinfo("SBN number %u", sbnnum);
+                        nplInfo("SBN number %u", sbnnum);
                     }
                 }
 
@@ -600,10 +600,10 @@ int main(
         char            msg[MAX_MSG];
         unsigned long   sbnnum, lastnum = 0;
 
-        udebug("I am the child");
+        nplDebug("I am the child");
 
         if (shmfifo_attach(shm) == -1) {
-            uerror("child cannot attach");
+            nplError("child cannot attach");
             exit(1);
         }
 
@@ -611,12 +611,12 @@ int main(
             /* Check for data without locking */
             while (shmfifo_empty(shm)) {
                 if (ulogIsVerbose())
-                    uinfo("nothing in shmem, waiting...");
+                    nplInfo("nothing in shmem, waiting...");
                     usleep(500);
             }
 
             if (shmfifo_get(shm, msg, MAX_MSG, &n) != 0) {
-                uerror( "circbuf read failed to return data...");
+                nplError( "circbuf read failed to return data...");
                 exit(1);
             }
 
@@ -625,12 +625,12 @@ int main(
                   (unsigned char) msg[10]) << 8) + (unsigned char) msg[11];
 
             if (ulogIsDebug())
-                udebug("child received %d bytes", n);
+                nplDebug("child received %d bytes", n);
             if ((lastnum != 0) && (lastnum + 1 != sbnnum))
-                uerror("Gap in SBN last %lu, this %lu, gap %lu", lastnum,
+                nplError("Gap in SBN last %lu, this %lu, gap %lu", lastnum,
                     sbnnum, sbnnum - lastnum);
             else if (ulogIsVerbose())
-                uinfo("SBN number %u", sbnnum);
+                nplInfo("SBN number %u", sbnnum);
 
             lastnum = sbnnum;
 
@@ -655,10 +655,10 @@ int main(
 
                 if (status != 0) {
                     if (status == PQUEUE_DUP) {
-                        unotice("SBN %u already in queue", prod.info.seqno);
+                        nplNotice("SBN %u already in queue", prod.info.seqno);
                     }
                     else {
-                        uerror("pqinsert failed [%d] SBN %u", status,
+                        nplError("pqinsert failed [%d] SBN %u", status,
                               prod.info.seqno);
                     }
                 }

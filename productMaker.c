@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <ldm.h>
@@ -48,8 +49,8 @@ datastore*  ds_alloc(void);
  * This function is thread-safe.
  *
  * @retval 0    Success.
- * @retval 1    Usage failure. \c log_start() called.
- * @retval 2    O/S failure. \c log_start() called.
+ * @retval 1    Usage failure. \c nplStart() called.
+ * @retval 2    O/S failure. \c nplStart() called.
  */
 int pmNew(
     Fifo* const             fifo,           /**< [in] Pointer to FIFO from
@@ -63,13 +64,13 @@ int pmNew(
     ProductMaker*   w = (ProductMaker*)malloc(sizeof(ProductMaker));
 
     if (NULL == w) {
-        LOG_SERROR0("Couldn't allocate new product-maker");
+        NPL_SERROR0("Couldn't allocate new product-maker");
     }
     else {
         MD5_CTX*    md5ctxp = new_MD5_CTX();
 
         if (NULL == md5ctxp) {
-            LOG_SERROR0("Couldn't allocate MD5 object");
+            NPL_SERROR0("Couldn't allocate MD5 object");
         }
         else {
             w->fifo = fifo;
@@ -93,8 +94,8 @@ int pmNew(
  * This function is thread-compatible but not thread-safe.
  *
  * @retval (void*)0    The FIFO was closed.
- * @retval (void*)1    Usage failure. \c log_start() called.
- * @retval (void*)2    O/S failure. \c log_start() called.
+ * @retval (void*)1    Usage failure. \c nplStart() called.
+ * @retval (void*)2    O/S failure. \c nplStart() called.
  */
 void* pmStart(
     void* const         arg)          /**< [in/out] Pointer to the
@@ -150,7 +151,7 @@ void* pmStart(
         }
         if ((b1 = (unsigned char)buf[0]) != 255) {
             if (logResync) {
-                uinfo("Trying to resync %u", b1);
+                nplInfo("Trying to resync %u", b1);
                 logResync = 0;
             }
             continue;
@@ -159,13 +160,13 @@ void* pmStart(
 
         if (fifoRead(fifo, buf + 1, 15) != 0) {
             if (ulogIsDebug())
-                udebug("couldn't read 16 bytes for sbn");
+                nplDebug("couldn't read 16 bytes for sbn");
             continue;
         }
 
         while ((status = readsbn(buf, sbn)) != 0) {
             if (ulogIsDebug())
-                udebug("Not SBN start");
+                nplDebug("Not SBN start");
 
             IOFF = 1;
 
@@ -185,7 +186,7 @@ void* pmStart(
                 if (fifoRead(fifo, buf + 16 - IOFF, IOFF)
                         != 0) {
                     if (ulogIsDebug())
-                        udebug("Couldn't read bytes for SBN, resync");
+                        nplDebug("Couldn't read bytes for SBN, resync");
                     break;
                 }
             }
@@ -193,7 +194,7 @@ void* pmStart(
 
         if (status != 0) {
             if (ulogIsDebug())
-                udebug("SBN status continue");
+                nplDebug("SBN status continue");
             continue;
         }
 
@@ -201,12 +202,12 @@ void* pmStart(
 
         if (fifoRead(fifo, buf + 16, 16) != 0) {
             if (ulogIsDebug())
-                udebug("error reading Product Definition Header");
+                nplDebug("error reading Product Definition Header");
             continue;
         }
 
         if (ulogIsDebug())
-            udebug("***********************************************");
+            nplDebug("***********************************************");
         if (!last_sbn_seqno_initialized) {
             last_sbn_seqno = sbn->seqno;
             last_sbn_seqno_initialized = 1;
@@ -216,7 +217,7 @@ void* pmStart(
 #           define          MAX_SEQNO 0xFFFFFFFFu
 
             if (0 == delta || MAX_SEQNO/2 < delta) {
-                uwarn("Retrograde packet number: previous=%lu, latest=%lu, "
+                nplWarn("Retrograde packet number: previous=%lu, latest=%lu, "
                         "difference=%lu", last_sbn_seqno, sbn->seqno, 
                         0 == delta ? 0ul : MAX_SEQNO - delta + 1);
             }
@@ -224,7 +225,7 @@ void* pmStart(
                 if (1 != delta) {
                     unsigned long   gap = delta - 1;
 
-                    uwarn("Gap in packet sequence: %lu to %lu [skipped %lu]",
+                    nplWarn("Gap in packet sequence: %lu to %lu [skipped %lu]",
                              last_sbn_seqno, sbn->seqno, gap);
                     productMaker->nmissed += gap;
                 }
@@ -234,15 +235,15 @@ void* pmStart(
         }                               /* "last_sbn_seqno" initialized */
 
         if (ulogIsVerbose())
-            uinfo("SBN seqnumber %ld", sbn->seqno);
+            nplInfo("SBN seqnumber %ld", sbn->seqno);
         if (ulogIsVerbose())
-            uinfo("SBN datastream %d command %d", sbn->datastream,
+            nplInfo("SBN datastream %d command %d", sbn->datastream,
                 sbn->command);
         if (ulogIsDebug())
-            udebug("SBN version %d length offset %d", sbn->version, sbn->len);
+            nplDebug("SBN version %d length offset %d", sbn->version, sbn->len);
         if (((sbn->command != 3) && (sbn->command != 5)) || 
                 (sbn->version != 1)) {
-            uerror("Unknown sbn command/version %d PUNT", sbn->command);
+            nplError("Unknown sbn command/version %d PUNT", sbn->command);
             continue;
         }
 
@@ -260,14 +261,14 @@ void* pmStart(
             GOES = 1;
             break;
         default:
-            uerror("Unknown NOAAport channel %d PUNT", sbn->datastream);
+            nplError("Unknown NOAAport channel %d PUNT", sbn->datastream);
             continue;
         }
 
         /* End of SBN version low 4 bits */
 
         if (readpdh(buf + IOFF + sbn->len, pdh) == -1) {
-            uerror("problem with pdh, PUNT");
+            nplError("problem with pdh, PUNT");
             continue;
         }
         if (pdh->len > 16) {
@@ -277,40 +278,40 @@ void* pmStart(
         }
 
         if (ulogIsDebug())
-            udebug("Product definition header version %d pdhlen %d",
+            nplDebug("Product definition header version %d pdhlen %d",
                 pdh->version, pdh->len);
 
         if (pdh->version != 1) {
-            uerror("Error: PDH transfer type %u, PUNT", pdh->transtype);
+            nplError("Error: PDH transfer type %u, PUNT", pdh->transtype);
             continue;
         }
         else if (ulogIsDebug()) {
-            udebug("PDH transfer type %u", pdh->transtype);
+            nplDebug("PDH transfer type %u", pdh->transtype);
         }
 
         if ((pdh->transtype & 8) > 0)
-            uerror("Product transfer flag error %u", pdh->transtype);
+            nplError("Product transfer flag error %u", pdh->transtype);
         if ((pdh->transtype & 32) > 0)
-            uerror("Product transfer flag error %u", pdh->transtype);
+            nplError("Product transfer flag error %u", pdh->transtype);
 
         if ((pdh->transtype & 16) > 0) {
             PROD_COMPRESSED = 1;
 
             if (ulogIsDebug())
-                udebug("Product transfer flag compressed %u", pdh->transtype);
+                nplDebug("Product transfer flag compressed %u", pdh->transtype);
         }
         else {
             PROD_COMPRESSED = 0;
         }
 
         if (ulogIsDebug())
-            udebug("header length %ld [pshlen = %d]", pdh->len + pdh->pshlen,
+            nplDebug("header length %ld [pshlen = %d]", pdh->len + pdh->pshlen,
                 pdh->pshlen);
         if (ulogIsDebug())
-            udebug("blocks per record %ld records per block %ld\n",
+            nplDebug("blocks per record %ld records per block %ld\n",
                 pdh->blocks_per_record, pdh->records_per_block);
         if (ulogIsDebug())
-            udebug("product seqnumber %ld block number %ld data block size "
+            nplDebug("product seqnumber %ld block number %ld data block size "
                 "%ld", pdh->seqno, pdh->dbno, pdh->dbsize);
 
         /* Stop here if no psh */
@@ -322,18 +323,18 @@ void* pmStart(
         if (pdh->pshlen != 0) {
             if (fifoRead(fifo, buf + sbn->len + pdh->len,
                         pdh->pshlen) != 0) {
-                uerror("problem reading psh");
+                nplError("problem reading psh");
                 continue;
             }
             else {
                 if (ulogIsDebug())
-                    udebug("read psh %d", pdh->pshlen);
+                    nplDebug("read psh %d", pdh->pshlen);
             }
 
             /* Timing block */
             if (sbn->command == 5) {
                 if (ulogIsDebug())
-                    udebug("Timing block recieved %ld %ld\0", psh->olen,
+                    nplDebug("Timing block recieved %ld %ld\0", psh->olen,
                         pdh->len);
                 /*
                  * Don't step on our psh of a product struct of prod in
@@ -343,44 +344,44 @@ void* pmStart(
             }
 
             if (readpsh(buf + IOFF + sbn->len + pdh->len, psh) == -1) {
-                uerror("problem with readpsh");
+                nplError("problem with readpsh");
                 continue;
             }
             if (psh->olen != pdh->pshlen) {
-                uerror("ERROR in calculation of psh len %ld %ld", psh->olen,
+                nplError("ERROR in calculation of psh len %ld %ld", psh->olen,
                     pdh->len);
                 continue;
             }
             if (ulogIsDebug())
-                udebug("len %ld", psh->olen);
+                nplDebug("len %ld", psh->olen);
             if (ulogIsDebug())
-                udebug("product header flag %d, version %d", psh->hflag,
+                nplDebug("product header flag %d, version %d", psh->hflag,
                     psh->version);
             if (ulogIsDebug())
-                udebug("prodspecific data length %ld", psh->psdl);
+                nplDebug("prodspecific data length %ld", psh->psdl);
             if (ulogIsDebug())
-                udebug("bytes per record %ld", psh->bytes_per_record);
+                nplDebug("bytes per record %ld", psh->bytes_per_record);
             if (ulogIsDebug())
-                udebug("Fragments = %ld category %d ptype %d code %d",
+                nplDebug("Fragments = %ld category %d ptype %d code %d",
                     psh->frags, psh->pcat, psh->ptype, psh->pcode);
             if (psh->frags < 0)
-                uerror("check psh->frags %d", psh->frags);
+                nplError("check psh->frags %d", psh->frags);
             if (psh->origrunid != 0)
-                uerror("original runid %d", psh->origrunid);
+                nplError("original runid %d", psh->origrunid);
             if (ulogIsDebug())
-                udebug("next header offset %ld", psh->nhoff);
+                nplDebug("next header offset %ld", psh->nhoff);
             if (ulogIsDebug())
-                udebug("original seq number %ld", psh->seqno);
+                nplDebug("original seq number %ld", psh->seqno);
             if (ulogIsDebug())
-                udebug("receive time %ld", psh->rectime);
+                nplDebug("receive time %ld", psh->rectime);
             if (ulogIsDebug())
-                udebug("transmit time %ld", psh->transtime);
+                nplDebug("transmit time %ld", psh->transtime);
             if (ulogIsDebug())
-                udebug("run ID %ld", psh->runid);
+                nplDebug("run ID %ld", psh->runid);
             if (ulogIsDebug())
-                udebug("original run id %ld", psh->origrunid);
+                nplDebug("original run id %ld", psh->origrunid);
             if (prod.head != NULL) {
-                uerror("OOPS, start of new product [%ld ] with unfinished "
+                nplError("OOPS, start of new product [%ld ] with unfinished "
                     "product %ld", pdh->seqno, prod.seqno);
 
                 ds_free();
@@ -393,37 +394,37 @@ void* pmStart(
                     PNGINIT = 0;
                 }
 
-                uerror("Product definition header version %d pdhlen %d",
+                nplError("Product definition header version %d pdhlen %d",
                         pdh->version, pdh->len);
-                uerror("PDH transfer type %u", pdh->transtype);
+                nplError("PDH transfer type %u", pdh->transtype);
 
                 if ((pdh->transtype & 8) > 0)
-                    uerror("Product transfer flag error %u", pdh->transtype);
+                    nplError("Product transfer flag error %u", pdh->transtype);
                 if ((pdh->transtype & 32) > 0)
-                    uerror("Product transfer flag error %u", pdh->transtype);
+                    nplError("Product transfer flag error %u", pdh->transtype);
 
-                uerror("header length %ld [pshlen = %d]",
+                nplError("header length %ld [pshlen = %d]",
                     pdh->len + pdh->pshlen, pdh->pshlen);
-                uerror("blocks per record %ld records per block %ld",
+                nplError("blocks per record %ld records per block %ld",
                     pdh->blocks_per_record, pdh->records_per_block);
-                uerror("product seqnumber %ld block number %ld data block "
+                nplError("product seqnumber %ld block number %ld data block "
                     "size %ld", pdh->seqno, pdh->dbno, pdh->dbsize);
-                uerror("product header flag %d", psh->hflag);
-                uerror("prodspecific data length %ld", psh->psdl);
-                uerror("bytes per record %ld", psh->bytes_per_record);
-                uerror("Fragments = %ld category %d", psh->frags, psh->pcat);
+                nplError("product header flag %d", psh->hflag);
+                nplError("prodspecific data length %ld", psh->psdl);
+                nplError("bytes per record %ld", psh->bytes_per_record);
+                nplError("Fragments = %ld category %d", psh->frags, psh->pcat);
 
                 if (psh->frags < 0)
-                    uerror("check psh->frags %d", psh->frags);
+                    nplError("check psh->frags %d", psh->frags);
                 if (psh->origrunid != 0)
-                    uerror("original runid %d", psh->origrunid);
+                    nplError("original runid %d", psh->origrunid);
 
-                uerror("next header offset %ld", psh->nhoff);
-                uerror("original seq number %ld", psh->seqno);
-                uerror("receive time %ld", psh->rectime);
-                uerror("transmit time %ld", psh->transtime);
-                uerror("run ID %ld", psh->runid);
-                uerror("original run id %ld", psh->origrunid);
+                nplError("next header offset %ld", psh->nhoff);
+                nplError("original seq number %ld", psh->seqno);
+                nplError("receive time %ld", psh->rectime);
+                nplError("transmit time %ld", psh->transtime);
+                nplError("run ID %ld", psh->runid);
+                nplError("original run id %ld", psh->origrunid);
             }
 
             prod.seqno = pdh->seqno;
@@ -435,7 +436,7 @@ void* pmStart(
 
             if (fifoRead(fifo, buf + sbn->len + pdh->len + 
                         pdh->pshlen, pdh->dbsize) != 0) {
-                uerror("problem reading datablock");
+                nplError("problem reading datablock");
                 continue;
             }
             if (sbn->datastream == 4) {
@@ -453,14 +454,14 @@ void* pmStart(
                 if (readpdb(buf + IOFF + sbn->len + pdh->len + 
                             pdh->pshlen,
                         psh, pdb, PROD_COMPRESSED, pdh->dbsize) == -1) {
-                    uerror("Error reading pdb, punt");
+                    nplError("Error reading pdb, punt");
                     continue;
                 }
 
-                memcpy(PROD_NAME, psh->pname, sizeof(PROD_NAME));
+                (void)memcpy(PROD_NAME, psh->pname, sizeof(PROD_NAME));
 
                 if (ulogIsDebug())
-                    udebug("Read GOES %d %d %d [%d] %d", sbn->len, pdh->len,
+                    nplDebug("Read GOES %d %d %d [%d] %d", sbn->len, pdh->len,
                         pdh->pshlen, sbn->len + pdh->len + pdh->pshlen,
                         pdb->len);
 
@@ -474,12 +475,12 @@ void* pmStart(
                 if (readccb(buf + IOFF + sbn->len + pdh->len + 
                             pdh->pshlen,
                         ccb, psh, pdh->dbsize) == -1)
-                    uerror("Error reading ccb, using default name");
+                    nplError("Error reading ccb, using default name");
                 if (ulogIsDebug())
-                    udebug("look at ccb start %d %d", ccb->b1, ccb->len);
+                    nplDebug("look at ccb start %d %d", ccb->b1, ccb->len);
 
                 if (ulogIsVerbose())
-                    uinfo("%s", psh->pname);
+                    nplInfo("%s", psh->pname);
 
                 memcpy(PROD_NAME, psh->pname, sizeof(PROD_NAME));
 
@@ -507,18 +508,18 @@ void* pmStart(
             ccb->len = 0;
 
             if (ulogIsDebug())
-                udebug("continuation record");
+                nplDebug("continuation record");
             if ((pdh->transtype & 4) > 0) {
                 psh->frags = 0;
             }
             if (fifoRead(fifo, buf + sbn->len + pdh->len + 
                         pdh->pshlen, pdh->dbsize) != 0) {
-                uerror("problem reading datablock (cont)");
+                nplError("problem reading datablock (cont)");
                 continue;
             }
             if (prod.head == NULL) {
                 if (ulogIsVerbose())
-                    uinfo("found data block before header, "
+                    nplInfo("found data block before header, "
                         "skipping sequence %d frag #%d", pdh->seqno, pdh->dbno);
                 continue;
             }
@@ -529,7 +530,7 @@ void* pmStart(
         datalen = pdh->dbsize - ccb->len;
 
         if (ulogIsDebug())
-            udebug("look at datalen %d", datalen);
+            nplDebug("look at datalen %d", datalen);
 
         pfrag = ds_alloc();
         pfrag->seqno = pdh->seqno;
@@ -542,7 +543,7 @@ void* pmStart(
             if (pfrag->fragnum > 0) {
                 if ((pfrag->fragnum != prod.tail->fragnum + 1) || 
                         (pfrag->seqno != prod.seqno)) {
-                    uerror("Missing GOES fragment in sequence, "
+                    nplError("Missing GOES fragment in sequence, "
                         "last %d/%d this %d/%d\0", prod.tail->fragnum,
                         prod.seqno, pfrag->fragnum, pfrag->seqno);
                     ds_free();
@@ -554,28 +555,28 @@ void* pmStart(
                 }
 
                 if ((PNGINIT != 1) && (!PROD_COMPRESSED)) {
-                    uerror("failed pnginit %d %d %s", sbn->datastream,
+                    nplError("failed pnginit %d %d %s", sbn->datastream,
                             psh->pcat, PROD_NAME);
                     continue;
                 }
                 if (pdh->records_per_block < 1) {
-                    uerror("records_per_block %d blocks_per_record %d "
+                    nplError("records_per_block %d blocks_per_record %d "
                         "nx %d ny %d", pdh->records_per_block,
                         pdh->blocks_per_record, pdb->nx, pdb->ny);
-                    uerror("source %d sector %d channel %d", pdb->source,
+                    nplError("source %d sector %d channel %d", pdb->source,
                         pdb->sector, pdb->channel);
-                    uerror("nrec %d recsize %d date %02d%02d%02d %02d%02d "
+                    nplError("nrec %d recsize %d date %02d%02d%02d %02d%02d "
                         "%02d.%02d", pdb->nrec, pdb->recsize, pdb->year,
                         pdb->month, pdb->day, pdb->hour, pdb->minute,
                         pdb->second, pdb->sechunds);
-                    uerror("pshname %s", psh->pname);
+                    nplError("pshname %s", psh->pname);
                 }
                 if (!PROD_COMPRESSED) {
                     for (nscan = 0; (nscan * pdb->nx) < pdh->dbsize; nscan++) {
                         if (ulogIsDebug())
-                            udebug("png write nscan %d", nscan);
+                            nplDebug("png write nscan %d", nscan);
                         if (nscan >= pdh->records_per_block) {
-                            uerror("nscan exceeding records per block %d [%d "
+                            nplError("nscan exceeding records per block %d [%d "
                                 "%d %d]", pdh->records_per_block, nscan,
                                 pdb->nx, pdh->dbsize);
                         }
@@ -609,16 +610,16 @@ void* pmStart(
                         datalen);
                     heapcount += datalen;
                 }
-                unotice("records_per_block %d blocks_per_record %d nx %d ny %d",
+                nplNotice("records_per_block %d blocks_per_record %d nx %d ny %d",
                     pdh->records_per_block, pdh->blocks_per_record, pdb->nx,
                     pdb->ny);
-                unotice("source %d sector %d channel %d", pdb->source,
+                nplNotice("source %d sector %d channel %d", pdb->source,
                     pdb->sector, pdb->channel);
-                unotice("nrec %d recsize %d date %02d%02d%02d %02d%02d "
+                nplNotice("nrec %d recsize %d date %02d%02d%02d %02d%02d "
                     "%02d.%02d", pdb->nrec, pdb->recsize, pdb->year, pdb->month,
                     pdb->day, pdb->hour, pdb->minute, pdb->second,
                     pdb->sechunds);
-                unotice("pshname %s", psh->pname);
+                nplNotice("pshname %s", psh->pname);
             }
             deflen = 0;
         }
@@ -629,7 +630,7 @@ void* pmStart(
             if ((prod.nfrag != 0) && (prod.tail != NULL)) {
                 if ((pfrag->fragnum != prod.tail->fragnum + 1) ||
                         (pfrag->seqno != prod.seqno)) {
-                    uerror("Missing fragment in sequence, last %d/%d this "
+                    nplError("Missing fragment in sequence, last %d/%d this "
                         "%d/%d\0", prod.tail->fragnum, prod.seqno,
                         pfrag->fragnum, pfrag->seqno);
                     ds_free();
@@ -650,7 +651,7 @@ void* pmStart(
                         datalen -= 4;
 
                         if (ulogIsDebug())
-                            udebug("removing FOS trailer from %s", PROD_NAME);
+                            nplDebug("removing FOS trailer from %s", PROD_NAME);
                     }
                     else {
                         break;
@@ -662,7 +663,7 @@ void* pmStart(
                  * this above wasn't big enough heapsize =
                  * prodalloc(psh->frags,4000+15,&memheap);
                  */
-                uerror("Error in heapsize %d product size %d [%d %d], Punt!\0",
+                nplError("Error in heapsize %d product size %d [%d %d], Punt!\0",
                     heapsize, (heapcount + datalen), heapcount, datalen);
                 continue;
             }
@@ -695,11 +696,11 @@ void* pmStart(
                 }
                 else {
                     if (ulogIsDebug())
-                        udebug("GOES product already compressed %d", heapcount);
+                        nplDebug("GOES product already compressed %d", heapcount);
                 }
             }
             if (ulogIsVerbose())
-              uinfo("we should have a complete product %ld %ld/%ld %ld /heap "
+              nplInfo("we should have a complete product %ld %ld/%ld %ld /heap "
                   "%ld", prod.seqno, pfrag->seqno, prod.nfrag, pfrag->fragnum,
                  (long) heapcount);
             if ((NWSTG == 1) && (heapcount > 4)) {
@@ -739,10 +740,10 @@ void* pmStart(
         }
         else {
             if (ulogIsDebug())
-                udebug("processing record %ld [%ld %ld]", prod.seqno,
+                nplDebug("processing record %ld [%ld %ld]", prod.seqno,
                     prod.nfrag, pfrag->fragnum);
             if ((pdh->transtype & 4) > 0) {
-                uerror("Hmmm....should call completed product %ld [%ld %ld]",
+                nplError("Hmmm....should call completed product %ld [%ld %ld]",
                     prod.seqno, prod.nfrag, pfrag->fragnum);
             }
         }
@@ -750,7 +751,7 @@ void* pmStart(
         IOFF += (sbn->len + pdh->len + pdh->pshlen + pdh->dbsize);
 
         if (ulogIsDebug())
-            udebug("look IOFF %ld datalen %ld (deflate %ld)", IOFF, datalen,
+            nplDebug("look IOFF %ld datalen %ld (deflate %ld)", IOFF, datalen,
                 deflen);
     }
 
@@ -768,8 +769,8 @@ void* pmStart(
  * This function is thread-compatible but not thread-safe.
  *
  * @retval 0    The FIFO was closed.
- * @retval 1    Usage failure. \c log_start() called.
- * @retval 2    O/S failure. \c log_start() called.
+ * @retval 1    Usage failure. \c nplStart() called.
+ * @retval 2    O/S failure. \c nplStart() called.
  */
 int pmStatus(
     ProductMaker* const productMaker)   /**< [in] Pointer to the product-maker
@@ -801,9 +802,9 @@ void pmLogStats(
     ProductMaker* const productMaker)   /**< [in] Pointer to the product-maker
                                           */
 {
-    unotice("----------------------------------------");
-    unotice("Ingestion Statistics:");
-    unotice("   Missed packets    %lu", productMaker->nmissed);
-    unotice("   Products inserted %lu", productMaker->nprods);
-    unotice("----------------------------------------");
+    nplNotice("----------------------------------------");
+    nplNotice("Ingestion Statistics:");
+    nplNotice("   Missed packets    %lu", productMaker->nmissed);
+    nplNotice("   Products inserted %lu", productMaker->nprods);
+    nplNotice("----------------------------------------");
 }

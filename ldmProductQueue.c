@@ -59,9 +59,9 @@ const char* lpqGetQueuePath(void)
  * This function is thread-safe.
  *
  * @retval 0    Success.
- * @retval 1    Precondition failure. \link log_start() \endlink called.
- * @retval 2    O/S failure. \link log_start() \endlink called.
- * @retval 3    Couldn't open product-queue. \link log_start() \endlink called.
+ * @retval 1    Precondition failure. \link nplStart() \endlink called.
+ * @retval 2    O/S failure. \link nplStart() \endlink called.
+ * @retval 3    Couldn't open product-queue. \link nplStart() \endlink called.
  */
 int lpqGet(
     const char*             pathname,   /**< [in] LDM product-queue pathname or
@@ -74,7 +74,7 @@ int lpqGet(
     static pthread_mutex_t      mutex = PTHREAD_MUTEX_INITIALIZER;
 
     if (pthread_mutex_lock(&mutex) != 0) {
-        LOG_SERROR0("Couldn't lock mutex");
+        NPL_SERROR0("Couldn't lock mutex");
         status = 2;
     }
     else {
@@ -100,7 +100,7 @@ int lpqGet(
                     (queueCount+1)*sizeof(LdmProductQueue*));
 
             if (NULL == newArray) {
-                LOG_SERROR1("Unable to allocate new LdmProductQueue array: "
+                NPL_SERROR1("Unable to allocate new LdmProductQueue array: "
                         "queueCount=%d", queueCount);
                 status = 2;
             }
@@ -109,14 +109,14 @@ int lpqGet(
                     (LdmProductQueue*)malloc(sizeof(LdmProductQueue));
 
                 if (NULL == newLpq) {
-                    LOG_SERROR0("Unable to allocate new LdmProductQueue");
+                    NPL_SERROR0("Unable to allocate new LdmProductQueue");
                     status = 2;
                 }
                 else {
                     pqueue* pq;
 
                     if (pq_open(pathname, PQ_DEFAULT, &pq) != 0) {
-                        LOG_SERROR1("Couldn't open product-queue \"%s\"",
+                        NPL_SERROR1("Couldn't open product-queue \"%s\"",
                                 pathname);
                         status = 3;
                     }
@@ -124,7 +124,7 @@ int lpqGet(
                         char* path = strdup(pathname);
 
                         if (NULL == path) {
-                            LOG_SERROR1("Couldn't duplicate string \"%s\"",
+                            NPL_SERROR1("Couldn't duplicate string \"%s\"",
                                     pathname);
                             status = 2;
                         }
@@ -132,7 +132,7 @@ int lpqGet(
                             pthread_mutex_t mutex;
 
                             if (pthread_mutex_init(&mutex, NULL) != 0) {
-                                LOG_SERROR0("Couldn't initialize mutex");
+                                NPL_SERROR0("Couldn't initialize mutex");
                                 status = 2;
                             }
                             else {
@@ -173,10 +173,10 @@ int lpqGet(
  * This function is thread-safe.
  *
  * @retval 0    Success. Product inserted into queue.
- * @retval 1    Precondition failure. \link log_start() \endlink called.
- * @retval 2    O/S error. \link log_start() \endlink called.
+ * @retval 1    Precondition failure. \link nplStart() \endlink called.
+ * @retval 2    O/S error. \link nplStart() \endlink called.
  * @retval 3    Product already in queue.
- * @retval 4    Product-queue error. \link log_start() \endlink called.
+ * @retval 4    Product-queue error. \link nplStart() \endlink called.
  */
 int lpqInsert(
     LdmProductQueue* const  lpq,    /**< LDM product-queue to insert data-
@@ -187,7 +187,7 @@ int lpqInsert(
     int status = 0;                 /* default success */
 
     if (pthread_mutex_lock(&lpq->mutex) != 0) {
-        LOG_SERROR0("Couldn't lock mutex");
+        NPL_SERROR0("Couldn't lock mutex");
         status = 2;
     }
     else {
@@ -196,7 +196,7 @@ int lpqInsert(
                 status = 3;
             }
             else {
-                LOG_START1("Couldn't insert product into queue: status=%d",
+                NPL_START1("Couldn't insert product into queue: status=%d",
                         status);
                 status = 4;
             }
@@ -214,8 +214,8 @@ int lpqInsert(
  * This function is thread-safe.
  *
  * @retval 0    Success. Product inserted into queue.
- * @retval 1    Precondition failure. \link log_start() \endlink called.
- * @retval 2    O/S error. \link log_start() \endlink called.
+ * @retval 1    Precondition failure. \link nplStart() \endlink called.
+ * @retval 2    O/S error. \link nplStart() \endlink called.
  */
 int lpqClose(
     LdmProductQueue* const  lpq)    /**< LDM product-queue */
@@ -223,17 +223,17 @@ int lpqClose(
     int status;
 
     if (pthread_mutex_lock(&lpq->mutex) != 0) {
-        LOG_SERROR0("Couldn't lock mutex");
+        NPL_SERROR0("Couldn't lock mutex");
         status = 2;
     }
     else {
         if ((status = pq_close(lpq->pq)) != 0) {
             if (EOVERFLOW == status) {
-                LOG_START0("LDM product-queue is corrupt");
+                NPL_START0("LDM product-queue is corrupt");
                 status = 1;             /* precondition error */
             }
             else {
-                LOG_SERROR0("Couldn't close LDM product-queue");
+                NPL_SERROR0("Couldn't close LDM product-queue");
                 status = 2;
             }
         }

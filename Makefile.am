@@ -29,7 +29,7 @@ EXTRA_DIST 		= \
 DISTCLEANFILES		= mainpage.h $(distArchive)
 
 lib_LTLIBRARIES		= libnoaaport.la
-libnoaaport_la_SOURCES	= shmfifo.c shmfifo.h
+libnoaaport_la_SOURCES	= shmfifo.c shmfifo.h noaaportLog.c noaaportLog.h
 libnoaaport_la_CPPFLAGS	= \
 	-I$(top_srcdir)/g2 \
 	-I$(top_srcdir)/gempak \
@@ -76,12 +76,15 @@ noaaportIngester_SOURCES	= noaaportIngester.c $(COMMON_SOURCES) \
 	fileReader.c fileReader.h \
 	getFacilityName.c getFacilityName.h \
 	multicastReader.c multicastReader.h \
+	noaaportLog.c noaaportLog.h \
 	productMaker.c productMaker.h \
 	reader.c reader.h
 noaaportIngester_CPPFLAGS 	= $(COMMON_CPPFLAGS)
 
 TAGS_FILES		= \
 	*.c *.h \
+	g2/*.c g2/*.h \
+	gempak/*.c gempak/*.h \
 	$(LDMSRC)/pq/*.c $(LDMSRC)/pq/*.h \
 	$(LDMSRC)/protocol/*.c $(LDMSRC)/protocol/*.h \
 	$(LDMSRC)/ulog/*.c $(LDMSRC)/ulog/*.h \
@@ -109,6 +112,7 @@ fileReader.h:		fileReader.c fileReader.hin extractDecls
 multicastReader.h:	multicastReader.c multicastReader.hin extractDecls
 productMaker.h:		productMaker.c productMaker.hin extractDecls
 getFacilityName.h:	getFacilityName.c getFacilityName.hin extractDecls
+noaaportLog.h:		noaaportLog.c noaaportLog.hin extractDecls
 
 .c.i:
 	$(CC) $(CPPFLAGS) -E $< >$@
@@ -175,12 +179,12 @@ installcheck-local:
 check-local:		check-readnoaaport check-noaaportIngester
 check-readnoaaport:	readnoaaport
 	pqcreate -c -s 2m /tmp/readnoaaport-test.pq
-	./readnoaaport -nl- -q /tmp/readnoaaport-test.pq \
+	./readnoaaport -l- -q /tmp/readnoaaport-test.pq \
 	    $(srcdir)/nwstgdump.data
 	rm /tmp/readnoaaport-test.pq
 check-noaaportIngester:	noaaportIngester
 	pqcreate -c -s 2m /tmp/noaaportIngester-test.pq
-	./noaaportIngester -n -q /tmp/noaaportIngester-test.pq \
+	./noaaportIngester -l- -q /tmp/noaaportIngester-test.pq \
 	    <$(srcdir)/nwstgdump.data
 	rm /tmp/noaaportIngester-test.pq
 

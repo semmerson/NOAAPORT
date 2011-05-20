@@ -28,8 +28,8 @@ struct reader {
  * This function is thread-safe.
  *
  * @retval 0    Success.
- * @retval 1    Precondition failure. \c log_start() called.
- * @retval 2    O/S failure. \c log_start() called.
+ * @retval 1    Precondition failure. \c nplStart() called.
+ * @retval 2    O/S failure. \c nplStart() called.
  */
 int readerNew(
     const int           fd,         /**< [in] File-descriptor to read from */
@@ -44,7 +44,7 @@ int readerNew(
     Reader*   r = (Reader*)malloc(sizeof(Reader));
 
     if (NULL == r) {
-        LOG_SERROR0("Couldn't allocate new reader");
+        NPL_SERROR0("Couldn't allocate new reader");
     }
     else {
         r->fifo = fifo;
@@ -87,16 +87,16 @@ void* readerStart(
 
         if ((status = fifoWriteReserve(reader->fifo, reader->maxSize, &data))
                 != 0) {
-            LOG_ADD1("Couldn't reserve %lu bytes in FIFO", reader->maxSize);
-            log_log(LOG_ERR);
+            NPL_ADD1("Couldn't reserve %lu bytes in FIFO", reader->maxSize);
+            nplLog(LOG_ERR);
             break;
         }
         else {
             const ssize_t   nbytes = read(reader->fd, data, reader->maxSize);
 
             if (fifoWriteUpdate(reader->fifo, nbytes) != 0) {
-                LOG_ADD0("Couldn't update FIFO");
-                log_log(LOG_ERR);
+                NPL_ADD0("Couldn't update FIFO");
+                nplLog(LOG_ERR);
                 break;
             }
             if (0 == nbytes) {
@@ -104,8 +104,8 @@ void* readerStart(
                 break;
             }
             if (-1 == nbytes) {
-                LOG_SERROR0("read() failure");
-                log_log(LOG_ERR);
+                NPL_SERROR0("read() failure");
+                nplLog(LOG_ERR);
                 status = 2;
                 break;
             }
@@ -121,8 +121,8 @@ void* readerStart(
  * Returns the termination status of a data-reader.
  *
  * @retval 0    Success. End-of-file encountered.
- * @retval 1    Precondition failure. \c log_start() called.
- * @retval 2    O/S failure. \c log_start() called.
+ * @retval 1    Precondition failure. \c nplStart() called.
+ * @retval 2    O/S failure. \c nplStart() called.
  */
 int readerStatus(
     Reader* const   reader) /**< [in] Pointer to the reader */

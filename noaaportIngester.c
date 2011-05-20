@@ -57,7 +57,7 @@ static void usage(
 {
     int logmask = setulogmask(LOG_UPTO(LOG_NOTICE));
 
-    unotice(
+    nplNotice(
 "%s version %s\n"
 "%s\n"
 "\n"
@@ -106,8 +106,8 @@ static int initLogging(
     int status;
 
     if (openulog(progName, logOptions, logFacility, logPath) == -1) {
-        LOG_SERROR0("Couldn't initialize logging");
-        log_log(LOG_ERR);
+        NPL_SERROR0("Couldn't initialize logging");
+        nplLog(LOG_ERR);
         usage(progName);
         status = 1;
     }
@@ -288,7 +288,7 @@ int main(
                 unsigned long   n;
 
                 if (sscanf(optarg, "%lu", &n) != 1) {
-                    LOG_SERROR1("Couldn't decode FIFO size in pages: \"%s\"",
+                    NPL_SERROR1("Couldn't decode FIFO size in pages: \"%s\"",
                             optarg);
                     status = 1;
                 }
@@ -318,7 +318,7 @@ int main(
                 int         i = atoi(optarg);
 
                 if (0 > i || 7 < i) {
-                    LOG_START1("Invalid logging facility number: %d", i);
+                    NPL_START1("Invalid logging facility number: %d", i);
                     status = 1;
                 }
                 else {
@@ -346,7 +346,7 @@ int main(
                 optopt = ch;
                 /*FALLTHROUGH*/
             case '?': {
-                uerror("Unknown option: \"%c\"", optopt);
+                nplError("Unknown option: \"%c\"", optopt);
                 status = 1;
             }
         }                               /* option character switch */
@@ -354,38 +354,38 @@ int main(
 
     if (0 == status) {
         if (optind < argc) {
-            uerror("Extraneous command-line argument: \"%s\"",
+            nplError("Extraneous command-line argument: \"%s\"",
                     argv[optind]);
             status = 1;
         }
     }
 
     if (0 != status) {
-        uerror("Error decoding command-line");
+        nplError("Error decoding command-line");
         usage(progName);
     }
     else {
-        unotice("Starting Up %s", PACKAGE_VERSION);
-        unotice("%s", COPYRIGHT_NOTICE);
+        nplNotice("Starting Up %s", PACKAGE_VERSION);
+        nplNotice("%s", COPYRIGHT_NOTICE);
 
         if ((status = fifoNew(npages, &fifo)) != 0) {
-            LOG_ADD0("Couldn't create FIFO");
-            log_log(LOG_ERR);
+            NPL_ADD0("Couldn't create FIFO");
+            nplLog(LOG_ERR);
         }
         else {
             Reader* reader;
 
             if (NULL == mcastSpec) {
                 if ((status = fileReaderNew(NULL, fifo, &reader)) != 0) {
-                    LOG_ADD0("Couldn't create file-reader");
-                    log_log(LOG_ERR);
+                    NPL_ADD0("Couldn't create file-reader");
+                    nplLog(LOG_ERR);
                 }
             }
             else {
                 if ((status = multicastReaderNew(mcastSpec, interface, fifo,
                                 &reader)) != 0) {
-                    LOG_ADD0("Couldn't create multicast-reader");
-                    log_log(LOG_ERR);
+                    NPL_ADD0("Couldn't create multicast-reader");
+                    nplLog(LOG_ERR);
                 }
             }
 
@@ -393,27 +393,27 @@ int main(
                 LdmProductQueue* prodQueue;
 
                 if ((status = lpqGet(prodQueuePath, &prodQueue)) != 0) {
-                    LOG_ADD0("Couldn't open LDM product-queue");
-                    log_log(LOG_ERR);
+                    NPL_ADD0("Couldn't open LDM product-queue");
+                    nplLog(LOG_ERR);
                 }
                 else {
                     if ((status = pmNew(fifo, prodQueue, &productMaker)) != 0) {
-                        LOG_ADD0("Couldn't create new LDM product-maker");
-                        log_log(LOG_ERR);
+                        NPL_ADD0("Couldn't create new LDM product-maker");
+                        nplLog(LOG_ERR);
                     }
                     else {
                         if (pthread_create(&productMakerThread, NULL, pmStart,
                                     productMaker) != 0) {
-                            LOG_SERROR0("Couldn't start product-maker thread");
-                            log_log(LOG_ERR);
+                            NPL_SERROR0("Couldn't start product-maker thread");
+                            nplLog(LOG_ERR);
                             status = 1;
                         }
                         else {
                             if (pthread_create(&readerThread, NULL, readerStart,
                                         reader) != 0) {
-                                LOG_SERROR0(
+                                NPL_SERROR0(
                                         "Couldn't start data-reader thread");
-                                log_log(LOG_ERR);
+                                nplLog(LOG_ERR);
                                 status = 1;
                             }
                             else {

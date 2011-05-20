@@ -89,7 +89,8 @@ am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)" \
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libnoaaport_la_DEPENDENCIES = g2/lib.la gempak/lib.la libpng/libpng.la \
 	zlib/lib.la
-am_libnoaaport_la_OBJECTS = libnoaaport_la-shmfifo.lo
+am_libnoaaport_la_OBJECTS = libnoaaport_la-shmfifo.lo \
+	libnoaaport_la-noaaportLog.lo
 libnoaaport_la_OBJECTS = $(am_libnoaaport_la_OBJECTS)
 PROGRAMS = $(bin_PROGRAMS)
 am_dvbs_multicast_OBJECTS = dvbs_multicast.$(OBJEXT)
@@ -114,6 +115,7 @@ am_noaaportIngester_OBJECTS =  \
 	noaaportIngester-fileReader.$(OBJEXT) \
 	noaaportIngester-getFacilityName.$(OBJEXT) \
 	noaaportIngester-multicastReader.$(OBJEXT) \
+	noaaportIngester-noaaportLog.$(OBJEXT) \
 	noaaportIngester-productMaker.$(OBJEXT) \
 	noaaportIngester-reader.$(OBJEXT)
 noaaportIngester_OBJECTS = $(am_noaaportIngester_OBJECTS)
@@ -334,7 +336,7 @@ EXTRA_DIST = \
 
 DISTCLEANFILES = mainpage.h $(distArchive)
 lib_LTLIBRARIES = libnoaaport.la
-libnoaaport_la_SOURCES = shmfifo.c shmfifo.h
+libnoaaport_la_SOURCES = shmfifo.c shmfifo.h noaaportLog.c noaaportLog.h
 libnoaaport_la_CPPFLAGS = \
 	-I$(top_srcdir)/g2 \
 	-I$(top_srcdir)/gempak \
@@ -377,12 +379,15 @@ noaaportIngester_SOURCES = noaaportIngester.c $(COMMON_SOURCES) \
 	fileReader.c fileReader.h \
 	getFacilityName.c getFacilityName.h \
 	multicastReader.c multicastReader.h \
+	noaaportLog.c noaaportLog.h \
 	productMaker.c productMaker.h \
 	reader.c reader.h
 
 noaaportIngester_CPPFLAGS = $(COMMON_CPPFLAGS)
 TAGS_FILES = \
 	*.c *.h \
+	g2/*.c g2/*.h \
+	gempak/*.c gempak/*.h \
 	$(LDMSRC)/pq/*.c $(LDMSRC)/pq/*.h \
 	$(LDMSRC)/protocol/*.c $(LDMSRC)/protocol/*.h \
 	$(LDMSRC)/ulog/*.c $(LDMSRC)/ulog/*.h \
@@ -578,6 +583,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 include ./$(DEPDIR)/dvbs_multicast.Po
+include ./$(DEPDIR)/libnoaaport_la-noaaportLog.Plo
 include ./$(DEPDIR)/libnoaaport_la-shmfifo.Plo
 include ./$(DEPDIR)/noaaportIngester-fifo.Po
 include ./$(DEPDIR)/noaaportIngester-fileReader.Po
@@ -587,6 +593,7 @@ include ./$(DEPDIR)/noaaportIngester-gribid.Po
 include ./$(DEPDIR)/noaaportIngester-ldmProductQueue.Po
 include ./$(DEPDIR)/noaaportIngester-multicastReader.Po
 include ./$(DEPDIR)/noaaportIngester-noaaportIngester.Po
+include ./$(DEPDIR)/noaaportIngester-noaaportLog.Po
 include ./$(DEPDIR)/noaaportIngester-png_io.Po
 include ./$(DEPDIR)/noaaportIngester-process_prod.Po
 include ./$(DEPDIR)/noaaportIngester-productMaker.Po
@@ -642,6 +649,13 @@ libnoaaport_la-shmfifo.lo: shmfifo.c
 #	source='shmfifo.c' object='libnoaaport_la-shmfifo.lo' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libnoaaport_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libnoaaport_la-shmfifo.lo `test -f 'shmfifo.c' || echo '$(srcdir)/'`shmfifo.c
+
+libnoaaport_la-noaaportLog.lo: noaaportLog.c
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libnoaaport_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libnoaaport_la-noaaportLog.lo -MD -MP -MF $(DEPDIR)/libnoaaport_la-noaaportLog.Tpo -c -o libnoaaport_la-noaaportLog.lo `test -f 'noaaportLog.c' || echo '$(srcdir)/'`noaaportLog.c
+	$(am__mv) $(DEPDIR)/libnoaaport_la-noaaportLog.Tpo $(DEPDIR)/libnoaaport_la-noaaportLog.Plo
+#	source='noaaportLog.c' object='libnoaaport_la-noaaportLog.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libnoaaport_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libnoaaport_la-noaaportLog.lo `test -f 'noaaportLog.c' || echo '$(srcdir)/'`noaaportLog.c
 
 noaaportIngester-noaaportIngester.o: noaaportIngester.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-noaaportIngester.o -MD -MP -MF $(DEPDIR)/noaaportIngester-noaaportIngester.Tpo -c -o noaaportIngester-noaaportIngester.o `test -f 'noaaportIngester.c' || echo '$(srcdir)/'`noaaportIngester.c
@@ -880,6 +894,20 @@ noaaportIngester-multicastReader.obj: multicastReader.c
 #	source='multicastReader.c' object='noaaportIngester-multicastReader.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-multicastReader.obj `if test -f 'multicastReader.c'; then $(CYGPATH_W) 'multicastReader.c'; else $(CYGPATH_W) '$(srcdir)/multicastReader.c'; fi`
+
+noaaportIngester-noaaportLog.o: noaaportLog.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-noaaportLog.o -MD -MP -MF $(DEPDIR)/noaaportIngester-noaaportLog.Tpo -c -o noaaportIngester-noaaportLog.o `test -f 'noaaportLog.c' || echo '$(srcdir)/'`noaaportLog.c
+	$(am__mv) $(DEPDIR)/noaaportIngester-noaaportLog.Tpo $(DEPDIR)/noaaportIngester-noaaportLog.Po
+#	source='noaaportLog.c' object='noaaportIngester-noaaportLog.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-noaaportLog.o `test -f 'noaaportLog.c' || echo '$(srcdir)/'`noaaportLog.c
+
+noaaportIngester-noaaportLog.obj: noaaportLog.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-noaaportLog.obj -MD -MP -MF $(DEPDIR)/noaaportIngester-noaaportLog.Tpo -c -o noaaportIngester-noaaportLog.obj `if test -f 'noaaportLog.c'; then $(CYGPATH_W) 'noaaportLog.c'; else $(CYGPATH_W) '$(srcdir)/noaaportLog.c'; fi`
+	$(am__mv) $(DEPDIR)/noaaportIngester-noaaportLog.Tpo $(DEPDIR)/noaaportIngester-noaaportLog.Po
+#	source='noaaportLog.c' object='noaaportIngester-noaaportLog.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o noaaportIngester-noaaportLog.obj `if test -f 'noaaportLog.c'; then $(CYGPATH_W) 'noaaportLog.c'; else $(CYGPATH_W) '$(srcdir)/noaaportLog.c'; fi`
 
 noaaportIngester-productMaker.o: productMaker.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(noaaportIngester_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT noaaportIngester-productMaker.o -MD -MP -MF $(DEPDIR)/noaaportIngester-productMaker.Tpo -c -o noaaportIngester-productMaker.o `test -f 'productMaker.c' || echo '$(srcdir)/'`productMaker.c
@@ -1567,6 +1595,7 @@ fileReader.h:		fileReader.c fileReader.hin extractDecls
 multicastReader.h:	multicastReader.c multicastReader.hin extractDecls
 productMaker.h:		productMaker.c productMaker.hin extractDecls
 getFacilityName.h:	getFacilityName.c getFacilityName.hin extractDecls
+noaaportLog.h:		noaaportLog.c noaaportLog.hin extractDecls
 
 .c.i:
 	$(CC) $(CPPFLAGS) -E $< >$@
@@ -1624,12 +1653,12 @@ installcheck-local:
 check-local:		check-readnoaaport check-noaaportIngester
 check-readnoaaport:	readnoaaport
 	pqcreate -c -s 2m /tmp/readnoaaport-test.pq
-	./readnoaaport -nl- -q /tmp/readnoaaport-test.pq \
+	./readnoaaport -l- -q /tmp/readnoaaport-test.pq \
 	    $(srcdir)/nwstgdump.data
 	rm /tmp/readnoaaport-test.pq
 check-noaaportIngester:	noaaportIngester
 	pqcreate -c -s 2m /tmp/noaaportIngester-test.pq
-	./noaaportIngester -n -q /tmp/noaaportIngester-test.pq \
+	./noaaportIngester -l- -q /tmp/noaaportIngester-test.pq \
 	    <$(srcdir)/nwstgdump.data
 	rm /tmp/noaaportIngester-test.pq
 
