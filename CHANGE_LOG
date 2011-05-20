@@ -1,3 +1,8 @@
+1.7.0.8 	2011-05-20 13:04:39-06:00
+    Created thread-safe "noaaportLog" module and modified sources to use it.
+    Hopefully, this will prevent crashes due to threads stepping on each other
+    in the logging module.
+
 1.7.0.7 	2011-05-18 17:11:44-06:00
     Corrected retrograde packet determination: treat packet number like
     unsigned 4-octet integer and use modulus arithmetic.
