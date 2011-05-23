@@ -2586,7 +2586,7 @@ ac_config_headers="$ac_config_headers config.h"
 
 
  if test "$USER" = steve && test `uname -n` = gilda.unidata.ucar.edu &&
-    test $PWD = /machine/steve/ldm/noaaport; then
+    test `/bin/pwd` = /machine/steve/ldm/noaaport; then
   MAINTAINER_TRUE=
   MAINTAINER_FALSE='#'
 else
@@ -20538,7 +20538,7 @@ $as_echo "$prefix" >&6; }
 { $as_echo "$as_me:$LINENO: checking LDMHOME" >&5
 $as_echo_n "checking LDMHOME... " >&6; };
 if test "$USER" = steve && test `uname -n` = gilda.unidata.ucar.edu &&
-    test $PWD = /machine/steve/ldm/noaaport; then
+    test `/bin/pwd` = /machine/steve/ldm/noaaport; then
   LDMHOME=$prefix
 else
   test -z "$LDMHOME" && LDMHOME=$HOME

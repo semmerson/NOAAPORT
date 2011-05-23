@@ -16,7 +16,7 @@ AC_CONFIG_HEADERS([config.h])
 
 AM_CONDITIONAL([MAINTAINER],
     [test "$USER" = steve && test `uname -n` = gilda.unidata.ucar.edu &&
-    test $PWD = /machine/steve/ldm/noaaport])
+    test `/bin/pwd` = /machine/steve/ldm/noaaport])
 
 AC_ARG_ENABLE([debug],
 [AS_HELP_STRING([--enable-debug],[Turn on debugging support])],
