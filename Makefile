@@ -242,7 +242,7 @@ INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 LDFLAGS =  -m64
-LDMHOME = /machine/steve/ldm
+LDMHOME = /home/steve/ldm/package
 LIBOBJS = 
 LIBS = -lpthread 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
@@ -1578,27 +1578,27 @@ uninstall-am: uninstall-binPROGRAMS uninstall-dist_binSCRIPTS \
 	uninstall-libLTLIBRARIES
 
 
-#all:		$(srcdir)/html/index.html
+all:		$(srcdir)/html/index.html
 
-#$(srcdir)/html/index.html:	$(srcdir)/configure.ac $(srcdir)/mainpage.h.in \
-#		$(srcdir)/Doxyfile
-#	cd $(srcdir) && doxygen Doxyfile
+$(srcdir)/html/index.html:	$(srcdir)/configure.ac $(srcdir)/mainpage.h.in \
+		$(srcdir)/Doxyfile
+	cd $(srcdir) && doxygen Doxyfile
 
-#.hin.h:
-#	./extractDecls $*.hin $*.c >$@.tmp
-#	mv -f $@.tmp $@
-#shmfifo.h:		shmfifo.c shmfifo.hin extractDecls
-#ldmProductQueue.h:	ldmProductQueue.c ldmProductQueue.hin extractDecls
-#fifo.h:			fifo.c fifo.hin extractDecls
-#reader.h:		reader.c reader.hin extractDecls
-#fileReader.h:		fileReader.c fileReader.hin extractDecls
-#multicastReader.h:	multicastReader.c multicastReader.hin extractDecls
-#productMaker.h:		productMaker.c productMaker.hin extractDecls
-#getFacilityName.h:	getFacilityName.c getFacilityName.hin extractDecls
-#noaaportLog.h:		noaaportLog.c noaaportLog.hin extractDecls
+.hin.h:
+	./extractDecls $*.hin $*.c >$@.tmp
+	mv -f $@.tmp $@
+shmfifo.h:		shmfifo.c shmfifo.hin extractDecls
+ldmProductQueue.h:	ldmProductQueue.c ldmProductQueue.hin extractDecls
+fifo.h:			fifo.c fifo.hin extractDecls
+reader.h:		reader.c reader.hin extractDecls
+fileReader.h:		fileReader.c fileReader.hin extractDecls
+multicastReader.h:	multicastReader.c multicastReader.hin extractDecls
+productMaker.h:		productMaker.c productMaker.hin extractDecls
+getFacilityName.h:	getFacilityName.c getFacilityName.hin extractDecls
+noaaportLog.h:		noaaportLog.c noaaportLog.hin extractDecls
 
-#.c.i:
-#	$(CC) $(CPPFLAGS) -E $< >$@
+.c.i:
+	$(CC) $(CPPFLAGS) -E $< >$@
 
 libpng/libpng.la:
 	cd libpng && $(MAKE) $(AM_MAKEFLAGS) all

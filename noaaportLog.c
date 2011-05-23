@@ -3,7 +3,7 @@
  *
  *   See file COPYRIGHT for copying and redistribution conditions.
  */
-#define _XOPEN_SOURCE 500
+#define _XOPEN_SOURCE 600
 
 #include <errno.h>
 #include <pthread.h>
@@ -22,9 +22,11 @@
  * A log-message.  Such structures accumulate.
  */
 typedef struct message {
-    char                string[512];
-    struct message*     next;
+    char*               string; /**< message buffer */
+    struct message*     next;   /**< pointer to next message */
+    size_t              size;   /**< size of message buffer */
 } Message;
+#define DEFAULT_STRING_SIZE     256
 
 /**
  * A list of log messages.
@@ -50,9 +52,10 @@ static int              keyCreated = 0;
 static pthread_mutex_t  mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /**
- * Locks the mutex.
+ * Locks this module's lock.
  *
- * This function is thread-safe.
+ * This function is thread-safe. On entry, this module's lock shall be
+ * unlocked.
  */
 static void lock(void)
 {
@@ -61,9 +64,10 @@ static void lock(void)
 }
 
 /**
- * Unlocks the mutex.
+ * Unlocks this module's lock.
  *
- * This function is thread-safe.
+ * This function is thread-safe. On entry, this module's lock shall be locked
+ * by the current thread.
  */
 static void unlock(void)
 {
@@ -74,9 +78,11 @@ static void unlock(void)
 /**
  * Returns the current thread's message-list.
  *
- * This function is thread-safe.
+ * This function is thread-safe. On entry, this module's lock shall be
+ * unlocked.
  *
- * @return The message-list of the current thread or NULL.
+ * @return  The message-list of the current thread or NULL if the message-list
+ *          doesn't exist and couldn't be created.
  */
 static List* getList(void)
 {
@@ -109,13 +115,16 @@ static List* getList(void)
             list = (List*)malloc(sizeof(List));
 
             if (NULL == list) {
-                serror("getList(): malloc() failure: %s", strerror(errno));
+                lock();
+                serror("getList(): malloc() failure");
+                unlock();
             }
             else {
                 if ((status = pthread_setspecific(listKey, list)) != 0) {
+                    lock();
                     serror("getList(): pthread_setspecific() failure: %s",
                         strerror(status));
-
+                    unlock();
                     free(list);
 
                     list = NULL;
@@ -240,7 +249,7 @@ void nplDebug(
     va_end(args);
 }
 
-/*
+/**
  * Clears the accumulated log-messages.
  *
  * This function is thread-safe.
@@ -253,58 +262,120 @@ static void nplClear()
         list->last = NULL;
 }
 
-/*
- * Adds a variadic log-message.
+/**
+ * Adds a variadic log-message to the message-list for the current thread.
  *
  * This function is thread-safe.
+ *
+ * @retval 0            Success
+ * @retval EAGAIN       Failure due to the buffer being too small for the
+ *                      message.  The buffer has been expanded and the client
+ *                      should call this function again.
+ * @retval EINVAL       \a fmt or \a args is \c NULL. Error message logged.
+ * @retval EINVAL       There are insufficient arguments. Error message logged.
+ * @retval EILSEQ       A wide-character code that doesn't correspond to a
+ *                      valid character has been detected. Error message logged.
+ * @retval ENOMEM       Out-of-memory. Error message logged.
+ * @retval EOVERFLOW    The length of the message is greater than {INT_MAX}.
+ *                      Error message logged.
  */
-void nplVadd(
+int nplVadd(
     const char* const   fmt,  /**< The message format */
     va_list             args) /**< The arguments referenced by the format. */
 {
-    if (fmt != NULL) {
+    int                 status;
+
+    if (NULL == fmt || NULL == args) {
+        lock();
+        uerror("nplVadd(): NULL argument");
+        unlock();
+
+        status = EINVAL;
+    }
+    else {
         List*   list = getList();
 
         if (NULL != list) {
-            Message*        msg = (NULL == list->last) ? list->first :
+            Message*    msg = (NULL == list->last) ? list->first :
                 list->last->next;
+
+            status = 0;
 
             if (msg == NULL) {
                 msg = (Message*)malloc(sizeof(Message));
 
                 if (msg == NULL) {
-                    serror("nplAdd(): malloc(%lu) failure",
-                        (unsigned long)sizeof(Message));
-                }
-                else {
-                    msg->string[0] = 0;
-                    msg->next = NULL;
+                    status = errno;
 
-                    if (NULL == list->first)
-                        list->first = msg;  /* very first message structure */
-                }
-            }
-
-            if (msg != NULL) {
-                int         nbytes = vsnprintf(msg->string,
-                        sizeof(msg->string), fmt, args);
-
-                if (nbytes < 0) {
                     lock();
-                    serror("nplAdd(): vsnprintf() failure");
+                    serror("nplVadd(): malloc(%lu) failure",
+                        (unsigned long)sizeof(Message));
                     unlock();
                 }
                 else {
-                    msg->string[sizeof(msg->string)-1] = 0;
+                    char*   string = (char*)malloc(DEFAULT_STRING_SIZE);
 
+                    if (NULL == string) {
+                        status = errno;
+
+                        lock();
+                        serror("nplVadd(): malloc(%lu) failure",
+                            (unsigned long)DEFAULT_STRING_SIZE);
+                        unlock();
+                    }
+                    else {
+                        msg->string = string;
+                        msg->size = DEFAULT_STRING_SIZE;
+                        msg->next = NULL;
+
+                        if (NULL == list->first)
+                            list->first = msg;  /* very first message */
+                    }
+                }
+            }
+
+            if (0 == status) {
+                int nbytes = vsnprintf(msg->string, msg->size, fmt, args);
+
+                if (0 > nbytes) {
+                    status = errno;
+
+                    lock();
+                    serror("nplVadd(): vsnprintf() failure");
+                    unlock();
+                }
+                else if (msg->size <= nbytes) {
+                    /* The buffer is too small for the message */
+                    size_t  size = nbytes + 1;
+                    char*   string = (char*)malloc(size);
+
+                    if (NULL == string) {
+                        status = errno;
+
+                        lock();
+                        serror("nplVadd(): malloc(%lu) failure",
+                            (unsigned long)size);
+                        unlock();
+                    }
+                    else {
+                        free(msg->string);
+
+                        msg->string = string;
+                        msg->size = size;
+                        status = EAGAIN;
+                    }
+                }
+                else {
                     if (NULL != list->last)
                         list->last->next = msg;
 
                     list->last = msg;
                 }
-            }                               /* msg != NULL */
-        }                                   /* "list" not NULL */
-    }                                       /* format string != NULL */
+            }                               /* have a message structure */
+        }                                   /* message-list isn't NULL */
+    }                                       /* arguments aren't NULL */
+
+    return status;
 }
 
 /*
@@ -320,7 +391,13 @@ void nplStart(
 
     nplClear();
     va_start(args, fmt);
-    nplVadd(fmt, args);
+
+    if (EAGAIN == nplVadd(fmt, args)) {
+        va_end(args);
+        va_start(args, fmt);
+        (void)nplVadd(fmt, args);
+    }
+
     va_end(args);
 }
 
@@ -336,7 +413,13 @@ void nplAdd(
     va_list     args;
 
     va_start(args, fmt);
-    nplVadd(fmt, args);
+
+    if (EAGAIN == nplVadd(fmt, args)) {
+        va_end(args);
+        va_start(args, fmt);
+        (void)nplVadd(fmt, args);
+    }
+
     va_end(args);
 }
 
@@ -353,12 +436,19 @@ void nplErrno(
 
     nplStart(strerror(errno));
     va_start(args, fmt);
-    nplVadd(fmt, args);
+
+    if (EAGAIN == nplVadd(fmt, args)) {
+        va_end(args);
+        va_start(args, fmt);
+        (void)nplVadd(fmt, args);
+    }
+
     va_end(args);
 }
 
 /*
- * Logs the currently-accumulated log-messages and resets this module.
+ * Logs the currently-accumulated log-messages and resets the message-list for
+ * the current thread.
  *
  * This function is thread-safe.
  */

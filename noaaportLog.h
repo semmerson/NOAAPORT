@@ -84,12 +84,24 @@ void nplDebug(
     const char* const fmt,  /**< The message format */
     ...)                    /**< Arguments referenced by the format */;
 
-/*
- * Adds a variadic log-message.
+/**
+ * Adds a variadic log-message to the message-list for the current thread.
  *
  * This function is thread-safe.
+ *
+ * @retval 0            Success
+ * @retval EAGAIN       Failure due to the buffer being too small for the
+ *                      message.  The buffer has been expanded and the client
+ *                      should call this function again.
+ * @retval EINVAL       \a fmt or \a args is \c NULL. Error message logged.
+ * @retval EINVAL       There are insufficient arguments. Error message logged.
+ * @retval EILSEQ       A wide-character code that doesn't correspond to a
+ *                      valid character has been detected. Error message logged.
+ * @retval ENOMEM       Out-of-memory. Error message logged.
+ * @retval EOVERFLOW    The length of the message is greater than {INT_MAX}.
+ *                      Error message logged.
  */
-void nplVadd(
+int nplVadd(
     const char* const   fmt,  /**< The message format */
     va_list             args) /**< The arguments referenced by the format. */;
 
@@ -121,7 +133,8 @@ void nplErrno(
     ...)                    /**< Arguments referenced by the format */;
 
 /*
- * Logs the currently-accumulated log-messages and resets this module.
+ * Logs the currently-accumulated log-messages and resets the message-list for
+ * the current thread.
  *
  * This function is thread-safe.
  */
