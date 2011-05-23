@@ -94,11 +94,6 @@ void* readerStart(
         else {
             const ssize_t   nbytes = read(reader->fd, data, reader->maxSize);
 
-            if (fifoWriteUpdate(reader->fifo, nbytes) != 0) {
-                NPL_ADD0("Couldn't update FIFO");
-                nplLog(LOG_ERR);
-                break;
-            }
             if (0 == nbytes) {
                 status = 0;
                 break;
@@ -107,6 +102,11 @@ void* readerStart(
                 NPL_SERROR0("read() failure");
                 nplLog(LOG_ERR);
                 status = 2;
+                break;
+            }
+            if (fifoWriteUpdate(reader->fifo, nbytes) != 0) {
+                NPL_ADD0("Couldn't update FIFO");
+                nplLog(LOG_ERR);
                 break;
             }
         }                                   /* FIFO space reserved */
