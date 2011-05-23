@@ -1,3 +1,12 @@
+1.7.0.9 	2011-05-23 12:43:12-06:00
+    Corrected handling of read() return-value in "reader.c".
+
+    Improved logging module
+
+    Made MAINTAINER determination more robust
+
+    Reverted to printing of "make check" log messages
+
 1.7.0.8 	2011-05-20 13:04:39-06:00
     Created thread-safe "noaaportLog" module and modified sources to use it.
     Hopefully, this will prevent crashes due to threads stepping on each other
