@@ -3,7 +3,7 @@
  *
  *   See file COPYRIGHT for copying and redistribution conditions.
  */
-#define _XOPEN_SOURCE 600
+#define _XOPEN_SOURCE 500
 
 #include <errno.h>
 #include <pthread.h>
