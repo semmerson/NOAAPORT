@@ -1656,9 +1656,12 @@ check-readnoaaport:	readnoaaport
 	rm /tmp/readnoaaport-test.pq
 check-noaaportIngester:	noaaportIngester
 	pqcreate -c -s 2m /tmp/noaaportIngester-test.pq
+	$(MAKE) $(AM_MAKEFLAGS) sudo TARGET=root-ni-ck
+	rm /tmp/noaaportIngester-test.pq
+
+root-ni-ck:
 	./noaaportIngester -n -q /tmp/noaaportIngester-test.pq \
 	    <$(srcdir)/nwstgdump.data
-	rm /tmp/noaaportIngester-test.pq
 
 valgrind:		valgrind-readnoaaport valgrind-noaaportIngester
 
@@ -1677,10 +1680,10 @@ sudo:
 
 valgrind-noaaportIngester:	noaaportIngester
 	pqcreate -c -s 2m /tmp/noaaportIngester-test.pq
-	$(MAKE) $(AM_MAKEFLAGS) sudo TARGET=root-vg-ni
+	$(MAKE) $(AM_MAKEFLAGS) sudo TARGET=root-ni-vg
 	rm /tmp/noaaportIngester-test.pq
 
-root-vg-ni:
+root-ni-vg:
 	$(LIBTOOL) --mode=execute valgrind --leak-check=yes \
 	    noaaportIngester -n -q /tmp/noaaportIngester-test.pq \
 		<$(srcdir)/nwstgdump.data
@@ -1700,10 +1703,10 @@ debug-noaaportIngester:	noaaportIngester
 	echo 'handle SIGTERM pass nostop' >>/tmp/noaaportIngester.gdb
 	echo 'run -q /tmp/noaaportIngester-test.pq -n -m 224.0.1.1' \
 	    >>/tmp/noaaportIngester.gdb
-	$(MAKE) $(AM_MAKEFLAGS) sudo TARGET=root-db-ni
+	$(MAKE) $(AM_MAKEFLAGS) sudo TARGET=root-ni-db
 	rm /tmp/noaaportIngester-test.pq /tmp/noaaportIngester.gdb
 
-root-db-ni:
+root-ni-db:
 	$(LIBTOOL) --mode=execute gdb -x /tmp/noaaportIngester.gdb \
 	      noaaportIngester
 
@@ -1815,8 +1818,9 @@ available:		ensureRelease
 	install-html \
 	release \
 	releaseCheck \
-	root-vg-ni \
-	root-db-ni \
+	root-ni-ck \
+	root-ni-db \
+	root-ni-vg \
 	software-update \
 	sudo \
 	timestamp \
