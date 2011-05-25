@@ -129,6 +129,10 @@ static List* getList(void)
 
                     list = NULL;
                 }
+                else {
+                    list->first = NULL;
+                    list->last = NULL;
+                }
             }
         }
     }
@@ -271,7 +275,6 @@ static void nplClear()
  * @retval EAGAIN       Failure due to the buffer being too small for the
  *                      message.  The buffer has been expanded and the client
  *                      should call this function again.
- * @retval EINVAL       \a fmt or \a args is \c NULL. Error message logged.
  * @retval EINVAL       There are insufficient arguments. Error message logged.
  * @retval EILSEQ       A wide-character code that doesn't correspond to a
  *                      valid character has been detected. Error message logged.
@@ -280,19 +283,12 @@ static void nplClear()
  *                      Error message logged.
  */
 int nplVadd(
-    const char* const   fmt,  /**< The message format */
+    const char* const   fmt,  /**< The message format or NULL for no message */
     va_list             args) /**< The arguments referenced by the format. */
 {
-    int                 status;
+    int                 status = 0; /* default success */
 
-    if (NULL == fmt || NULL == args) {
-        lock();
-        uerror("nplVadd(): NULL argument");
-        unlock();
-
-        status = EINVAL;
-    }
-    else {
+    if (NULL != fmt) {
         List*   list = getList();
 
         if (NULL != list) {
@@ -424,17 +420,45 @@ void nplAdd(
 }
 
 /*
- * Adds a system error-message and a higher-level error-message.
+ * Adds a system error-message based on the value of "errno" and a higher-level
+ * error-message.
  *
  * This function is thread-safe.
  */
 void nplErrno(
-    const char* const fmt,  /**< The higher-level message format */
-    ...)                    /**< Arguments referenced by the format */
+    const char* const fmt,  /**< [in] The higher-level message format or NULL
+                              *  for no higher-level message */
+    ...)                    /**< [in] Arguments referenced by the format */
 {
     va_list     args;
 
-    nplStart(strerror(errno));
+    nplStart("%s", strerror(errno));
+    va_start(args, fmt);
+
+    if (EAGAIN == nplVadd(fmt, args)) {
+        va_end(args);
+        va_start(args, fmt);
+        (void)nplVadd(fmt, args);
+    }
+
+    va_end(args);
+}
+
+/*
+ * Adds a system error-message based on a given "errno" value and a
+ * higher-level error-message.
+ *
+ * This function is thread-safe.
+ */
+void nplErrnum(
+    const int           errnum, /**< [in] The "errno" value */
+    const char* const   fmt,    /**< The higher-level message format or NULL
+                                  *  for no higher-level message */
+    ...)                        /**< Arguments referenced by the format */
+{
+    va_list     args;
+
+    nplStart("%s", strerror(errnum));
     va_start(args, fmt);
 
     if (EAGAIN == nplVadd(fmt, args)) {

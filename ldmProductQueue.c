@@ -73,8 +73,8 @@ int lpqGet(
     int                         status = 0;     /* default success */
     static pthread_mutex_t      mutex = PTHREAD_MUTEX_INITIALIZER;
 
-    if (pthread_mutex_lock(&mutex) != 0) {
-        NPL_SERROR0("Couldn't lock mutex");
+    if ((status = pthread_mutex_lock(&mutex)) != 0) {
+        NPL_ERRNUM0(status, "Couldn't lock mutex");
         status = 2;
     }
     else {
@@ -131,8 +131,10 @@ int lpqGet(
                         else {
                             pthread_mutex_t mutex;
 
-                            if (pthread_mutex_init(&mutex, NULL) != 0) {
-                                NPL_SERROR0("Couldn't initialize mutex");
+                            if ((status = pthread_mutex_init(&mutex, NULL)) !=
+                                    0) {
+                                NPL_ERRNUM0(status,
+                                        "Couldn't initialize mutex");
                                 status = 2;
                             }
                             else {
@@ -186,8 +188,8 @@ int lpqInsert(
 
     int status = 0;                 /* default success */
 
-    if (pthread_mutex_lock(&lpq->mutex) != 0) {
-        NPL_SERROR0("Couldn't lock mutex");
+    if ((status = pthread_mutex_lock(&lpq->mutex)) != 0) {
+        NPL_ERRNUM0(status, "Couldn't lock mutex");
         status = 2;
     }
     else {
@@ -222,8 +224,8 @@ int lpqClose(
 {
     int status;
 
-    if (pthread_mutex_lock(&lpq->mutex) != 0) {
-        NPL_SERROR0("Couldn't lock mutex");
+    if ((status = pthread_mutex_lock(&lpq->mutex)) != 0) {
+        NPL_ERRNUM0(status, "Couldn't lock mutex");
         status = 2;
     }
     else {

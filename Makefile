@@ -204,17 +204,17 @@ DIST_ARCHIVES = $(distdir).tar.gz
 GZIP_ENV = --best
 distuninstallcheck_listfiles = find . -type f -print
 distcleancheck_listfiles = find . -type f -print
-ACLOCAL = ${SHELL} /machine/steve/ldm/noaaport/missing --run aclocal-1.11
-AMTAR = ${SHELL} /machine/steve/ldm/noaaport/missing --run tar
+ACLOCAL = ${SHELL} /home/steve/ldm/package/noaaport/missing --run aclocal-1.11
+AMTAR = ${SHELL} /home/steve/ldm/package/noaaport/missing --run tar
 AR = ar
 ARFLAGS = -cru
-AUTOCONF = ${SHELL} /machine/steve/ldm/noaaport/missing --run autoconf
-AUTOHEADER = ${SHELL} /machine/steve/ldm/noaaport/missing --run autoheader
-AUTOMAKE = ${SHELL} /machine/steve/ldm/noaaport/missing --run automake-1.11
+AUTOCONF = ${SHELL} /home/steve/ldm/package/noaaport/missing --run autoconf
+AUTOHEADER = ${SHELL} /home/steve/ldm/package/noaaport/missing --run autoheader
+AUTOMAKE = ${SHELL} /home/steve/ldm/package/noaaport/missing --run automake-1.11
 AWK = gawk
 CC = c89
 CCDEPMODE = depmode=gcc3
-CFLAGS = -O -m64
+CFLAGS = -g -m64
 CPP = c89 -E
 CPPFLAGS = -I$(LDMHOME)/include -I$(LDMHOME)/src/ulog \
 			  -I$(LDMHOME)/src
@@ -242,13 +242,13 @@ INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 LDFLAGS =  -m64
-LDMHOME = /machine/steve/ldm
+LDMHOME = /home/steve/ldm/package
 LIBOBJS = 
 LIBS = -lpthread 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LN_S = ln -s
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /machine/steve/ldm/noaaport/missing --run makeinfo
+MAKEINFO = ${SHELL} /home/steve/ldm/package/noaaport/missing --run makeinfo
 MKDIR_P = /bin/mkdir -p
 NMEDIT = 
 OBJEXT = o
@@ -267,10 +267,10 @@ STRIP = strip
 SU = /bin/su
 SUDO = 
 VERSION = 1.7.0.10
-abs_builddir = /machine/steve/ldm/noaaport
-abs_srcdir = /machine/steve/ldm/noaaport
-abs_top_builddir = /machine/steve/ldm/noaaport
-abs_top_srcdir = /machine/steve/ldm/noaaport
+abs_builddir = /home/steve/ldm/package/noaaport
+abs_srcdir = /home/steve/ldm/package/noaaport
+abs_top_builddir = /home/steve/ldm/package/noaaport
+abs_top_srcdir = /home/steve/ldm/package/noaaport
 ac_ct_CC = c89
 ac_ct_CXX = g++
 ac_ct_F77 = gfortran
@@ -299,7 +299,7 @@ host_vendor = unknown
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /machine/steve/ldm/noaaport/install-sh
+install_sh = ${SHELL} /home/steve/ldm/package/noaaport/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -308,7 +308,7 @@ mandir = ${datarootdir}/man
 mkdir_p = /bin/mkdir -p
 oldincludedir = /usr/include
 pdfdir = ${docdir}
-prefix = /machine/steve/ldm
+prefix = /home/steve/ldm/package
 program_transform_name = s,x,x,
 psdir = ${docdir}
 sbindir = ${exec_prefix}/sbin
@@ -1613,11 +1613,7 @@ root's password), then the superuser will have to manually execute the \
 command \"$(MAKE) root-actions\"." \
 	| fmt >/dev/tty
 	@echo >/dev/tty
-#	$(SUDO) $(MAKE) $(AM_MAKEFLAGS) root-actions 2>/dev/tty
-	@printf "Enter root's password (or don't): " >/dev/tty
-	@$(SU) root -c 'PATH='$$PATH' $(MAKE) $(AM_MAKEFLAGS) root-actions' \
-	    </dev/tty 2>/dev/tty
-	@echo >/dev/tty
+	$(MAKE) $(AM_MAKEFLAGS) sudo TARGET=root-actions
 #	@echo
 #	@echo "\
 #NOTE: The command \"$(MAKE) root-actions\" will have to be executed by the \
@@ -1628,14 +1624,16 @@ command \"$(MAKE) root-actions\"." \
 root-actions:		install_setuids
 
 install_setuids:
+	chown root $(DESTDIR)$(bindir)/noaaportIngester
+	chmod 4755 $(DESTDIR)$(bindir)/noaaportIngester
 	chown root $(DESTDIR)$(bindir)/dvbs_multicast
 	chmod 4755 $(DESTDIR)$(bindir)/dvbs_multicast
-	@if ls -l $(bindir)/dvbs_multicast | grep root >/dev/null; then \
+	@if ls -l $(bindir)/noaaportIngester | grep root >/dev/null; then \
 	    : true; \
 	else \
 	    echo; \
 	    echo "\
-ERROR: The program (../bin/dvbs_multicast) is not owned by \"root\" or does \
+ERROR: The program (../bin/noaaportIngester) is not owned by \"root\" or does \
 not have the setuid bit enabled.  The command \"make install_setuids\" will \
 have to be manually executed by the superuser on a system that allows these \
 actions." \
@@ -1670,12 +1668,22 @@ valgrind-readnoaaport:		readnoaaport
 	    readnoaaport -l- -q /tmp/readnoaaport-test.pq nwstgdump.data
 	rm /tmp/readnoaaport-test.pq
 
-valgrind-noaaportIngester:		noaaportIngester
+sudo:
+#	$(SUDO) $(MAKE) $(AM_MAKEFLAGS) $(TARGET) 2>/dev/tty
+	@printf "Enter root's password (or don't): " >/dev/tty
+	@$(SU) root -c 'PATH='$$PATH' $(MAKE) $(AM_MAKEFLAGS) $(TARGET)' \
+	    </dev/tty 2>/dev/tty
+	@echo >/dev/tty
+
+valgrind-noaaportIngester:	noaaportIngester
 	pqcreate -c -s 2m /tmp/noaaportIngester-test.pq
+	$(MAKE) $(AM_MAKEFLAGS) sudo TARGET=root-vg-ni
+	rm /tmp/noaaportIngester-test.pq
+
+root-vg-ni:
 	$(LIBTOOL) --mode=execute valgrind --leak-check=yes \
 	    noaaportIngester -n -q /tmp/noaaportIngester-test.pq \
 		<$(srcdir)/nwstgdump.data
-	rm /tmp/noaaportIngester-test.pq
 
 debug-readnoaaport:	readnoaaport
 	pqcreate -c -s 2m /tmp/readnoaaport-test.pq
@@ -1689,12 +1697,15 @@ debug-readnoaaport:	readnoaaport
 debug-noaaportIngester:	noaaportIngester
 	pqcreate -c -s 2m /tmp/noaaportIngester-test.pq
 	echo 'handle SIGCONT pass noprint nostop' >/tmp/noaaportIngester.gdb
-	echo 'handle SIGTERM pass nostop' >/tmp/noaaportIngester.gdb
+	echo 'handle SIGTERM pass nostop' >>/tmp/noaaportIngester.gdb
 	echo 'run -q /tmp/noaaportIngester-test.pq -n -m 224.0.1.1' \
 	    >>/tmp/noaaportIngester.gdb
+	$(MAKE) $(AM_MAKEFLAGS) sudo TARGET=root-db-ni
+	rm /tmp/noaaportIngester-test.pq /tmp/noaaportIngester.gdb
+
+root-db-ni:
 	$(LIBTOOL) --mode=execute gdb -x /tmp/noaaportIngester.gdb \
 	      noaaportIngester
-	rm /tmp/noaaportIngester-test.pq /tmp/noaaportIngester.gdb
 
 install-html:		$(srcdir)/html/index.html $(DESTDIR)$(htmldir)
 	cp -R $(srcdir)/html/* $(DESTDIR)$(htmldir)
@@ -1804,7 +1815,10 @@ available:		ensureRelease
 	install-html \
 	release \
 	releaseCheck \
+	root-vg-ni \
+	root-db-ni \
 	software-update \
+	sudo \
 	timestamp \
 	web-update
 

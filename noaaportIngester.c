@@ -13,8 +13,11 @@
 #define _XOPEN_SOURCE 500
 #define __EXTENSIONS__
 
+#include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -202,6 +205,142 @@ static void set_sigactions(void)
 }
 
 /**
+ * Creates a product-maker and starts it in a new thread.
+ *
+ * @retval 0    Success.
+ * @retval 1    Usage failure. \c nplStart() called.
+ * @retval 2    O/S failure. \c nplStart() called.
+ */
+static int spawnProductMaker(
+    const pthread_attr_t* const attr,           /**< [in] Thread-creation
+                                                  *  attributes */
+    Fifo* const                 fifo,           /**< [in] Pointer to FIFO from
+                                                  *  which to get data */
+    LdmProductQueue* const      productQueue,   /**< [in] LDM product-queue into
+                                                  *  which to put data-products
+                                                  *  */
+    ProductMaker** const        productMaker,   /**< [out] Pointer to pointer to
+                                                  *  returned product-maker */
+    pthread_t* const            thread)         /**< [out] Pointer to pointer
+                                                  *  to created thread */
+{
+    ProductMaker*   pm;
+    int             status = pmNew(fifo, productQueue, &pm);
+
+    if (0 != status) {
+        NPL_ADD0("Couldn't create new LDM product-maker");
+        status = 1;
+    }
+    else {
+        pthread_t   thrd;
+
+        if (0 != (status = pthread_create(&thrd, attr, pmStart, pm))) {
+            NPL_ERRNUM0(status, "Couldn't start product-maker thread");
+            status = 1;
+        }
+        else {
+            *productMaker = pm;
+            *thread = thrd;
+        }
+    }
+
+    return status;
+}
+
+/**
+ * Creates a file data-reader and starts it in a new thread.
+ *
+ * @retval 0    Success
+ * @retval 1    Usage failure. \c nplStart() called.
+ * @retval 2    O/S failure. \c nplStart() called.
+ */
+static int spawnFileReader(
+    const pthread_attr_t* const attr,       /**< [in] Thread-creation
+                                              *  attributes */
+    const char* const           pathname,   /**< [in] Pathname of input file or
+                                              *  NULL to read standard input
+                                              *  stream */
+    Fifo* const                 fifo,       /**< [in] Pointer to FIFO into
+                                              *  which to put data */
+    Reader** const              reader,     /**< [out] Pointer to pointer to
+                                              *  address of reader */
+    pthread_t* const            thread)     /**< [out] Pointer to pointer to
+                                              *  created thread */
+{
+    Reader*             fileReader;
+    int                 status = fileReaderNew(NULL, fifo, &fileReader);
+
+    if (0 != status) {
+        NPL_ADD0("Couldn't create file-reader");
+    }
+    else {
+        pthread_t   thrd;
+
+        if ((status = pthread_create(&thrd, attr, readerStart, fileReader)) !=
+                0) {
+            NPL_ERRNUM0(status, "Couldn't start file-reader thread");
+            status = 1;
+        }
+        else {
+            *reader = fileReader;
+            *thread = thrd;
+        }
+    }
+
+    return status;
+}
+
+/**
+ * Creates a multicast data-reader and starts it in a new thread.
+ *
+ * @retval 0    Success
+ * @retval 1    Usage failure. \c nplStart() called.
+ * @retval 2    O/S failure. \c nplStart() called.
+ */
+static int spawnMulticastReader(
+    const pthread_attr_t* const attr,       /**< [in] Thread-creation
+                                              *  attributes */
+    const char* const           mcastAddr,  /**< [in] Dotted-quad
+                                              * representation of the multicast
+                                              * group */
+    const char* const           interface,  /**< [in] IPv4 address of interface
+                                              *  on which to listen for
+                                              *  multicast UDP packets in IPv4
+                                              *  dotted-quad format or NULL to
+                                              *  listen on all available
+                                              *  interfaces */
+    Fifo* const                 fifo,       /**< [in] Pointer to FIFO into
+                                              *  which to put data */
+    Reader** const              reader,     /**< [out] Pointer to pointer to
+                                              *  address of reader */
+    pthread_t* const            thread)     /**< [out] Pointer to pointer to
+                                              * created thread */
+{
+    Reader*     multicastReader;
+    int         status = multicastReaderNew(mcastAddr, interface, fifo,
+                    &multicastReader);
+
+    if (0 != status) {
+        NPL_ADD0("Couldn't create multicast-reader");
+    }
+    else {
+        pthread_t   thrd;
+
+        if (0 != (status = pthread_create(&thrd, attr, readerStart,
+                        multicastReader))) {
+            NPL_ERRNUM0(status, "Couldn't start multicast-reader thread");
+            status = 1;
+        }
+        else {
+            *reader = multicastReader;
+            *thread = thrd;
+        }
+    }
+
+    return status;
+}
+
+/**
  * Reads a NOAAPORT data stream, creates LDM data-products from the stream, and
  * inserts the data-products into an LDM product-queue.  The NOAAPORT data
  * stream can take the form of multicast UDP packets from (for example) a
@@ -269,6 +408,7 @@ int main(
     size_t              npages = DEFAULT_NPAGES;
     Fifo*               fifo;
     int                 ttyFd = open("/dev/tty", O_RDONLY);
+    int                 processPriority = 0;
     const char*         logPath = (-1 == ttyFd)
         ? NULL                          /* log to system logging daemon */
         : "-";                          /* log to standard error stream */
@@ -279,7 +419,8 @@ int main(
     status = initLogging(progName, logOptions, logFacility, logPath);
     opterr = 0;                         /* no error messages from getopt(3) */
 
-    while (0 == status && (ch = getopt(argc, argv, "b:I:l:m:nq:u:vx")) != -1) {
+    while (0 == status && (ch = getopt(argc, argv, "b:I:l:m:np:q:u:vx")) != -1)
+    {
         switch (ch) {
             extern char*    optarg;
             extern int      optopt;
@@ -311,6 +452,25 @@ int main(
                 logmask |= LOG_MASK(LOG_NOTICE);
                 (void)setulogmask(logmask);
                 break;
+            case 'p': {
+                char* cp;
+
+                errno = 0;
+                processPriority = (int)strtol(optarg, &cp, 0);
+
+                if (0 != errno) {
+                    NPL_SERROR1("Couldn't decode priority \"%s\"", optarg);
+                    nplLog(LOG_ERR);
+                }
+                else {
+                    if (processPriority < -20)
+                        processPriority = -20;
+                    else if (processPriority > 20)
+                        processPriority = 20;
+                }
+
+                break;
+            }
             case 'q':
                 prodQueuePath = optarg;
                 break;
@@ -373,74 +533,88 @@ int main(
             nplLog(LOG_ERR);
         }
         else {
-            Reader* reader;
+            LdmProductQueue*    prodQueue;
 
-            if (NULL == mcastSpec) {
-                if ((status = fileReaderNew(NULL, fifo, &reader)) != 0) {
-                    NPL_ADD0("Couldn't create file-reader");
-                    nplLog(LOG_ERR);
-                }
+            if ((status = lpqGet(prodQueuePath, &prodQueue)) != 0) {
+                NPL_ADD0("Couldn't open LDM product-queue");
+                nplLog(LOG_ERR);
             }
             else {
-                if ((status = multicastReaderNew(mcastSpec, interface, fifo,
-                                &reader)) != 0) {
-                    NPL_ADD0("Couldn't create multicast-reader");
-                    nplLog(LOG_ERR);
-                }
-            }
+                pthread_attr_t  attr;
 
-            if (0 == status) {
-                LdmProductQueue* prodQueue;
-
-                if ((status = lpqGet(prodQueuePath, &prodQueue)) != 0) {
-                    NPL_ADD0("Couldn't open LDM product-queue");
+                if (0 != (status = pthread_attr_init(&attr))) {
+                    NPL_ERRNUM0(status, "Couldn't initialize thread attribute");
                     nplLog(LOG_ERR);
+                    status = 1;
                 }
                 else {
-                    if ((status = pmNew(fifo, prodQueue, &productMaker)) != 0) {
-                        NPL_ADD0("Couldn't create new LDM product-maker");
+#ifndef _POSIX_THREAD_PRIORITY_SCHEDULING
+                    nplWarn("Can't adjust thread priorities due to lack of "
+                            "necessary support");
+#else
+                    /*
+                     * I want the reader thread to preempt the product-maker
+                     * thread whenever there's something to read and to run for
+                     * as long as there's something to read.
+                     */
+                    const int           SCHED_POLICY = SCHED_FIFO;
+                    struct sched_param  param;
+
+                    param.sched_priority = sched_get_priority_max(SCHED_POLICY)
+                        - 1;
+
+                    (void)pthread_attr_setinheritsched(&attr,
+                            PTHREAD_EXPLICIT_SCHED);
+                    (void)pthread_attr_setschedpolicy(&attr, SCHED_POLICY);
+                    (void)pthread_attr_setschedparam(&attr, &param);
+                    (void)pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
+#endif
+
+                    if (0 != (status = spawnProductMaker(&attr, fifo, prodQueue,
+                                    &productMaker, &productMakerThread))) {
                         nplLog(LOG_ERR);
                     }
                     else {
-                        if (pthread_create(&productMakerThread, NULL, pmStart,
-                                    productMaker) != 0) {
-                            NPL_SERROR0("Couldn't start product-maker thread");
+                        Reader* reader;
+
+#ifdef _POSIX_THREAD_PRIORITY_SCHEDULING
+                        param.sched_priority++;
+                        (void)pthread_attr_setschedparam(&attr, &param);
+#endif
+
+                        status = (NULL == mcastSpec)
+                            ? spawnFileReader(&attr, NULL, fifo, &reader,
+                                    &readerThread)
+                            : spawnMulticastReader(&attr, mcastSpec, interface,
+                                    fifo, &reader, &readerThread);
+
+                        if (0 != status) {
                             nplLog(LOG_ERR);
                             status = 1;
                         }
                         else {
-                            if (pthread_create(&readerThread, NULL, readerStart,
-                                        reader) != 0) {
-                                NPL_SERROR0(
-                                        "Couldn't start data-reader thread");
-                                nplLog(LOG_ERR);
-                                status = 1;
-                            }
-                            else {
-                                set_sigactions();
-                                (void)pthread_join(readerThread, NULL);
+                            set_sigactions();
+                            (void)pthread_join(readerThread, NULL);
 
-                                status = readerStatus(reader);
+                            status = readerStatus(reader);
 
-                                fifoCloseWhenEmpty(fifo);
-                            }           /* "readerThread" running */
+                            readerFree(reader);
+                        }               /* "reader" spawned */
 
-                            (void)pthread_join(productMakerThread, NULL);
+                        fifoCloseWhenEmpty(fifo);
+                        (void)pthread_join(productMakerThread, NULL);
 
-                            if (0 != status)
-                                status = pmStatus(productMaker);
+                        if (0 != status)
+                            status = pmStatus(productMaker);
 
-                            pmLogStats(productMaker);
-                        }               /* "productMakerThread" running */
-                    }                   /* "productMaker" created */
+                        pmLogStats(productMaker);
+                    }                   /* "productMaker" spawned */
+                }                       /* "attr" initialized */
 
-                    (void)lpqClose(prodQueue);
-                }                       /* "prodQueue" open */
-
-                readerFree(reader);
-            }                           /* "reader" created */
-        }                               /* "fifo" created */
-    }                                   /* command-line correctly decoded */
+                (void)lpqClose(prodQueue);
+            }                       /* "prodQueue" open */
+        }                           /* "fifo" created */
+    }                               /* command line decoded */
 
     return status;
 }

@@ -52,7 +52,7 @@ int fileReaderNew(
     if (0 == status) {
         if ((status = readerNew(fd, fifo, sysconf(_SC_PAGESIZE), reader)) 
                 != 0) {
-            NPL_SERROR0("Couldn't create new reader object");
+            NPL_ADD0("Couldn't create new reader object");
         }
     }
 

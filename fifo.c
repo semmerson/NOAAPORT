@@ -40,32 +40,41 @@ static int initializeFifo(
     int                 status = 2; /* default failure */
     pthread_mutexattr_t mutexAttr;
 
-    if (pthread_mutexattr_init(&mutexAttr) != 0) {
-        NPL_SERROR0("Couldn't initialize mutex attributes");
+    if ((status = pthread_mutexattr_init(&mutexAttr)) != 0) {
+        NPL_ERRNUM0(status, "Couldn't initialize mutex attributes");
+        status = 2;
     }
     else {
         (void)pthread_mutexattr_settype(&mutexAttr, PTHREAD_MUTEX_ERRORCHECK);
 
-        if (pthread_mutex_init(&fifo->writeMutex, &mutexAttr) != 0) {
-            NPL_SERROR0("Couldn't initialize write-mutex");
+        if ((status = pthread_mutex_init(&fifo->writeMutex, &mutexAttr)) != 0) {
+            NPL_ERRNUM0(status, "Couldn't initialize write-mutex");
+            status = 2;
         }
         else {
-            if (pthread_mutex_init(&fifo->readMutex, &mutexAttr) != 0) {
-                NPL_SERROR0("Couldn't initialize read-mutex");
+            if ((status = pthread_mutex_init(&fifo->readMutex, &mutexAttr)) !=
+                    0) {
+                NPL_ERRNUM0(status, "Couldn't initialize read-mutex");
+                status = 2;
             }
             else {
-                if (pthread_mutex_init(&fifo->mutex, NULL) != 0) {
-                    NPL_SERROR0("Couldn't initialize FIFO mutex");
+                if ((status = pthread_mutex_init(&fifo->mutex, NULL)) != 0) {
+                    NPL_ERRNUM0(status, "Couldn't initialize FIFO mutex");
+                    status = 2;
                 }
                 else {
-                    if (pthread_cond_init(&fifo->readCond, NULL) != 0) {
-                        NPL_SERROR0(
+                    if ((status = pthread_cond_init(&fifo->readCond, NULL)) !=
+                            0) {
+                        NPL_ERRNUM0(status,
                             "Couldn't initialize reading condition variable");
+                        status = 2;
                     }
                     else {
-                        if (pthread_cond_init(&fifo->writeCond, NULL) != 0) {
-                            NPL_SERROR0(
+                        if ((status = pthread_cond_init(&fifo->writeCond,
+                                        NULL)) != 0) {
+                            NPL_ERRNUM0(status,
                             "Couldn't initialize writing condition variable");
+                            status = 2;
                         }
                         else {
                             fifo->buf = buf;
@@ -169,13 +178,13 @@ int fifoWriteReserve(
         status = 1;
     }
     else {
-        if (pthread_mutex_lock(&fifo->writeMutex) != 0) {
-            NPL_SERROR0("Couldn't lock write-mutex");
+        if ((status = pthread_mutex_lock(&fifo->writeMutex)) != 0) {
+            NPL_ERRNUM0(status, "Couldn't lock write-mutex");
             status = 2;
         }
         else {
-            if (pthread_mutex_lock(&fifo->mutex) != 0) {
-                NPL_SERROR0("Couldn't lock FIFO mutex");
+            if ((status = pthread_mutex_lock(&fifo->mutex)) != 0) {
+                NPL_ERRNUM0(status, "Couldn't lock FIFO mutex");
                 status = 2;
             }
             else {
@@ -188,9 +197,9 @@ int fifoWriteReserve(
                     if ((fifo->size - fifo->nbytes) >= nbytes)
                         break;
 
-                    if (pthread_cond_wait(&fifo->writeCond, &fifo->mutex) 
-                            != 0) {
-                        NPL_SERROR0(
+                    if ((status = pthread_cond_wait(&fifo->writeCond,
+                                    &fifo->mutex)) != 0) {
+                        NPL_ERRNUM0(status,
                                 "Couldn't wait on writing condition variable");
                         status = 2;
                         break;
@@ -229,8 +238,8 @@ int fifoWriteUpdate(
 {
     int             status;
 
-    if (pthread_mutex_lock(&fifo->mutex) != 0) {
-        NPL_SERROR0("Couldn't lock FIFO mutex");
+    if ((status = pthread_mutex_lock(&fifo->mutex)) != 0) {
+        NPL_ERRNUM0(status, "Couldn't lock FIFO mutex");
         status = 2;
     }
     else {
@@ -243,16 +252,17 @@ int fifoWriteUpdate(
             status = 1;                 /* usage error */
         }
         else {
-            if (pthread_cond_signal(&fifo->readCond) != 0) {
-                NPL_SERROR0("Couldn't signal reading condition variable");
+            if ((status = pthread_cond_signal(&fifo->readCond)) != 0) {
+                NPL_ERRNUM0(status,
+                        "Couldn't signal reading condition variable");
                 status = 2;             /* Usage error */
             }
             else {
                 fifo->nextWrite = (fifo->nextWrite + nbytes) % fifo->size;
                 fifo->nbytes += nbytes;
 
-                if (pthread_mutex_unlock(&fifo->writeMutex) != 0) {
-                    NPL_SERROR0("Couldn't unlock write-mutex");
+                if ((status = pthread_mutex_unlock(&fifo->writeMutex)) != 0) {
+                    NPL_ERRNUM0(status, "Couldn't unlock write-mutex");
                     status = 1;         /* Usage error */
                 }
                 else {
@@ -295,13 +305,13 @@ int fifoReadPeek(
         status = 1;
     }
     else {
-        if (pthread_mutex_lock(&fifo->readMutex) != 0) {
-            NPL_SERROR0("Couldn't lock read-mutex");
+        if ((status = pthread_mutex_lock(&fifo->readMutex)) != 0) {
+            NPL_ERRNUM0(status, "Couldn't lock read-mutex");
             status = 2;
         }
         else {
-            if (pthread_mutex_lock(&fifo->mutex) != 0) {
-                NPL_SERROR0("Couldn't lock FIFO mutex");
+            if ((status = pthread_mutex_lock(&fifo->mutex)) != 0) {
+                NPL_ERRNUM0(status, "Couldn't lock FIFO mutex");
                 status = 2;
             }
             else {
@@ -314,8 +324,9 @@ int fifoReadPeek(
                     if (fifo->nbytes >= nbytes)
                         break;
 
-                    if (pthread_cond_wait(&fifo->readCond, &fifo->mutex) != 0) {
-                        NPL_SERROR0(
+                    if ((status = pthread_cond_wait(&fifo->readCond,
+                                    &fifo->mutex)) != 0) {
+                        NPL_ERRNUM0(status,
                                 "Couldn't wait on reading condition variable");
                         status = 2;
                         break;
@@ -323,8 +334,8 @@ int fifoReadPeek(
                 }
 
                 if (0 == status) {
-                    if (pthread_cond_signal(&fifo->writeCond) != 0) {
-                        NPL_SERROR0(
+                    if ((status = pthread_cond_signal(&fifo->writeCond)) != 0) {
+                        NPL_ERRNUM0(status,
                                 "Couldn't signal writing condition variable");
                         status = 2;
                     }
@@ -366,8 +377,9 @@ int fifoReadUpdate(
 {
     int             status = 2; /* default failure */
 
-    if (pthread_mutex_lock(&fifo->mutex) != 0) {
-        NPL_SERROR0("Couldn't lock mutex");
+    if ((status = pthread_mutex_lock(&fifo->mutex)) != 0) {
+        NPL_ERRNUM0(status, "Couldn't lock mutex");
+        status = 2;
     }
     else {
         if (nbytes > fifo->nbytes) {
@@ -376,14 +388,16 @@ int fifoReadUpdate(
             status = 1;
         }
         else {
-            if (pthread_cond_signal(&fifo->readCond) != 0) {
-                NPL_SERROR0("Couldn't signal reading condition variable");
+            if ((status = pthread_cond_signal(&fifo->readCond)) != 0) {
+                NPL_ERRNUM0(status,
+                        "Couldn't signal reading condition variable");
+                status = 2;
             }
             else {
                 fifo->nbytes -= nbytes;
 
-                if (pthread_mutex_unlock(&fifo->readMutex) != 0) {
-                    NPL_SERROR0("Couldn't unlock read-mutex");
+                if ((status = pthread_mutex_unlock(&fifo->readMutex)) != 0) {
+                    NPL_ERRNUM0(status, "Couldn't unlock read-mutex");
                     status = 1;             /* Usage error */
                 }
                 else {
@@ -442,19 +456,19 @@ int fifoCloseWhenEmpty(
 {
     int         status = 0; /* default success */
 
-    if (pthread_mutex_lock(&fifo->mutex) != 0) {
-        NPL_SERROR0("Couldn't lock mutex");
+    if ((status = pthread_mutex_lock(&fifo->mutex)) != 0) {
+        NPL_ERRNUM0(status, "Couldn't lock mutex");
         status = 2;
     }
     else {
         fifo->closeIfEmpty = 1;
 
-        if (pthread_cond_signal(&fifo->writeCond) != 0) {
-            NPL_SERROR0("Couldn't signal writing condition variable");
+        if ((status = pthread_cond_signal(&fifo->writeCond)) != 0) {
+            NPL_ERRNUM0(status, "Couldn't signal writing condition variable");
             status = 2;
         }
-        if (pthread_cond_signal(&fifo->readCond) != 0) {
-            NPL_SERROR0("Couldn't signal reading condition variable");
+        if ((status = pthread_cond_signal(&fifo->readCond)) != 0) {
+            NPL_ERRNUM0(status, "Couldn't signal reading condition variable");
             status = 2;
         }
 

@@ -109,8 +109,7 @@ int multicastReaderNew(
                         else {
                             if ((status = readerNew(sock, fifo, 10000,
                                             reader)) != 0) {
-                                NPL_SERROR0(
-                                        "Couldn't create new reader object");
+                                NPL_ADD0("Couldn't create new reader object");
                             }           /* "*reader" set */
                         }               /* joined multicast group */
                     }                   /* socket bound */

@@ -132,16 +132,7 @@ root's password), then the superuser will have to manually execute the \
 command \"$(MAKE) root-actions\"." \
 	| fmt >/dev/tty
 	@echo >/dev/tty
-if HAVE_SUDO
-	$(SUDO) $(MAKE) $(AM_MAKEFLAGS) root-actions 2>/dev/tty
-else
-if HAVE_SU
-	@printf "Enter root's password (or don't): " >/dev/tty
-	@$(SU) root -c 'PATH='$$PATH' $(MAKE) $(AM_MAKEFLAGS) root-actions' \
-	    </dev/tty 2>/dev/tty
-	@echo >/dev/tty
-endif
-endif
+	$(MAKE) $(AM_MAKEFLAGS) sudo TARGET=root-actions
 else
 	@echo
 	@echo "\
@@ -154,14 +145,16 @@ endif
 root-actions:		install_setuids
 
 install_setuids:
+	chown root $(DESTDIR)$(bindir)/noaaportIngester
+	chmod 4755 $(DESTDIR)$(bindir)/noaaportIngester
 	chown root $(DESTDIR)$(bindir)/dvbs_multicast
 	chmod 4755 $(DESTDIR)$(bindir)/dvbs_multicast
-	@if ls -l $(bindir)/dvbs_multicast | grep root >/dev/null; then \
+	@if ls -l $(bindir)/noaaportIngester | grep root >/dev/null; then \
 	    : true; \
 	else \
 	    echo; \
 	    echo "\
-ERROR: The program (../bin/dvbs_multicast) is not owned by \"root\" or does \
+ERROR: The program (../bin/noaaportIngester) is not owned by \"root\" or does \
 not have the setuid bit enabled.  The command \"make install_setuids\" will \
 have to be manually executed by the superuser on a system that allows these \
 actions." \
@@ -196,12 +189,27 @@ valgrind-readnoaaport:		readnoaaport
 	    readnoaaport -l- -q /tmp/readnoaaport-test.pq nwstgdump.data
 	rm /tmp/readnoaaport-test.pq
 
-valgrind-noaaportIngester:		noaaportIngester
+sudo:
+if HAVE_SUDO
+	$(SUDO) $(MAKE) $(AM_MAKEFLAGS) $(TARGET) 2>/dev/tty
+else
+if HAVE_SU
+	@printf "Enter root's password (or don't): " >/dev/tty
+	@$(SU) root -c 'PATH='$$PATH' $(MAKE) $(AM_MAKEFLAGS) $(TARGET)' \
+	    </dev/tty 2>/dev/tty
+	@echo >/dev/tty
+endif
+endif
+	
+valgrind-noaaportIngester:	noaaportIngester
 	pqcreate -c -s 2m /tmp/noaaportIngester-test.pq
+	$(MAKE) $(AM_MAKEFLAGS) sudo TARGET=root-vg-ni
+	rm /tmp/noaaportIngester-test.pq
+
+root-vg-ni:
 	$(LIBTOOL) --mode=execute valgrind --leak-check=yes \
 	    noaaportIngester -n -q /tmp/noaaportIngester-test.pq \
 		<$(srcdir)/nwstgdump.data
-	rm /tmp/noaaportIngester-test.pq
 
 debug-readnoaaport:	readnoaaport
 	pqcreate -c -s 2m /tmp/readnoaaport-test.pq
@@ -215,12 +223,15 @@ debug-readnoaaport:	readnoaaport
 debug-noaaportIngester:	noaaportIngester
 	pqcreate -c -s 2m /tmp/noaaportIngester-test.pq
 	echo 'handle SIGCONT pass noprint nostop' >/tmp/noaaportIngester.gdb
-	echo 'handle SIGTERM pass nostop' >/tmp/noaaportIngester.gdb
+	echo 'handle SIGTERM pass nostop' >>/tmp/noaaportIngester.gdb
 	echo 'run -q /tmp/noaaportIngester-test.pq -n -m 224.0.1.1' \
 	    >>/tmp/noaaportIngester.gdb
+	$(MAKE) $(AM_MAKEFLAGS) sudo TARGET=root-db-ni
+	rm /tmp/noaaportIngester-test.pq /tmp/noaaportIngester.gdb
+
+root-db-ni:
 	$(LIBTOOL) --mode=execute gdb -x /tmp/noaaportIngester.gdb \
 	      noaaportIngester
-	rm /tmp/noaaportIngester-test.pq /tmp/noaaportIngester.gdb
 
 install-html:		$(srcdir)/html/index.html $(DESTDIR)$(htmldir)
 	cp -R $(srcdir)/html/* $(DESTDIR)$(htmldir)
@@ -333,6 +344,9 @@ available:		ensureRelease
 	install-html \
 	release \
 	releaseCheck \
+	root-vg-ni \
+	root-db-ni \
 	software-update \
+	sudo \
 	timestamp \
 	web-update
