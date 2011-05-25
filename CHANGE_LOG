@@ -1,3 +1,7 @@
+1.7.0.12 	2011-05-25 15:35:29-06:00
+    Corrected "make check-noaaportIngester: had to execute noaaportIngester(1)
+    as root.
+
 1.7.0.11 	2011-05-25 15:24:39-06:00
     Added thread priority:
         Both reader and product-maker threads have their scheduler set to
