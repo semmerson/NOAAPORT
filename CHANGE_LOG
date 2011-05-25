@@ -1,3 +1,17 @@
+1.7.0.11 	2011-05-25 15:24:39-06:00
+    Added thread priority:
+        Both reader and product-maker threads have their scheduler set to
+        SCHED-FIFO and their priorities adjusted.  Reader thread's priority is
+        higher than product-maker's.
+
+        noaaportIngester(1) is now necessarily installed setuid-root.
+
+1.7.0.10
+    Solaris porting.
+    
+    Reverted __XOPEN_SOURCE__ to 600 in "readnoaaportLog.c" to accomodate
+    Solaris, which requires the c99(1) compiler in such cases.
+
 1.7.0.10 	2011-05-24 09:41:14-06:00
 
     Solaris porting: reverted __XOPEN_SOURCE__ to 600 in "readnoaaportLog.c" to
