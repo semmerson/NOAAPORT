@@ -6,6 +6,7 @@
 
 #include <pthread.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "noaaportLog.h"
@@ -15,8 +16,10 @@
 struct reader {
     Fifo*           fifo;           /**< Pointer to FIFO into which to put data
                                       */
+    unsigned char*  buf;            /**< Internal read buffer */
     size_t          maxSize;        /**< Maximum amount to read in a single
                                       *  call in bytes */
+    size_t          nbytes;         /**< Amount of data in buffer in bytes */
     int             fd;             /**< File-descriptor to read from */
     volatile int    status;         /**< Termination status */
 };
@@ -47,12 +50,21 @@ int readerNew(
         NPL_SERROR0("Couldn't allocate new reader");
     }
     else {
-        r->fifo = fifo;
-        r->fd = fd;
-        r->maxSize = maxSize;
-        r->status = 0;
-        *reader = r;
-        status = 0;
+        unsigned char*    buf = (unsigned char*)malloc(maxSize);
+
+        if (NULL == buf) {
+            NPL_SERROR1("Couldn't allocate %lu bytes for buffer", 
+                    (unsigned long)maxSize);
+        }
+        else {
+            r->fifo = fifo;
+            r->fd = fd;
+            r->maxSize = maxSize;
+            r->buf = buf;
+            r->status = 0;
+            *reader = r;
+            status = 0;
+        }
     }
 
     return status;
@@ -64,11 +76,14 @@ int readerNew(
 void readerFree(
     Reader* const   reader)     /**< Pointer to the reader to be freed */
 {
-    free(reader);
+    if (NULL != reader) {
+        free(reader->buf);
+        free(reader);
+    }
 }
 
 /**
- * Executes a reader. Returns when end-of-file is encountered or an error
+ * Executes a reader. Returns when end-of-input is encountered or an error
  * occurs.
  *
  * This function is thread-compatible but not thread-safe.
@@ -77,26 +92,31 @@ void readerFree(
  * @see \link readerStatus() \endlink
  */
 void* readerStart(
-    void* const     arg)      /**< Pointer to the reader to be executed */
+    void* const     arg)        /**< Pointer to the reader to be executed */
 {
     Reader* const   reader = (Reader*)arg;
-    int             status;
+    int             status = 0; /* default success */
 
     for (;;) {
-        unsigned char*  data;
+        unsigned char*  buf;
+        size_t          size;
 
-        if ((status = fifoWriteReserve(reader->fifo, reader->maxSize, &data))
-                != 0) {
+        if (fifoWriteReserve(reader->fifo, reader->maxSize, &buf, &size) != 0) {
             NPL_ADD1("Couldn't reserve %lu bytes in FIFO", reader->maxSize);
             nplLog(LOG_ERR);
+            status = 2;
             break;
         }
         else {
-            const ssize_t   nbytes = read(reader->fd, data, reader->maxSize);
+            ssize_t   nbytes;
+
+            if (size < reader->maxSize)
+                buf = reader->buf;  /* read into internal buffer */
+
+            nbytes = read(reader->fd, buf, reader->maxSize);
 
             if (0 == nbytes) {
-                status = 0;
-                break;
+                break;              /* end of input */
             }
             if (-1 == nbytes) {
                 NPL_SERROR0("read() failure");
@@ -104,10 +124,24 @@ void* readerStart(
                 status = 2;
                 break;
             }
-            if (fifoWriteUpdate(reader->fifo, nbytes) != 0) {
-                NPL_ADD0("Couldn't update FIFO");
-                nplLog(LOG_ERR);
-                break;
+
+            if (buf == reader->buf) {
+                if (fifoCopy(reader->fifo, buf, nbytes) != 0) {
+                    NPL_ADD1("Couldn't copy %l bytes of data into FIFO", 
+                            (long)nbytes);
+                    nplLog(LOG_ERR);
+                    status = 2;
+                    break;
+                }
+            }
+            else {
+                if (fifoWriteUpdate(reader->fifo, nbytes) != 0) {
+                    NPL_ADD1("Couldn't update FIFO with %l bytes of data",
+                            (long)nbytes);
+                    nplLog(LOG_ERR);
+                    status = 2;
+                    break;
+                }
             }
         }                                   /* FIFO space reserved */
     }                                       /* I/O loop */

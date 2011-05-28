@@ -181,7 +181,7 @@ check-noaaportIngester:	noaaportIngester
 	rm /tmp/noaaportIngester-test.pq
 
 root-ni-ck:
-	./noaaportIngester -n -q /tmp/noaaportIngester-test.pq \
+	./noaaportIngester -b 3 -q /tmp/noaaportIngester-test.pq \
 	    <$(srcdir)/nwstgdump.data
 
 valgrind:		valgrind-readnoaaport valgrind-noaaportIngester

@@ -16,6 +16,7 @@ struct fifo {
     unsigned char*      buf;        /**< Pointer to start of buffer */
     size_t              nextWrite;  /**< Offset to next byte to write */
     size_t              nbytes;     /**< Number of bytes in the buffer */
+    size_t              nreserved;  /**< Number of bytes reserved for writing */
     size_t              size;       /**< Size of buffer in bytes */
     pthread_mutex_t     mutex;      /**< Concurrent access lock */
     pthread_mutex_t     writeMutex; /**< Concurrent write access lock */
@@ -81,6 +82,7 @@ static int initializeFifo(
                             fifo->nextWrite = 0;
                             fifo->nbytes = 0;  /* indicates startup */
                             fifo->size = size;
+                            fifo->nreserved = 0;
                             fifo->closeIfEmpty = 0;
                             status = 0; /* success */
                         }               /* "fifo->writeCond" initialized */
@@ -150,10 +152,11 @@ int fifoNew(
 
 /**
  * Reserves space in a FIFO and returns a pointer to it. Blocks until the
- * requested amount of space is available. The client should call \link
- * fifoUpdate() \endlink when the space has been written into. Only one thread
- * can execute this function and the subsequent \link fifoUpdate() \endlink
- * at a time.
+ * requested amount of space is available. The client should subsequently call
+ * \link fifoUpdate() \endlink when the space has been written into or \link
+ * fifoCopy() \endlink. Only one thread can execute this function and the
+ * subsequent \link fifoUpdate() \endlink or \link fifoCopy() \endlink at a
+ * time.
  *
  * This function is thread-safe.
  *
@@ -166,11 +169,19 @@ int fifoWriteReserve(
     Fifo* const             fifo,       /**< [in/out] Pointer to the FIFO */
     const size_t            nbytes,     /**< [in] The amount of space to
                                          *   reserve */
-    unsigned char** const   bytes)      /**< [out] Pointer to the pointer to be
+    unsigned char** const   buf,        /**< [out] Pointer to the pointer to be
                                          *   set to the address of the reserved
                                          *   space */
+    size_t* const           size)       /**< [out] Amount of data, in bytes, 
+                                         *   that can be initially transferred.
+                                         *   If less than \e nbytes, then the
+                                         *   user must subsequently call
+                                         *   \c fifoCopy(); otherwise, the user
+                                         *   may call \c fifoCopy() or \c
+                                         *   write into \e buf and then call
+                                         *   \c fifoWriteUpdate(). */
 {
-    int             status = 0; /* default success */
+    int             status;
 
     if (nbytes > fifo->size) {
         NPL_START2("Requested space larger than FIFO: %lu > %lu", nbytes,
@@ -194,8 +205,12 @@ int fifoWriteReserve(
                         break;
                     }
 
-                    if ((fifo->size - fifo->nbytes) >= nbytes)
+                    if ((fifo->size - fifo->nbytes) >= nbytes) {
+                        *buf = fifo->buf + fifo->nextWrite;
+                        *size = fifo->size - fifo->nextWrite;
+                        fifo->nreserved = nbytes;
                         break;
+                    }
 
                     if ((status = pthread_cond_wait(&fifo->writeCond,
                                     &fifo->mutex)) != 0) {
@@ -204,10 +219,7 @@ int fifoWriteReserve(
                         status = 2;
                         break;
                     }
-                }
-
-                if (0 == status)
-                    *bytes = fifo->buf + fifo->nextWrite;
+                }                       /* condition wait-loop */
 
                 (void)pthread_mutex_unlock(&fifo->mutex);
             }                           /* "fifo->mutex" locked */
@@ -243,12 +255,10 @@ int fifoWriteUpdate(
         status = 2;
     }
     else {
-        if (nbytes > (fifo->size - fifo->nbytes)) {
-            NPL_START4("Amount written > amount possible: %lu > %l = (%lu-%lu)",
+        if (nbytes > fifo->nreserved) {
+            NPL_START2("Amount written > amount reserved: %lu > %lu",
                     (unsigned long)nbytes, 
-                    (long)(fifo->size - fifo->nbytes),
-                    (unsigned long)fifo->size,
-                    (unsigned long)fifo->nbytes);
+                    (unsigned long)fifo->nreserved);
             status = 1;                 /* usage error */
         }
         else {
@@ -260,6 +270,68 @@ int fifoWriteUpdate(
             else {
                 fifo->nextWrite = (fifo->nextWrite + nbytes) % fifo->size;
                 fifo->nbytes += nbytes;
+                fifo->nreserved = 0;
+
+                if ((status = pthread_mutex_unlock(&fifo->writeMutex)) != 0) {
+                    NPL_ERRNUM0(status, "Couldn't unlock write-mutex");
+                    status = 1;         /* Usage error */
+                }
+                else {
+                    status = 0;         /* success */
+                }
+            }
+        }
+
+        (void)pthread_mutex_unlock(&fifo->mutex);
+    }                                   /* "fifo->mutex" locked */
+
+    return status;
+}
+
+/**
+ * Copies bytes into the fifo.  This function must be called by the thread that
+ * returned from the previous call to \link fifoWriteReserve() \endlink. 
+ *
+ * @retval 0    Success
+ * @retval 1    Usage error. \c nplStart() called.
+ * @retval 2    O/S error. \c nplStart() called.
+ */
+int fifoCopy(
+    Fifo* const             fifo,   /**< [in] The FIFO */
+    unsigned char* const    buf,    /**< [in] The buffer to copy from */
+    const size_t            nbytes) /**< [in] The number of bytes to copy */
+{
+    int             status;
+
+    if ((status = pthread_mutex_lock(&fifo->mutex)) != 0) {
+        NPL_ERRNUM0(status, "Couldn't lock FIFO mutex");
+        status = 2;
+    }
+    else {
+        if (nbytes > fifo->nreserved) {
+            NPL_START2("Amount to copy > amount reserved: %lu > %lu",
+                    (unsigned long)nbytes, 
+                    (unsigned long)fifo->nreserved); 
+            status = 1;                 /* usage error */
+        }
+        else {
+            const size_t    avail = fifo->size - fifo->nextWrite;
+            size_t          n = avail < nbytes ? avail : nbytes;
+
+            (void)memcpy(fifo->buf + fifo->nextWrite, buf, n);
+
+            if (n < nbytes)
+                (void)memcpy(fifo->buf, buf + n, nbytes - n);
+
+            if ((status = pthread_cond_signal(&fifo->readCond)) != 0) {
+                NPL_ERRNUM0(status,
+                        "Couldn't signal reading condition variable");
+                status = 2;             /* Usage error */
+            }
+            else {
+                fifo->nextWrite = (fifo->nextWrite + nbytes) % fifo->size;
+                fifo->nbytes += nbytes;
+                fifo->nreserved = 0;
 
                 if ((status = pthread_mutex_unlock(&fifo->writeMutex)) != 0) {
                     NPL_ERRNUM0(status, "Couldn't unlock write-mutex");
@@ -289,15 +361,12 @@ int fifoWriteUpdate(
  * @retval 2    O/S error. \c nplStart() called.
  * @retval 3    FIFO is closed.
  */
-int fifoReadPeek(
-    Fifo* const                 fifo,   /**< [in/out] Pointer to FIFO */
-    const size_t                nbytes, /**< [in] The number of bytes to be
-                                         *   read */
-    const unsigned char** const data)   /**< [out] Pointer to pointer to FIFO
-                                         *   region containing the data to be
-                                         *   read */
+int fifoRead(
+    Fifo* const             fifo,   /**< [in/out] Pointer to FIFO */
+    unsigned char* const    buf,    /**< [out] Buffer into which to put data */
+    const size_t            nbytes) /**< [in] The number of bytes to be read */
 {
-    int status = 0;             /* default success */
+    int status;
 
     if (nbytes > fifo->size) {
         NPL_START2("Requested read amount is larger than FIFO: %lu > %lu",
@@ -341,101 +410,30 @@ int fifoReadPeek(
                     }
                     else {
                         ssize_t nextRead = fifo->nextWrite - fifo->nbytes;
+                        size_t  avail;
+                        size_t  n;
 
                         if (0 > nextRead)
                             nextRead += fifo->size;
 
-                        *data = fifo->buf + nextRead;
+                        avail = fifo->size - nextRead;
+                        n = avail < nbytes ? avail : nbytes;
+
+                        (void)memcpy(buf, fifo->buf + nextRead, n);
+
+                        if (n < nbytes)
+                            (void)memcpy(buf + n, fifo->buf, nbytes - n);
+
+                        fifo->nbytes -= nbytes;
                     }
                 }
 
                 (void)pthread_mutex_unlock(&fifo->mutex);
             }                           /* "fifo->mutex" locked */
 
-            if (0 != status)
-                (void)pthread_mutex_unlock(&fifo->readMutex);
+            (void)pthread_mutex_unlock(&fifo->readMutex);
         }                               /* "fifo->readMutex" locked */
     }                                   /* "nbytes" OK */
-
-    return status;
-}
-
-/**
- * Updates the FIFO based on a successful read of the data obtained from
- * \link fifoReadPeek() \endlink. This function must be called by the thread
- * that successfully called \link fifoReadPeek() \endlink.
- *
- * This function in thread-safe.
- *
- * @retval 0    Success
- * @retval 1    Usage error. \c nplStart() called.
- * @retval 2    O/S error. \c nplStart() called.
- */
-int fifoReadUpdate(
-    Fifo* const     fifo,   /**< [in/out] Pointer to FIFO */
-    const size_t    nbytes) /**< [in] The number of bytes read */
-{
-    int             status = 2; /* default failure */
-
-    if ((status = pthread_mutex_lock(&fifo->mutex)) != 0) {
-        NPL_ERRNUM0(status, "Couldn't lock mutex");
-        status = 2;
-    }
-    else {
-        if (nbytes > fifo->nbytes) {
-            NPL_START2("Amount read > amount possible: %lu > %lu", 
-                    (unsigned long)nbytes, (unsigned long)fifo->nbytes);
-            status = 1;
-        }
-        else {
-            if ((status = pthread_cond_signal(&fifo->readCond)) != 0) {
-                NPL_ERRNUM0(status,
-                        "Couldn't signal reading condition variable");
-                status = 2;
-            }
-            else {
-                fifo->nbytes -= nbytes;
-
-                if ((status = pthread_mutex_unlock(&fifo->readMutex)) != 0) {
-                    NPL_ERRNUM0(status, "Couldn't unlock read-mutex");
-                    status = 1;             /* Usage error */
-                }
-                else {
-                    status = 0;             /* success */
-                }
-            }
-        }
-
-        (void)pthread_mutex_unlock(&fifo->mutex);
-    }                                   /* "fifo->mutex" locked */
-
-    return status;
-}
-
-/**
- * Returns the next bytes from a FIFO. Blocks until sufficient data exists.
- *
- * This function is thread-safe.
- *
- * @retval 0    Success
- * @retval 1    Usage error. \c nplStart() called.
- * @retval 2    O/S error. \c nplStart() called.
- * @retval 3    FIFO is closed.
- */
-int fifoRead(
-    Fifo* const             fifo,   /**< [in/out] Pointer to FIFO */
-    unsigned char* const    data,   /**< [out] Pointer to buffer to copy bytes
-                                     *   into */
-    const size_t            nbytes) /**< [in] The number of bytes to copy */
-{
-    const unsigned char*    bytes;
-    int                     status = fifoReadPeek(fifo, nbytes, &bytes);
-
-    if (0 == status) {
-        (void)memcpy(data, bytes, nbytes);
-
-        status = fifoReadUpdate(fifo, nbytes);
-    }
 
     return status;
 }
