@@ -1,3 +1,6 @@
+1.7.0.13 	2011-05-28 12:20:30-06:00
+    Corrected wrap-around handling in FIFO. Both writing and reading.
+
 1.7.0.12 	2011-05-25 15:35:29-06:00
     Corrected "make check-noaaportIngester: had to execute noaaportIngester(1)
     as root.
