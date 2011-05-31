@@ -1757,7 +1757,9 @@ commitAndTag:
 release:	releaseCheck
 	-git commit -a
 	echo 'PUT VERSION HERE' >CHANGE_LOG.tmp
-	git log --pretty=full `git tag -l v\* | tail -1`.. >>CHANGE_LOG.tmp
+	git log --pretty=full `git tag -l v\* | \
+	    sort -t . -k 1.2n,1 -k 2n,2 -k 3n,3 -k 4n,4 | \
+	    tail -1`.. >>CHANGE_LOG.tmp
 	echo '' >>CHANGE_LOG.tmp
 	cat CHANGE_LOG >>CHANGE_LOG.tmp
 	vi CHANGE_LOG.tmp

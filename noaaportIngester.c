@@ -187,7 +187,7 @@ static void set_sigactions(void)
     (void)sigaction(SIGCONT, &sigact, NULL);
 
     /* Handle these */
-#ifdef SA_RESTART		/* SVR4, 4.3+ BSD */
+#ifdef SA_RESTART   /* SVR4, 4.3+ BSD */
     /* Usually, restart system calls */
     sigact.sa_flags |= SA_RESTART;
 #endif
@@ -198,7 +198,7 @@ static void set_sigactions(void)
 
     /* Don't restart after interrupt */
     sigact.sa_flags = 0;
-#ifdef SA_INTERRUPT		/* SunOS 4.x */
+#ifdef SA_INTERRUPT /* SunOS 4.x */
     sigact.sa_flags |= SA_INTERRUPT;
 #endif
     (void)sigaction(SIGINT, &sigact, NULL);
@@ -540,77 +540,79 @@ int main(
                 nplLog(LOG_ERR);
             }
             else {
-                pthread_attr_t  attr;
+                Reader* reader;
 
-                if (0 != (status = pthread_attr_init(&attr))) {
-                    NPL_ERRNUM0(status, "Couldn't initialize thread attribute");
+                if (NULL == mcastSpec) {
+                    if (0 == (status = spawnProductMaker(NULL, fifo, prodQueue,
+                                    &productMaker, &productMakerThread))) {
+                        status = spawnFileReader(NULL, NULL, fifo, &reader,
+                                &readerThread);
+                    }
+                }                               /* reading file */
+                else {
+                    pthread_attr_t  attr;
+
+                    if (0 != (status = pthread_attr_init(&attr))) {
+                        NPL_ERRNUM0(status,
+                                "Couldn't initialize thread attribute");
+                    }
+                    else {
+#ifndef _POSIX_THREAD_PRIORITY_SCHEDULING
+                        nplWarn("Can't adjust thread priorities due to lack of "
+                                "necessary support from environment");
+#else
+                        /*
+                         * In order to not miss any data, the reader thread
+                         * should preempt the product-maker thread as soon as
+                         * data is available and run as long as data is
+                         * available.
+                         */
+                        const int           SCHED_POLICY = SCHED_FIFO;
+                        struct sched_param  param;
+
+                        param.sched_priority =
+                            sched_get_priority_max(SCHED_POLICY) - 1;
+
+                        (void)pthread_attr_setinheritsched(&attr,
+                                PTHREAD_EXPLICIT_SCHED);
+                        (void)pthread_attr_setschedpolicy(&attr, SCHED_POLICY);
+                        (void)pthread_attr_setschedparam(&attr, &param);
+                        (void)pthread_attr_setscope(&attr,
+                                PTHREAD_SCOPE_SYSTEM);
+#endif
+                        if (0 == (status = spawnProductMaker(&attr, fifo,
+                                        prodQueue, &productMaker,
+                                        &productMakerThread))) {
+#ifdef _POSIX_THREAD_PRIORITY_SCHEDULING
+                            param.sched_priority++;
+                            (void)pthread_attr_setschedparam(&attr, &param);
+#endif
+                            status = spawnMulticastReader(&attr, mcastSpec,
+                                    interface, fifo, &reader, &readerThread);
+                        }                       /* product-maker spawned */
+                    }                           /* "attr" initialized */
+                }                               /* reading multicast packets */
+
+                if (0 != status) {
                     nplLog(LOG_ERR);
                     status = 1;
                 }
                 else {
-#ifndef _POSIX_THREAD_PRIORITY_SCHEDULING
-                    nplWarn("Can't adjust thread priorities due to lack of "
-                            "necessary support");
-#else
-                    /*
-                     * I want the reader thread to preempt the product-maker
-                     * thread whenever there's something to read and to run for
-                     * as long as there's something to read.
-                     */
-                    const int           SCHED_POLICY = SCHED_FIFO;
-                    struct sched_param  param;
+                    set_sigactions();
+                    (void)pthread_join(readerThread, NULL);
 
-                    param.sched_priority = sched_get_priority_max(SCHED_POLICY)
-                        - 1;
+                    status = readerStatus(reader);
 
-                    (void)pthread_attr_setinheritsched(&attr,
-                            PTHREAD_EXPLICIT_SCHED);
-                    (void)pthread_attr_setschedpolicy(&attr, SCHED_POLICY);
-                    (void)pthread_attr_setschedparam(&attr, &param);
-                    (void)pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
-#endif
+                    readerFree(reader);
+                }               /* "reader" spawned */
 
-                    if (0 != (status = spawnProductMaker(&attr, fifo, prodQueue,
-                                    &productMaker, &productMakerThread))) {
-                        nplLog(LOG_ERR);
-                    }
-                    else {
-                        Reader* reader;
+                fifoCloseWhenEmpty(fifo);
+                (void)pthread_join(productMakerThread, NULL);
 
-#ifdef _POSIX_THREAD_PRIORITY_SCHEDULING
-                        param.sched_priority++;
-                        (void)pthread_attr_setschedparam(&attr, &param);
-#endif
+                if (0 != status)
+                    status = pmStatus(productMaker);
 
-                        status = (NULL == mcastSpec)
-                            ? spawnFileReader(&attr, NULL, fifo, &reader,
-                                    &readerThread)
-                            : spawnMulticastReader(&attr, mcastSpec, interface,
-                                    fifo, &reader, &readerThread);
-
-                        if (0 != status) {
-                            nplLog(LOG_ERR);
-                            status = 1;
-                        }
-                        else {
-                            set_sigactions();
-                            (void)pthread_join(readerThread, NULL);
-
-                            status = readerStatus(reader);
-
-                            readerFree(reader);
-                        }               /* "reader" spawned */
-
-                        fifoCloseWhenEmpty(fifo);
-                        (void)pthread_join(productMakerThread, NULL);
-
-                        if (0 != status)
-                            status = pmStatus(productMaker);
-
-                        pmLogStats(productMaker);
-                    }                   /* "productMaker" spawned */
-                }                       /* "attr" initialized */
-
+                pmLogStats(productMaker);
                 (void)lpqClose(prodQueue);
             }                       /* "prodQueue" open */
         }                           /* "fifo" created */
