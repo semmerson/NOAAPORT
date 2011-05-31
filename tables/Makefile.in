@@ -197,11 +197,13 @@ dist_sysconf_DATA = \
 	g2varsncep1.tbl \
 	g2varswmo1.tbl \
 	g2varswmo2.tbl \
+	g2varswmo6.tbl \
 	g2vcrdncep0.tbl \
 	g2vcrdncep1.tbl \
 	g2vcrdwmo1.tbl \
 	g2vcrdwmo2.tbl \
 	g2vcrdwmo3.tbl \
+	g2vcrdwmo6.tbl \
 	grdnav.tbl \
 	wmocenter.tbl
 
