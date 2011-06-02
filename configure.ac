@@ -8,7 +8,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(NOAAPORT, 1.7.0.14, support-noaaport@unidata.ucar.edu)
+AC_INIT(NOAAPORT, 1.7.0.15, support-noaaport@unidata.ucar.edu)
 AC_CONFIG_SRCDIR([shmfifo.c])
 AC_CONFIG_AUX_DIR([.])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
