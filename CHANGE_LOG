@@ -1,3 +1,15 @@
+1.7.0.14 	2011-06-02 11:07:24-06:00
+    Moved statistics reporting.  Now in main module.  Reports from both reader
+    and product-maker.
+
+    Added 2 GEMPAK tables.
+
+    Reading from file => no thread priority changes
+    
+    Reduced cyclomatic complexity of noaaportIngester:main().
+
+    Improved "make release" rule: improved extraction of last tag.
+
 1.7.0.13 	2011-05-28 12:20:30-06:00
     Corrected wrap-around handling in FIFO. Both writing and reading.
 
