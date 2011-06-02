@@ -445,6 +445,7 @@ static void reportStats(void)
 {
     struct timeval          now;
     double                  interval;
+    double                  rate;
     char                    buf[80];
     int                     logmask;
     unsigned long           byteCount;
@@ -471,41 +472,48 @@ static void reportStats(void)
     interval = duration(&now, &reportTime);
     encodeDuration(buf, sizeof(buf), interval);
     nplAdd("        Duration          %s", buf);
-    nplAdd("        Data Rate:");
-    nplAdd("            Bytes         %g/s", byteCount/interval);
-    nplAdd("            Bits          %g/s", (CHAR_BIT)*byteCount/interval);
+    nplAdd("        Raw Data:");
+    nplAdd("            Octets        %lu", CHAR_BIT*byteCount/8);
+    nplAdd("            Mean Rate:");
+    rate = (byteCount/interval)*(CHAR_BIT/8.0);
+    nplAdd("                Octets    %g/s", rate);
+    nplAdd("                Bits      %g/s", 8*rate);
     nplAdd("        Received packets:");
     nplAdd("            Number        %lu", packetCount);
-    nplAdd("            Rate          %g/s", packetCount/interval);
+    nplAdd("            Mean Rate     %g/s", packetCount/interval);
     nplAdd("        Missed packets:");
     nplAdd("            Number        %lu", missedPacketCount);
     nplAdd("            %%             %g",
             100.0 * missedPacketCount / (missedPacketCount + packetCount));
     nplAdd("        Products:");
     nplAdd("            Inserted      %lu", prodCount);
-    nplAdd("            Rate          %g/s", prodCount/interval);
+    nplAdd("            Mean Rate     %g/s", prodCount/interval);
     nplAdd("    Since Start:");
     interval = duration(&now, &startTime);
     encodeDuration(buf, sizeof(buf), interval);
     nplAdd("        Duration          %s", buf);
-    nplAdd("        Data Rate:");
-    nplAdd("            Bytes         %g/s", totalByteCount/interval);
-    nplAdd("            Bits          %g/s", 
-            (CHAR_BIT)*totalByteCount/interval);
+    nplAdd("        Raw Data:");
+    nplAdd("            Octets        %lu", CHAR_BIT*totalByteCount/8);
+    nplAdd("            Mean Rate:");
+    rate = (totalByteCount/interval)*(CHAR_BIT/8.0);
+    nplAdd("                Octets    %g/s", rate);
+    nplAdd("                Bits      %g/s", 8*rate);
     nplAdd("        Received packets:");
     nplAdd("            Number        %lu", totalPacketCount);
-    nplAdd("            Rate          %g/s", totalPacketCount/interval);
+    nplAdd("            Mean Rate     %g/s", totalPacketCount/interval);
     nplAdd("        Missed packets:");
     nplAdd("            Number        %lu", totalMissedPacketCount);
     nplAdd("            %%             %g", 100.0 * totalMissedPacketCount /
             (totalMissedPacketCount + totalPacketCount));
     nplAdd("        Products:");
     nplAdd("            Inserted      %lu", totalProdCount);
-    nplAdd("            Rate          %g/s", totalProdCount/interval);
+    nplAdd("            Mean Rate     %g/s", totalProdCount/interval);
     nplAdd("----------------------------------------");
 
     nplLog(LOG_NOTICE);
     (void)setulogmask(logmask);
+
+    reportTime = now;
 }
 
 /**
