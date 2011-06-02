@@ -8,10 +8,13 @@
 #include <pthread.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include <ldm.h>
+#include <ulog.h>
 #include <pq.h>
 #include <md5.h>
 
@@ -22,22 +25,22 @@
 #include "productMaker.h"     /* Eat own dog food */
 
 struct productMaker {
-    Fifo*                   fifo;       /**< Pointer to FIFO from which to read
-                                          *  data */
+    Fifo*                   fifo;           /**< Pointer to FIFO from which to
+                                              *  read data */
     LdmProductQueue*        ldmProdQueue;   /**< LDM product-queue into which to
                                               *  put data-products */
     MD5_CTX*                md5ctxp;
-    unsigned long           nmissed;    /**< Running total of gaps in SBN
-                                          *  sequence numbers */
-    unsigned long           nprods;     /**< Running total of number of data-
-                                          *  products successfully inserted */
+    pthread_mutex_t         mutex;          /**< Object access lock */
+    unsigned long           npackets;       /**< Number of packets received */
+    unsigned long           nmissed;        /**< Number of missed packets */
+    unsigned long           nprods;         /**< Number of data-products
+                                              *  successfully inserted */
     sbn_struct              sbn;
     pdh_struct              pdh;
     psh_struct              psh;
     pdb_struct              pdb;
     ccb_struct              ccb;
     int                     status;     /**< Termination status */
-    volatile sig_atomic_t   logStats;   /**< Whether to log statistics or not */
     unsigned char           buf[10000]; /**< Read buffer */
 };
 
@@ -73,15 +76,20 @@ int pmNew(
             NPL_SERROR0("Couldn't allocate MD5 object");
         }
         else {
-            w->fifo = fifo;
-            w->ldmProdQueue = lpq;
-            w->nmissed = 0;
-            w->logStats = 0;
-            w->nprods = 0;
-            w->md5ctxp = md5ctxp;
-            w->status = 0;
-            *productMaker = w;
-            status = 0;
+            if ((status = pthread_mutex_init(&w->mutex, NULL)) != 0) {
+                NPL_ERRNUM0(status, "Couldn't initialize product-maker mutex");
+                status = 2;
+            }
+            else {
+                w->fifo = fifo;
+                w->ldmProdQueue = lpq;
+                w->npackets = 0;
+                w->nmissed = 0;
+                w->nprods = 0;
+                w->md5ctxp = md5ctxp;
+                w->status = 0;
+                *productMaker = w;
+            }
         }
     }
 
@@ -137,11 +145,6 @@ void* pmStart(
         int                 deflen;
         static const char*  FOS_TRAILER = "\015\015\012\003";
         int                 cnt;
-
-        if (productMaker->logStats) {
-            pmLogStats(productMaker);
-            productMaker->logStats = 0;
-        }
 
         /* Look for first byte == 255  and a valid SBN checksum */
         if ((status = fifoRead(fifo, buf, 1)) != 0) {
@@ -227,10 +230,17 @@ void* pmStart(
 
                     nplWarn("Gap in packet sequence: %lu to %lu [skipped %lu]",
                              last_sbn_seqno, sbn->seqno, gap);
+
+                    (void)pthread_mutex_lock(&productMaker->mutex);
                     productMaker->nmissed += gap;
+                    (void)pthread_mutex_unlock(&productMaker->mutex);
                 }
 
                 last_sbn_seqno = sbn->seqno;
+
+                (void)pthread_mutex_lock(&productMaker->mutex);
+                productMaker->npackets++;
+                (void)pthread_mutex_unlock(&productMaker->mutex);
             }                           /* non-retrograde packet number */
         }                               /* "last_sbn_seqno" initialized */
 
@@ -736,7 +746,10 @@ void* pmStart(
             prod.head = NULL;
             prod.tail = NULL;
             PNGINIT = 0;
+
+            (void)pthread_mutex_lock(&productMaker->mutex);
             productMaker->nprods++;
+            (void)pthread_mutex_unlock(&productMaker->mutex);
         }
         else {
             if (ulogIsDebug())
@@ -764,6 +777,33 @@ void* pmStart(
 }
 
 /**
+ * Returns statistics since the last time this function was called or \link
+ * pmStart() \endlink was called.
+ */
+void pmGetStatistics(
+    ProductMaker* const     productMaker,       /**< [in] Pointer to the
+                                                  *  product-maker */
+    unsigned long* const    packetCount,        /**< [out] Number of packets */
+    unsigned long* const    missedPacketCount,  /**< [out] Number of missed
+                                                  *  packets */
+    unsigned long* const    prodCount)          /**< [out] Number of products 
+                                                  *  inserted into the
+                                                  *  product-queue */
+{
+    (void)pthread_mutex_lock(&productMaker->mutex);
+
+    *packetCount = productMaker->npackets;
+    *missedPacketCount = productMaker->nmissed;
+    *prodCount = productMaker->nprods;
+
+    productMaker->npackets = 0;
+    productMaker->nmissed = 0;
+    productMaker->nprods = 0;
+
+    (void)pthread_mutex_unlock(&productMaker->mutex);
+}
+
+/**
  * Returns the termination status of a product-maker
  *
  * This function is thread-compatible but not thread-safe.
@@ -777,34 +817,4 @@ int pmStatus(
                                           */
 {
     return productMaker->status;
-}
-
-/**
- * Sets the log-statistics flag. Statistics will be logged at the beginning of
- * the next product.
- *
- * This function is thread-safe and safe to call from a signal-handler.
- */
-void pmSetLogStats(
-    ProductMaker* const productMaker)   /**< [in] Pointer to the product-maker
-                                          */
-{
-    productMaker->logStats = 1;
-}
-
-/**
- * Logs statistics at the NOTE level.
- *
- * This function is thread-compatible but not thread-safe. It is unsafe to call
- * from a signal-handler.
- */
-void pmLogStats(
-    ProductMaker* const productMaker)   /**< [in] Pointer to the product-maker
-                                          */
-{
-    nplNotice("----------------------------------------");
-    nplNotice("Ingestion Statistics:");
-    nplNotice("   Missed packets    %lu", productMaker->nmissed);
-    nplNotice("   Products inserted %lu", productMaker->nprods);
-    nplNotice("----------------------------------------");
 }

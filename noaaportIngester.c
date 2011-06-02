@@ -1,5 +1,5 @@
 /*
- *   Copyright 2011, University Corporation for Atmospheric Research.
+ *   Copyright © 2011, University Corporation for Atmospheric Research.
  *   See COPYRIGHT file for copying and redistribution conditions.
  */
 /**
@@ -14,10 +14,12 @@
 #define __EXTENSIONS__
 
 #include <errno.h>
+#include <limits.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -45,12 +47,18 @@
 #include "reader.h"
 
 static pthread_t        readerThread;
+static Reader*          reader;
 static ProductMaker*    productMaker;
 static pthread_t        productMakerThread;
 static const size_t     DEFAULT_NPAGES = 5000;
 static unsigned         logFacility = LOG_LDM;  /* default LDM facility */
 static const char*      COPYRIGHT_NOTICE = \
     "Copyright (C) 2011 University Corporation for Atmospheric Research";
+static struct timeval   startTime;      /**< Start of execution */
+static struct timeval   reportTime;     /**< Time of last report */
+static int              reportStatistics;
+static pthread_mutex_t  mutex;
+static pthread_cond_t   cond = PTHREAD_COND_INITIALIZER;
 
 /**
  * Unconditionally logs a usage message.
@@ -142,8 +150,12 @@ static void signal_handler(
             (void)pthread_cancel(readerThread);
             break;
         case SIGUSR1:
-            if (NULL != productMaker)
-                pmSetLogStats(productMaker);
+            if (NULL != reader) {
+                (void)pthread_mutex_lock(&mutex);
+                reportStatistics = 1;
+                (void)pthread_cond_signal(&cond);
+                (void)pthread_mutex_unlock(&mutex);
+            }
             break;
         case SIGUSR2: {
             unsigned logMask = getulogmask();
@@ -338,6 +350,191 @@ static int spawnMulticastReader(
     }
 
     return status;
+}
+
+/**
+ * Returns the time interval between two timestamps.
+ *
+ * @return the time interval, in seconds, between the two timestamps.
+ */
+static double duration(
+    const struct timeval*   later,      /**< [in] The later time */
+    const struct timeval*   earlier)    /**< [in] The earlier time */
+{
+    return (later->tv_sec - earlier->tv_sec) +
+        1e-6*(later->tv_usec - earlier->tv_usec);
+}
+
+/**
+ * Returns the string representation of a time interval.
+ *
+ * @return The string representation of the given time interval.
+ */
+static void encodeDuration(
+    char*       buf,        /**< [out] Buffer into which to encode the interval
+                              */
+    size_t      size,       /**< [in] Size of the buffer in bytes */
+    double      duration)   /**< [in] The time interval in seconds */
+{
+    unsigned    value;
+    int         nchar;
+    int         tPrinted = 0;
+
+    buf[size-1] = 0;
+
+    (void)strncpy(buf, "P", size);
+    buf++;
+    size--;
+
+    value = duration / 86400;
+
+    if (value > 0) {
+        nchar = snprintf(buf, size, "%uD", value);
+        buf += nchar;
+        size -= nchar;
+        duration -= 86400 * value;
+        duration = duration < 0 ? 0 : duration;
+    }
+
+    value = duration / 3600;
+
+    if (value > 0) {
+        nchar = snprintf(buf, size, "%TuD", value);
+        tPrinted = 1;
+        buf += nchar;
+        size -= nchar;
+        duration -= 3600 * value;
+        duration = duration < 0 ? 0 : duration;
+    }
+
+    value = duration / 60;
+
+    if (value > 0) {
+        if (!tPrinted) {
+            (void)strncpy(buf, "T", size);
+            buf++;
+            size--;
+            tPrinted = 1;
+        }
+
+        nchar = snprintf(buf, size, "%uD", value);
+        buf += nchar;
+        size -= nchar;
+        duration -= 60 * value;
+        duration = duration < 0 ? 0 : duration;
+    }
+
+    if (duration > 0) {
+        if (!tPrinted) {
+            (void)strncpy(buf, "T", size);
+            buf++;
+            size--;
+            tPrinted = 1;
+        }
+
+        nchar = snprintf(buf, size, "%fS", duration);
+        buf += nchar;
+        size -= nchar;
+    }
+}
+
+/**
+ * Reports statistics.
+ */
+static void reportStats(void)
+{
+    struct timeval          now;
+    double                  interval;
+    char                    buf[80];
+    int                     logmask;
+    unsigned long           byteCount;
+    unsigned long           packetCount, missedPacketCount, prodCount;
+    static unsigned long    totalPacketCount;
+    static unsigned long    totalMissedPacketCount;
+    static unsigned long    totalProdCount;
+    static unsigned long    totalByteCount;
+
+    (void)gettimeofday(&now, NULL);
+    readerGetStatistics(reader, &byteCount);
+    pmGetStatistics(productMaker, &packetCount, &missedPacketCount, &prodCount);
+
+    totalByteCount += byteCount;
+    totalPacketCount += packetCount;
+    totalMissedPacketCount += missedPacketCount;
+    totalProdCount += prodCount;
+
+    logmask = setulogmask(LOG_UPTO(LOG_NOTICE));
+
+    nplNotice("----------------------------------------");
+    nplNotice("Ingestion Statistics:");
+    nplNotice("    Since Previous Report:");
+    interval = duration(&now, &reportTime);
+    encodeDuration(buf, sizeof(buf), interval);
+    nplNotice("        Duration          %s", buf);
+    nplNotice("        Data Rate:");
+    nplNotice("            Bytes         %g/s", byteCount/interval);
+    nplNotice("            Bits          %g/s", (CHAR_BIT)*byteCount/interval);
+    nplNotice("        Received packets:");
+    nplNotice("            Number        %lu", packetCount);
+    nplNotice("            Rate          %g/s",
+            packetCount/interval);
+    nplNotice("        Missed packets:");
+    nplNotice("            Number        %lu", missedPacketCount);
+    nplNotice("            %%             %g",
+            100.0 * missedPacketCount /
+            (missedPacketCount + packetCount));
+    nplNotice("        Products:");
+    nplNotice("            Inserted      %lu", prodCount);
+    nplNotice("            Rate          %g/s", prodCount/interval);
+    nplNotice("    Since Start:");
+    interval = duration(&now, &startTime);
+    encodeDuration(buf, sizeof(buf), interval);
+    nplNotice("        Duration          %s", buf);
+    nplNotice("        Data Rate:");
+    nplNotice("            Bytes         %g/s", totalByteCount/interval);
+    nplNotice("            Bits          %g/s", 
+            (CHAR_BIT)*totalByteCount/interval);
+    nplNotice("        Received packets:");
+    nplNotice("            Number        %lu", totalPacketCount);
+    nplNotice("            Rate          %g/s",
+            totalPacketCount/interval);
+    nplNotice("        Missed packets:");
+    nplNotice("            Number        %lu", totalMissedPacketCount);
+    nplNotice("            %%             %g",
+            100.0 * totalMissedPacketCount /
+            (totalMissedPacketCount + totalPacketCount));
+    nplNotice("        Products:");
+    nplNotice("            Inserted      %lu", totalProdCount);
+    nplNotice("            Rate          %g/s",
+        totalProdCount/interval);
+    nplNotice("----------------------------------------");
+
+    (void)setulogmask(logmask);
+}
+
+/**
+ * Reports statistics when signaled.
+ */
+static void* reportStatsWhenSignaled(void)
+{
+    pthread_mutexattr_t attr;
+
+    (void)pthread_mutexattr_init(&attr);
+    (void)pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    (void)pthread_mutex_init(&mutex, &attr);
+
+    (void)pthread_mutex_lock(&mutex);
+
+    for (;;) {
+        while (!reportStatistics) {
+            (void)pthread_cond_wait(&cond, &mutex);
+        }
+
+        reportStats();
+        reportStatistics = 0;
+    }
+
+    return NULL;
 }
 
 /**
@@ -540,8 +737,6 @@ int main(
                 nplLog(LOG_ERR);
             }
             else {
-                Reader* reader;
-
                 if (NULL == mcastSpec) {
                     if (0 == (status = spawnProductMaker(NULL, fifo, prodQueue,
                                     &productMaker, &productMakerThread))) {
@@ -598,7 +793,16 @@ int main(
                     status = 1;
                 }
                 else {
+                    pthread_t   statThread;
+
+                    (void)gettimeofday(&startTime, NULL);
+                    reportTime = startTime;
+
+                    (void)pthread_create(&statThread, NULL,
+                            reportStatsWhenSignaled, NULL);
+
                     set_sigactions();
+
                     (void)pthread_join(readerThread, NULL);
 
                     status = readerStatus(reader);
@@ -612,7 +816,7 @@ int main(
                 if (0 != status)
                     status = pmStatus(productMaker);
 
-                pmLogStats(productMaker);
+                reportStats();
                 (void)lpqClose(prodQueue);
             }                       /* "prodQueue" open */
         }                           /* "fifo" created */

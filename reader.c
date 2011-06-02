@@ -17,11 +17,14 @@ struct reader {
     Fifo*           fifo;           /**< Pointer to FIFO into which to put data
                                       */
     unsigned char*  buf;            /**< Internal read buffer */
+    pthread_mutex_t mutex;          /**< Object access lock */
+    unsigned long   byteCount;      /**< Number of bytes received */
     size_t          maxSize;        /**< Maximum amount to read in a single
                                       *  call in bytes */
     size_t          nbytes;         /**< Amount of data in buffer in bytes */
     int             fd;             /**< File-descriptor to read from */
     volatile int    status;         /**< Termination status */
+
 };
 
 /**
@@ -57,13 +60,19 @@ int readerNew(
                     (unsigned long)maxSize);
         }
         else {
-            r->fifo = fifo;
-            r->fd = fd;
-            r->maxSize = maxSize;
-            r->buf = buf;
-            r->status = 0;
-            *reader = r;
-            status = 0;
+            if ((status = pthread_mutex_init(&r->mutex, NULL)) != 0) {
+                NPL_ERRNUM0(status, "Couldn't initialize product-maker mutex");
+                status = 2;
+            }
+            else {
+                r->byteCount = 0;
+                r->fifo = fifo;
+                r->fd = fd;
+                r->maxSize = maxSize;
+                r->buf = buf;
+                r->status = 0;
+                *reader = r;
+            }
         }
     }
 
@@ -142,6 +151,11 @@ void* readerStart(
                     status = 2;
                     break;
                 }
+                else {
+                    (void)pthread_mutex_lock(&reader->mutex);
+                    reader->byteCount += nbytes;
+                    (void)pthread_mutex_unlock(&reader->mutex);
+                }
             }
         }                                   /* FIFO space reserved */
     }                                       /* I/O loop */
@@ -149,6 +163,22 @@ void* readerStart(
     reader->status = status;
 
     return NULL;
+}
+
+/**
+ * Returns statistics since the last time this function was called or \link
+ * readerStart() \endlink was called.
+ */
+void readerGetStatistics(
+    Reader* const           reader, /**< [in] Pointer to the reader */
+    unsigned long* const    nbytes) /**< [out] Number of bytes received */
+{
+    (void)pthread_mutex_lock(&reader->mutex);
+
+    *nbytes = reader->byteCount;
+    reader->byteCount = 0;
+
+    (void)pthread_mutex_unlock(&reader->mutex);
 }
 
 /**
