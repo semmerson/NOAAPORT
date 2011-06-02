@@ -399,7 +399,7 @@ static void encodeDuration(
     value = duration / 3600;
 
     if (value > 0) {
-        nchar = snprintf(buf, size, "%TuD", value);
+        nchar = snprintf(buf, size, "%TuH", value);
         tPrinted = 1;
         buf += nchar;
         size -= nchar;
@@ -417,7 +417,7 @@ static void encodeDuration(
             tPrinted = 1;
         }
 
-        nchar = snprintf(buf, size, "%uD", value);
+        nchar = snprintf(buf, size, "%uM", value);
         buf += nchar;
         size -= nchar;
         duration -= 60 * value;
@@ -465,50 +465,46 @@ static void reportStats(void)
 
     logmask = setulogmask(LOG_UPTO(LOG_NOTICE));
 
-    nplNotice("----------------------------------------");
-    nplNotice("Ingestion Statistics:");
-    nplNotice("    Since Previous Report:");
+    nplStart("----------------------------------------");
+    nplAdd("Ingestion Statistics:");
+    nplAdd("    Since Previous Report (or Start):");
     interval = duration(&now, &reportTime);
     encodeDuration(buf, sizeof(buf), interval);
-    nplNotice("        Duration          %s", buf);
-    nplNotice("        Data Rate:");
-    nplNotice("            Bytes         %g/s", byteCount/interval);
-    nplNotice("            Bits          %g/s", (CHAR_BIT)*byteCount/interval);
-    nplNotice("        Received packets:");
-    nplNotice("            Number        %lu", packetCount);
-    nplNotice("            Rate          %g/s",
-            packetCount/interval);
-    nplNotice("        Missed packets:");
-    nplNotice("            Number        %lu", missedPacketCount);
-    nplNotice("            %%             %g",
-            100.0 * missedPacketCount /
-            (missedPacketCount + packetCount));
-    nplNotice("        Products:");
-    nplNotice("            Inserted      %lu", prodCount);
-    nplNotice("            Rate          %g/s", prodCount/interval);
-    nplNotice("    Since Start:");
+    nplAdd("        Duration          %s", buf);
+    nplAdd("        Data Rate:");
+    nplAdd("            Bytes         %g/s", byteCount/interval);
+    nplAdd("            Bits          %g/s", (CHAR_BIT)*byteCount/interval);
+    nplAdd("        Received packets:");
+    nplAdd("            Number        %lu", packetCount);
+    nplAdd("            Rate          %g/s", packetCount/interval);
+    nplAdd("        Missed packets:");
+    nplAdd("            Number        %lu", missedPacketCount);
+    nplAdd("            %%             %g",
+            100.0 * missedPacketCount / (missedPacketCount + packetCount));
+    nplAdd("        Products:");
+    nplAdd("            Inserted      %lu", prodCount);
+    nplAdd("            Rate          %g/s", prodCount/interval);
+    nplAdd("    Since Start:");
     interval = duration(&now, &startTime);
     encodeDuration(buf, sizeof(buf), interval);
-    nplNotice("        Duration          %s", buf);
-    nplNotice("        Data Rate:");
-    nplNotice("            Bytes         %g/s", totalByteCount/interval);
-    nplNotice("            Bits          %g/s", 
+    nplAdd("        Duration          %s", buf);
+    nplAdd("        Data Rate:");
+    nplAdd("            Bytes         %g/s", totalByteCount/interval);
+    nplAdd("            Bits          %g/s", 
             (CHAR_BIT)*totalByteCount/interval);
-    nplNotice("        Received packets:");
-    nplNotice("            Number        %lu", totalPacketCount);
-    nplNotice("            Rate          %g/s",
-            totalPacketCount/interval);
-    nplNotice("        Missed packets:");
-    nplNotice("            Number        %lu", totalMissedPacketCount);
-    nplNotice("            %%             %g",
-            100.0 * totalMissedPacketCount /
+    nplAdd("        Received packets:");
+    nplAdd("            Number        %lu", totalPacketCount);
+    nplAdd("            Rate          %g/s", totalPacketCount/interval);
+    nplAdd("        Missed packets:");
+    nplAdd("            Number        %lu", totalMissedPacketCount);
+    nplAdd("            %%             %g", 100.0 * totalMissedPacketCount /
             (totalMissedPacketCount + totalPacketCount));
-    nplNotice("        Products:");
-    nplNotice("            Inserted      %lu", totalProdCount);
-    nplNotice("            Rate          %g/s",
-        totalProdCount/interval);
-    nplNotice("----------------------------------------");
+    nplAdd("        Products:");
+    nplAdd("            Inserted      %lu", totalProdCount);
+    nplAdd("            Rate          %g/s", totalProdCount/interval);
+    nplAdd("----------------------------------------");
 
+    nplLog(LOG_NOTICE);
     (void)setulogmask(logmask);
 }
 
