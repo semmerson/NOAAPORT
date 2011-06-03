@@ -236,12 +236,12 @@ void* pmStart(
                     (void)pthread_mutex_unlock(&productMaker->mutex);
                 }
 
-                last_sbn_seqno = sbn->seqno;
-
                 (void)pthread_mutex_lock(&productMaker->mutex);
                 productMaker->npackets++;
                 (void)pthread_mutex_unlock(&productMaker->mutex);
             }                           /* non-retrograde packet number */
+
+            last_sbn_seqno = sbn->seqno;
         }                               /* "last_sbn_seqno" initialized */
 
         if (ulogIsVerbose())

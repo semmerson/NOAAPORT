@@ -399,7 +399,7 @@ static void encodeDuration(
     value = duration / 3600;
 
     if (value > 0) {
-        nchar = snprintf(buf, size, "%TuH", value);
+        nchar = snprintf(buf, size, "T%uH", value);
         tPrinted = 1;
         buf += nchar;
         size -= nchar;
