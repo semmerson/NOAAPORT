@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
+#include <limits.h>
 #include <unistd.h>
 
 #include <ldm.h>
@@ -119,7 +120,7 @@ void* pmStart(
     pdb_struct*         pdb = &productMaker->pdb;
     ccb_struct*         ccb = &productMaker->ccb;
     unsigned long       last_sbn_seqno;
-    int                 last_sbn_seqno_initialized = 0;
+    unsigned long       last_sbn_runno = ULONG_MAX;
     int                 PNGINIT = 0;
     char*               memheap = NULL;
     MD5_CTX*            md5ctxp = productMaker->md5ctxp;
@@ -211,9 +212,8 @@ void* pmStart(
 
         if (ulogIsDebug())
             nplDebug("***********************************************");
-        if (!last_sbn_seqno_initialized) {
-            last_sbn_seqno = sbn->seqno;
-            last_sbn_seqno_initialized = 1;
+        if (last_sbn_runno != sbn->runno) {
+            last_sbn_runno = sbn->runno;
         }
         else {
             unsigned long   delta = sbn->seqno - last_sbn_seqno;
@@ -240,9 +240,8 @@ void* pmStart(
                 productMaker->npackets++;
                 (void)pthread_mutex_unlock(&productMaker->mutex);
             }                           /* non-retrograde packet number */
-
-            last_sbn_seqno = sbn->seqno;
         }                               /* "last_sbn_seqno" initialized */
+        last_sbn_seqno = sbn->seqno;
 
         if (ulogIsVerbose())
             nplInfo("SBN seqnumber %ld", sbn->seqno);
