@@ -1,3 +1,8 @@
+1.7.0.18 	2011-06-03 15:53:36-06:00
+
+    Made use of SBN run identifier in noaaportIngester: last SBN sequence
+    number now undefined when SBN run identifier changes.
+
 1.7.0.17 	2011-06-03 09:20:30-06:00
     Corrected statistics reporting: changed "%Tu" to "T%u" (dummy!).
 
