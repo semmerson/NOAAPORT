@@ -1,5 +1,5 @@
 /*
- *   Copyright 2011, University Corporation for Atmospheric Research.
+ *   Copyright © 2011, University Corporation for Atmospheric Research.
  *   See file COPYRIGHT for copying and redistribution conditions.
  */
 #define _XOPEN_SOURCE 500

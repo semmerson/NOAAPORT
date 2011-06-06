@@ -522,7 +522,9 @@ static void reportStats(void)
 static void* reportStatsWhenSignaled(void* arg)
 {
     pthread_mutexattr_t attr;
+    int                 oldType;
 
+    (void)pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldType);
     (void)pthread_mutexattr_init(&attr);
     (void)pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     (void)pthread_mutex_init(&mutex, &attr);
@@ -811,16 +813,18 @@ int main(
 
                     status = readerStatus(reader);
 
+                    (void)pthread_cancel(statThread);
+                    (void)pthread_join(statThread, NULL);
+                    (void)fifoCloseWhenEmpty(fifo);
+                    (void)pthread_join(productMakerThread, NULL);
+
+                    if (0 != status)
+                        status = pmStatus(productMaker);
+
+                    reportStats();
                     readerFree(reader);
                 }               /* "reader" spawned */
 
-                fifoCloseWhenEmpty(fifo);
-                (void)pthread_join(productMakerThread, NULL);
-
-                if (0 != status)
-                    status = pmStatus(productMaker);
-
-                reportStats();
                 (void)lpqClose(prodQueue);
             }                       /* "prodQueue" open */
         }                           /* "fifo" created */
