@@ -1,140 +1,18 @@
-1.7.0.18 	2011-06-03 15:53:36-06:00
-
-    Made use of SBN run identifier in noaaportIngester: last SBN sequence
-    number now undefined when SBN run identifier changes.
-
-1.7.0.17 	2011-06-03 09:20:30-06:00
-    Corrected statistics reporting: changed "%Tu" to "T%u" (dummy!).
-
-    Corrected retrograde packet reporting: last packet number unconditionally
-    reset every time to prevent plethora of subsequent warning messages.
-
-1.7.0.16 	2011-06-02 12:33:24-06:00
-    Corrected and improved statistics reporting.
-
-1.7.0.15 	2011-06-02 11:29:37-06:00
-    Improved statistics reporting: corrected duration encoding and
-    replaced nplNotice() with nplStart() and nplAdd().
-
-1.7.0.14 	2011-06-02 11:07:24-06:00
-    Moved statistics reporting.  Now in main module.  Reports from both reader
-    and product-maker.
-
-    Added 2 GEMPAK tables.
-
-    Reading from file => no thread priority changes
-    
-    Reduced cyclomatic complexity of noaaportIngester:main().
-
-    Improved "make release" rule: improved extraction of last tag.
-
-1.7.0.13 	2011-05-28 12:20:30-06:00
-    Corrected wrap-around handling in FIFO. Both writing and reading.
-
-1.7.0.12 	2011-05-25 15:35:29-06:00
-    Corrected "make check-noaaportIngester: had to execute noaaportIngester(1)
-    as root.
-
-1.7.0.11 	2011-05-25 15:24:39-06:00
-    Added thread priority:
-        Both reader and product-maker threads have their scheduler set to
-        SCHED-FIFO and their priorities adjusted.  Reader thread's priority is
-        higher than product-maker's.
-
-        noaaportIngester(1) is now necessarily installed setuid-root.
-
-1.7.0.10
-    Solaris porting.
-    
-    Reverted __XOPEN_SOURCE__ to 600 in "readnoaaportLog.c" to accomodate
-    Solaris, which requires the c99(1) compiler in such cases.
-
-1.7.0.10 	2011-05-24 09:41:14-06:00
-
-    Solaris porting: reverted __XOPEN_SOURCE__ to 600 in "readnoaaportLog.c" to
-    accomodate Solaris, which requires the c99(1) compiler in such cases.
-
-1.7.0.9 	2011-05-23 12:43:12-06:00
-    Corrected handling of read() return-value in "reader.c".
-
-    Improved logging module
-
-    Made MAINTAINER determination more robust
-
-    Reverted to printing of "make check" log messages
-
-1.7.0.8 	2011-05-20 13:04:39-06:00
-    Created thread-safe "noaaportLog" module and modified sources to use it.
-    Hopefully, this will prevent crashes due to threads stepping on each other
-    in the logging module.
-
-1.7.0.7 	2011-05-18 17:11:44-06:00
-    Corrected retrograde packet determination: treat packet number like
-    unsigned 4-octet integer and use modulus arithmetic.
-
-1.7.0.6 	2011-05-18 15:18:21-06:00
-    More LDM 6.8 porting
-
-1.7.0.5 	2011-05-18 14:46:54-06:00
-    Corrected LOG_SERROR* in "noaaportLog.h"
-
-1.7.0.4 	2011-05-18 14:30:23-06:00
-    Added "noaaportLog.h" to repository.
-
-1.7.0.3 	2011-05-18 14:27:23-06:00
-    Ported to Solaris and LDM 6.8. In particular, created "noaaportLog.h" to
-    accomodate LDM 6.8.
-
-1.7.0.2 	2011-05-18 11:22:08-06:00
-    Release Engineering:
-        Deleted hdlcrecv(1)-using scripts.
-
-        Added "downloads" updating to "make available"
-
-        Improved makefile generation of html/ documentation
-    
-        Added dependency on "configure.ac" to "html/index.html".
-    
-        Added dependency on "html/index.html" to "all".
-
-        Improved "make releaseCheck"
-
-        Added test to ensure that no tag corresponds to the current version.
-
-    Installation:
-        Added noaaportIngester(1).
-
-        Added search for pthread(3) library to "configure.ac".
-
-    noaaportIngester:
-        Corrected handling of isolated retrograde packets: no longer count
-        against "missed packets".
-
-        Ported "multicastReader.c" to Solaris.
-
-        Corrected SIGTERM termination.
-
-        Corrected concurrency in "reader.c".
-
-    readnoaaport:
-        Modified to use ldmProductQueue(3).
+1.7.0
+    noaaportIngester(1):
+        Created this program, which is a merger of dvbs_multicast(1) and
+        readnoaaport(1) into one, multi-threaded program.
 
     Misc:
-        Removed valgrind(1) lint.
+        Deleted hdlcrecv(1)-using scripts.
 
         Converted scripts to use noaaportIngester(1).
-
-        Added "noaaportIngester.c" to "Doxyfile".
-
-        Added noaaportIngester(1) to "mainpage.h.in".
 
         Moved getFaciltyName() to its own file in order to port to Solaris.
 
         Made reporting of products a NOTE level message.
 
-        Improved doxygen documentation.
-
-        Modified process_prod(3) to use ldmProductQueue(3).
+        Added 2 GEMPAK tables.
 
 1.6.2 	2011-05-04 12:28:49-06:00
     Improved release-engineering rules in makefile.
