@@ -519,7 +519,7 @@ static void reportStats(void)
 /**
  * Reports statistics when signaled.
  */
-static void* reportStatsWhenSignaled(void)
+static void* reportStatsWhenSignaled(void* arg)
 {
     pthread_mutexattr_t attr;
 
