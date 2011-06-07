@@ -20541,7 +20541,6 @@ else
     sysconfdir='${LDMHOME}/etc'
     localstatedir='${LDMHOME}/var'
 fi
-#AM_COND_IF([MAINTAINER], [UD_PREFIX(..)], [UD_PREFIX(.)])
 { $as_echo "$as_me:$LINENO: result: $prefix" >&5
 $as_echo "$prefix" >&6; }
 

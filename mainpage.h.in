@@ -36,6 +36,8 @@
  wget ftp://ftp.unidata.ucar.edu/pub/noaaport/@PACKAGE@-@VERSION@.tar.gz
  gunzip -c @PACKAGE@-@VERSION@.tar.gz | tar -xf -
 \endverbatim
+ * Stop the LDM system if it's running.
+ *
  * Drop into the package directory and build the package using the same options
  * that were used to build the LDM package (which are displayed near the top
  * of the file \c config.log in the top-level LDM source-directory):
@@ -47,15 +49,18 @@
  * Unless the option \c --disable-root-actions is given, the \c configure
  * script will ask for the password of the superuser (i.e., \c root) or,
  * failing that, the password of the LDM user (in order to use
- * <tt>sudo(1)</tt>). The reason for this is because each \link dvbs_multicast.c
+ * <tt>sudo(1)</tt>). The reason for this is because each \link
+ * noaaportIngester.c \c noaaportIngester \endlink process must be owned by \c
+ * root in order to 
+ * adjust the priorities of its realtime threads and each \link dvbs_multicast.c
  * \c dvbs_multicast \endlink process must be owned by \c root in
  * order to lock itself into memory (so that it's not swapped-out by the
- * memory-management system) in order to reduce the risk of missing a broadcast
+ * memory-management system). These adjustments are done in order to reduce the
+ * risk of missing a broadcast
  * UDP packet. You may choose to not give root's password or the LDM user's
  * password to the \c configure script -- in which case the superuser (root)
  * will have to manually execute the command <tt>make root-actions</tt> after
  * the package has been installed.
- *
  * <hr>
  *
  * @section configuration Configuration
@@ -96,6 +101,8 @@
  * readnoaaport \endlink process.  There must be one \link readnoaaport.c \c
  * readnoaaport \endlink process for each \link dvbs_multicast.c \c
  * dvbs_multicast \endlink process.
+ *
+ * Restart the LDM system, if appropriate.
  *
  * <hr>
  *

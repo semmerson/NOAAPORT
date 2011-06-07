@@ -202,7 +202,6 @@ else
     sysconfdir='${LDMHOME}/etc'
     localstatedir='${LDMHOME}/var'
 fi
-#AM_COND_IF([MAINTAINER], [UD_PREFIX(..)], [UD_PREFIX(.)])
 AC_MSG_RESULT([$prefix])
 
 AC_MSG_CHECKING([LDMHOME]);
