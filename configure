@@ -20530,7 +20530,17 @@ esac
 
 { $as_echo "$as_me:$LINENO: checking the installation prefix" >&5
 $as_echo_n "checking the installation prefix... " >&6; };
-test -z "$prefix" -o "$prefix" = NONE && prefix=`(cd .. && pwd)`
+if test -z "$prefix" -o "$prefix" = NONE; then
+    if test "$LDMHOME"; then
+        prefix="$LDMHOME"
+    else
+        prefix=`(cd .. && pwd)`
+    fi
+else
+    test "$LDMHOME" || LDMHOME=$HOME
+    sysconfdir='${LDMHOME}/etc'
+    localstatedir='${LDMHOME}/var'
+fi
 #AM_COND_IF([MAINTAINER], [UD_PREFIX(..)], [UD_PREFIX(.)])
 { $as_echo "$as_me:$LINENO: result: $prefix" >&5
 $as_echo "$prefix" >&6; }

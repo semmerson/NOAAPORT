@@ -191,7 +191,17 @@ case "$CC" in
 esac
 
 AC_MSG_CHECKING([the installation prefix]);
-test -z "$prefix" -o "$prefix" = NONE && prefix=`(cd .. && pwd)`
+if test -z "$prefix" -o "$prefix" = NONE; then
+    if test "$LDMHOME"; then
+        prefix="$LDMHOME"
+    else
+        prefix=`(cd .. && pwd)`
+    fi
+else
+    test "$LDMHOME" || LDMHOME=$HOME
+    sysconfdir='${LDMHOME}/etc'
+    localstatedir='${LDMHOME}/var'
+fi
 #AM_COND_IF([MAINTAINER], [UD_PREFIX(..)], [UD_PREFIX(.)])
 AC_MSG_RESULT([$prefix])
 
