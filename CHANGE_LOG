@@ -1,5 +1,14 @@
-1.7.1.1 	2011-06-07 10:28:58-06:00
-    Improved installation, in particular the setting of the "prefix" variable.
+1.7.1 	2011-06-16 16:45:37-06:00
+    Added "Preinstallation" section to the documentation. Contains commentary
+    on changing the kernel parameter "net.ipv4.ipfrag_max_dist" from its
+    default value on Redhat systems.
+
+    Improved installation instructions:
+        Added commentary about stopping the LDM system.
+        Added "noaaportIngester" to rationale for giving root password.
+
+    Improved the automatic setting of the "prefix" variable by the configure(1)
+    script.
 
 1.7.0 	2011-06-06 10:51:36-06:00
     noaaportIngester(1):
