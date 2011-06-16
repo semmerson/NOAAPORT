@@ -4,6 +4,7 @@
  * @section contents Table of Contents
  * - \ref legal
  * - \ref introduction
+ * - \ref preinstallation
  * - \ref installation
  * - \ref configuration
  * - \ref logging
@@ -26,6 +27,20 @@
  * readnoaaport \endlink program.  The shared-memory FIFO is used to buffer the
  * flow of data from the \link dvbs_multicast.c \c dvbs_multicast \endlink
  * program to the \link readnoaaport.c \c readnoaaport \endlink program.
+ *
+ * <hr>
+ *
+ * @section preinstallation Preinstallation
+ * Operating systems based on Redhat Linux (including Fedora) must have the
+ * kernel parameter \c net.ipv4.ipfrag_max_dist modified from its default value
+ * of 64 in order to correctly receive all broadcast UDP packets without any
+ * gaps.  The value should be set to 4096 or higher or the value should be set
+ * to 0 in order to disable the check of the sequencing of IP fragments. For
+ * example, as \c root, execute the commands
+ * \verbatim
+ sysctl -w net.ipv4.ipfrag_max_dist=4096
+ sysctl -p
+\endverbatim
  *
  * <hr>
  *

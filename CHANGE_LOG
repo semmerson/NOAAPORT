@@ -1,5 +1,5 @@
 1.7.1.1 	2011-06-07 10:28:58-06:00
-    Improved installation
+    Improved installation, in particular the setting of the "prefix" variable.
 
 1.7.0 	2011-06-06 10:51:36-06:00
     noaaportIngester(1):
